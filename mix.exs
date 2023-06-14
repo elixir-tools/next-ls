@@ -25,6 +25,7 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:gen_lsp, "~> 0.1"},
+      {:ex_doc, ">= 0.0.0", only: :dev},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end
@@ -34,7 +35,8 @@ defmodule NextLS.MixProject do
       maintainers: ["Mitchell Hanberg"],
       licenses: ["MIT"],
       links: %{
-        github: "https://github.com/elixir-tools/next-ls"
+        GitHub: "https://github.com/elixir-tools/next-ls",
+        Sponsor: "https://github.com/sponsors/mhanberg"
       },
       files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
