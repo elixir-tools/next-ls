@@ -4,9 +4,11 @@ defmodule NextLS.MixProject do
   def project do
     [
       app: :next_ls,
+      description: "The langauge server for Elixir that just works",
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
+      package: package(),
       deps: deps()
     ]
   end
@@ -22,10 +24,19 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:gen_lsp, "~> 0.1"},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
+    ]
+  end
 
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+  defp package() do
+    [
+      maintainers: ["Mitchell Hanberg"],
+      licenses: ["MIT"],
+      links: %{
+        github: "https://github.com/elixir-tools/next-ls"
+      },
+      files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
   end
 end
