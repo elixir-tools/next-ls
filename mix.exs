@@ -9,7 +9,8 @@ defmodule NextLS.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       package: package(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: [ignore_warnings: ".dialyzer_ignore.exs"]
     ]
   end
 
