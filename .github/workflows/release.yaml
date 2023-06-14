@@ -1,0 +1,64 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        otp: [25.3]
+        elixir: [1.14.x]
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: elixir
+          package-name: next_ls
+          extra-files: |
+            bin/nextls
+
+      - uses: actions/checkout@v3
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/cache@v3
+        id: cache
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
+
+      - name: Install Dependencies
+        if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
+        run: mix deps.get
+
+      - name: publish to hex
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          HEX_API_KEY: ${{secrets.HEX_API_KEY}}
+        run: |
+          mix hex.publish --yes
+
+      - name: Upload Release Artifact
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls
