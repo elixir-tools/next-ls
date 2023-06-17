@@ -32,11 +32,16 @@ defmodule NextLS.Runtime do
     end
   end
 
+  def compile(server) do
+    GenServer.call(server, :compile)
+  end
+
   @impl GenServer
   def init(opts) do
     sname = "nextls#{System.system_time()}"
     working_dir = Keyword.fetch!(opts, :working_dir)
     parent = Keyword.fetch!(opts, :parent)
+    extension_registry = Keyword.fetch!(opts, :extension_registry)
 
     port =
       Port.open(
@@ -80,21 +85,13 @@ defmodule NextLS.Runtime do
         |> Path.join("monkey/_next_ls_private_compiler.ex")
         |> then(&:rpc.call(node, Code, :compile_file, [&1]))
 
-        :ok =
-          :rpc.call(
-            node,
-            :_next_ls_private_compiler,
-            :compile,
-            []
-          )
-
         send(me, {:node, node})
       else
         _ -> send(me, :cancel)
       end
     end)
 
-    {:ok, %{port: port, parent: parent}}
+    {:ok, %{port: port, parent: parent, errors: nil, extension_registry: extension_registry}}
   end
 
   @impl GenServer
@@ -109,6 +106,20 @@ defmodule NextLS.Runtime do
   def handle_call({:call, {m, f, a}}, _from, %{node: node} = state) do
     reply = :rpc.call(node, m, f, a)
     {:reply, reply, state}
+  end
+
+  def handle_call(:compile, _, %{node: node} = state) do
+    {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
+
+    foo = "foo"
+
+    Registry.dispatch(state.extension_registry, :extension, fn entries ->
+      for {pid, _} <- entries do
+        send(pid, {:compiler, errors})
+      end
+    end)
+
+    {:reply, errors, %{state | errors: errors}}
   end
 
   @impl GenServer

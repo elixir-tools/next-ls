@@ -33,10 +33,16 @@ defmodule NextLS.LSPSupervisor do
         end
 
       children = [
-        {DynamicSupervisor, name: NextLS.RuntimeSupervisor},
+        {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
         {GenLSP.Buffer, buffer_opts},
-        {NextLS, task_supervisor: NextLS.TaskSupervisor, runtime_supervisor: NextLS.RuntimeSupervisor}
+        {NextLS.DiagnosticCache, [name: :diagnostic_cache]},
+        {Registry, name: NextLS.ExtensionRegistry, keys: :duplicate},
+        {NextLS,
+         cache: :diagnostic_cache,
+         task_supervisor: NextLS.TaskSupervisor,
+         dynamic_supervisor: NextLS.DynamicSupervisor,
+         extension_registry: NextLS.ExtensionRegistry}
       ]
 
       Supervisor.init(children, strategy: :one_for_one)

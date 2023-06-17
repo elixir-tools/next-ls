@@ -28,13 +28,39 @@ defmodule NextLs.RuntimeTest do
     [logger: logger, cwd: Path.absname(tmp_dir)]
   end
 
-  test "can run code on the node", %{logger: logger, cwd: cwd} do
+  test "compiles the code and returns diagnostics", %{logger: logger, cwd: cwd} do
+    start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
+
     capture_log(fn ->
-      pid = start_supervised!({Runtime, working_dir: cwd, parent: logger})
+      pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
 
       Process.link(pid)
 
       assert wait_for_ready(pid)
+
+      file = Path.join(cwd, "lib/bar.ex")
+
+      assert [
+               %Mix.Task.Compiler.Diagnostic{
+                 file: ^file,
+                 severity: :warning,
+                 message:
+                   "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+                 position: 2,
+                 compiler_name: "Elixir",
+                 details: nil
+               }
+             ] = Runtime.compile(pid)
+
+      File.write!(file, """
+      defmodule Bar do
+        def foo(arg1) do
+          arg1
+        end
+      end
+      """)
+
+      assert [] == Runtime.compile(pid)
     end) =~ "Connected to node"
   end
 
