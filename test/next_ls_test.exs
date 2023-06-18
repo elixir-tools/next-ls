@@ -12,11 +12,17 @@ defmodule NextLSTest do
 
     tvisor = start_supervised!(Task.Supervisor)
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
+    start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
+    extensions = [NextLS.ElixirExtension]
+    cache = start_supervised!(NextLS.DiagnosticCache)
 
     server =
       server(NextLS,
         task_supervisor: tvisor,
-        runtime_supervisor: rvisor
+        dynamic_supervisor: rvisor,
+        extension_registry: Registry.NextLSTest,
+        extensions: extensions,
+        cache: cache
       )
 
     Process.link(server.lsp)
@@ -46,10 +52,8 @@ defmodule NextLSTest do
                params: %{}
              })
 
-    assert_notification(
-      "window/logMessage",
-      %{"message" => "[NextLS] Runtime ready..."}
-    )
+    assert_notification "window/logMessage",
+                        %{"message" => "[NextLS] Runtime ready..."}
 
     assert :ok ==
              request(client, %{
@@ -121,71 +125,51 @@ defmodule NextLSTest do
     )
   end
 
-  @tag :pending
-  test "publishes diagnostics once the client has initialized", %{
-    client: _client,
-    cwd: _cwd
-  } do
-    # assert :ok ==
-    #          notify(client, %{
-    #            method: "initialized",
-    #            jsonrpc: "2.0",
-    #            params: %{}
-    #          })
+  test "publishes diagnostics once the client has initialized", %{client: client, cwd: cwd} do
+    assert :ok ==
+             notify(client, %{
+               method: "initialized",
+               jsonrpc: "2.0",
+               params: %{}
+             })
 
-    # assert_notification(
-    #   "window/logMessage",
-    #   %{
-    #     "message" => "[NextLS] LSP Initialized!",
-    #     "type" => 4
-    #   }
-    # )
+    assert_notification(
+      "window/logMessage",
+      %{
+        "message" => "[NextLS] LSP Initialized!",
+        "type" => 4
+      }
+    )
 
     # assert_notification("$/progress", %{"value" => %{"kind" => "begin"}})
 
-    # for file <- ["foo.ex", "bar.ex"] do
-    #   uri =
-    #     to_string(%URI{
-    #       host: "",
-    #       scheme: "file",
-    #       path: Path.join([cwd, "lib", file])
-    #     })
+    for file <- ["bar.ex"] do
+      uri =
+        to_string(%URI{
+          host: "",
+          scheme: "file",
+          path: Path.join([cwd, "lib", file])
+        })
 
-    #   assert_notification(
-    #     "textDocument/publishDiagnostics",
-    #     %{
-    #       "uri" => ^uri,
-    #       "diagnostics" => [
-    #         %{
-    #           "source" => "credo",
-    #           "code" => "NextLS.Check.Readability.ModuleDoc",
-    #           "codeDescription" => %{
-    #             "href" => "https://hexdocs.pm/credo/NextLS.Check.Readability.ModuleDoc.html"
-    #           },
-    #           "severity" => 3
-    #         }
-    #       ]
-    #     }
-    #   )
-    # end
-
-    # uri =
-    #   to_string(%URI{
-    #     host: "",
-    #     scheme: "file",
-    #     path: Path.join([cwd, "lib", "code_action.ex"])
-    #   })
-
-    # assert_notification(
-    #   "textDocument/publishDiagnostics",
-    #   %{
-    #     "uri" => ^uri,
-    #     "diagnostics" => [
-    #       %{"severity" => 3},
-    #       %{"severity" => 3}
-    #     ]
-    #   }
-    # )
+      assert_notification(
+        "textDocument/publishDiagnostics",
+        %{
+          "uri" => ^uri,
+          "diagnostics" => [
+            %{
+              "source" => "Elixir",
+              "severity" => 2,
+              "message" =>
+                "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+              "range" => %{
+                "start" => %{"line" => 1, "character" => 0},
+                "end" => %{"line" => 1, "character" => 999}
+              }
+            }
+          ]
+        }
+      )
+    end
 
     # assert_notification(
     #   "$/progress",

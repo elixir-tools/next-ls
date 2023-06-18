@@ -5,6 +5,8 @@ defmodule :_next_ls_private_compiler do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
 
+    Mix.Task.clear()
+
     # load the paths for deps and compile them
     # will noop if they are already compiled
     # The mix cli basically runs this before any mix task
@@ -13,9 +15,7 @@ defmodule :_next_ls_private_compiler do
     # --no-compile, so nothing was compiled, but the
     # task was not re-enabled it seems
     Mix.Task.rerun("deps.loadpaths")
-    Mix.Task.rerun("compile")
-
-    :ok
+    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors"])
   rescue
     e -> {:error, e}
   end

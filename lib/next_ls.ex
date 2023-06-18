@@ -29,8 +29,18 @@ defmodule NextLS do
     TextDocumentSyncOptions
   }
 
+  alias NextLS.Runtime
+  alias NextLS.DiagnosticCache
+
   def start_link(args) do
-    {args, opts} = Keyword.split(args, [:task_supervisor, :runtime_supervisor])
+    {args, opts} =
+      Keyword.split(args, [
+        :cache,
+        :task_supervisor,
+        :dynamic_supervisor,
+        :extensions,
+        :extension_registry
+      ])
 
     GenLSP.start_link(__MODULE__, args, opts)
   end
@@ -38,15 +48,21 @@ defmodule NextLS do
   @impl true
   def init(lsp, args) do
     task_supervisor = Keyword.fetch!(args, :task_supervisor)
-    runtime_supervisor = Keyword.fetch!(args, :runtime_supervisor)
+    dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
+    extension_registry = Keyword.fetch!(args, :extension_registry)
+    extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
+    cache = Keyword.fetch!(args, :cache)
 
     {:ok,
      assign(lsp,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
+       cache: cache,
        task_supervisor: task_supervisor,
-       runtime_supervisor: runtime_supervisor,
+       dynamic_supervisor: dynamic_supervisor,
+       extension_registry: extension_registry,
+       extensions: extensions,
        runtime_task: nil,
        ready: false
      )}
@@ -90,12 +106,20 @@ defmodule NextLS do
 
     working_dir = URI.parse(lsp.assigns.root_uri).path
 
+    for extension <- lsp.assigns.extensions do
+      {:ok, _} =
+        DynamicSupervisor.start_child(
+          lsp.assigns.dynamic_supervisor,
+          {extension, cache: lsp.assigns.cache, registry: lsp.assigns.extension_registry, publisher: self()}
+        )
+    end
+
     GenLSP.log(lsp, "[NextLS] Booting runime...")
 
     {:ok, runtime} =
       DynamicSupervisor.start_child(
-        lsp.assigns.runtime_supervisor,
-        {NextLS.Runtime, working_dir: working_dir, parent: self()}
+        lsp.assigns.dynamic_supervisor,
+        {NextLS.Runtime, extension_registry: lsp.assigns.extension_registry, working_dir: working_dir, parent: self()}
       )
 
     Process.monitor(runtime)
@@ -117,7 +141,7 @@ defmodule NextLS do
         :ready
       end)
 
-    {:noreply, assign(lsp, runtime_task: task)}
+    {:noreply, assign(lsp, refresh_refs: Map.put(lsp.assigns.refresh_refs, task.ref, task.ref), runtime_task: task)}
   end
 
   def handle_notification(%TextDocumentDidSave{}, %{assigns: %{ready: false}} = lsp) do
@@ -133,7 +157,15 @@ defmodule NextLS do
         },
         %{assigns: %{ready: true}} = lsp
       ) do
-    {:noreply, lsp |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))}
+    task =
+      Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
+        Runtime.compile(lsp.assigns.runtime)
+      end)
+
+    {:noreply,
+     lsp
+     |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))
+     |> then(&put_in(&1.assigns.refresh_refs[task.ref], task.ref))}
   end
 
   def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
@@ -142,7 +174,7 @@ defmodule NextLS do
 
   def handle_notification(%TextDocumentDidChange{}, lsp) do
     for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
-        task != lsp.assigns.runtime_task do
+        task != lsp.assigns.runtime_task.pid do
       Process.exit(task, :kill)
     end
 
@@ -170,6 +202,24 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
+  def handle_info(:publish, lsp) do
+    all =
+      for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache), {file, diagnostics} <- cache, reduce: %{} do
+        d -> Map.update(d, file, diagnostics, fn value -> value ++ diagnostics end)
+      end
+
+    for {file, diagnostics} <- all do
+      GenLSP.notify(lsp, %GenLSP.Notifications.TextDocumentPublishDiagnostics{
+        params: %GenLSP.Structures.PublishDiagnosticsParams{
+          uri: "file://#{file}",
+          diagnostics: diagnostics
+        }
+      })
+    end
+
+    {:noreply, lsp}
+  end
+
   def handle_info({ref, resp}, %{assigns: %{refresh_refs: refs}} = lsp)
       when is_map_key(refs, ref) do
     Process.demonitor(ref, [:flush])
@@ -178,19 +228,21 @@ defmodule NextLS do
     lsp =
       case resp do
         :ready ->
-          assign(lsp, ready: true)
+          task =
+            Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
+              Runtime.compile(lsp.assigns.runtime)
+            end)
+
+          assign(lsp, ready: true, refresh_refs: Map.put(refs, task.ref, task.ref))
 
         _ ->
-          lsp
+          assign(lsp, refresh_refs: refs)
       end
 
-    {:noreply, assign(lsp, refresh_refs: refs)}
+    {:noreply, lsp}
   end
 
-  def handle_info(
-        {:DOWN, ref, :process, _pid, _reason},
-        %{assigns: %{refresh_refs: refs}} = lsp
-      )
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{refresh_refs: refs}} = lsp)
       when is_map_key(refs, ref) do
     {_token, refs} = Map.pop(refs, ref)
 
