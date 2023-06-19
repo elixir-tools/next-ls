@@ -17,16 +17,23 @@ defmodule NextLS do
     TextDocumentDidSave
   }
 
-  alias GenLSP.Requests.{Initialize, Shutdown}
+  alias GenLSP.Requests.{
+    Initialize,
+    Shutdown,
+    TextDocumentFormatting
+  }
 
   alias GenLSP.Structures.{
     DidOpenTextDocumentParams,
     InitializeParams,
     InitializeResult,
+    Position,
+    Range,
     SaveOptions,
     ServerCapabilities,
     TextDocumentItem,
-    TextDocumentSyncOptions
+    TextDocumentSyncOptions,
+    TextEdit
   }
 
   alias NextLS.Runtime
@@ -80,10 +87,33 @@ defmodule NextLS do
            open_close: true,
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
-         }
+         },
+         document_formatting_provider: true
        },
        server_info: %{name: "NextLS"}
      }, assign(lsp, root_uri: root_uri)}
+  end
+
+  def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
+    document = lsp.assigns.documents[uri]
+
+    working_dir = URI.parse(lsp.assigns.root_uri).path
+    {opts, _} = Code.eval_file(".formatter.exs", working_dir)
+    new_document = Code.format_string!(Enum.join(document, "\n"), opts) |> IO.iodata_to_binary()
+
+    {:reply,
+     [
+       %TextEdit{
+         new_text: new_document,
+         range: %Range{
+           start: %Position{line: 0, character: 0},
+           end: %Position{
+             line: length(document),
+             character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+           }
+         }
+       }
+     ], lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
@@ -172,13 +202,21 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_notification(%TextDocumentDidChange{}, lsp) do
+  def handle_notification(
+        %TextDocumentDidChange{
+          params: %{
+            text_document: %{uri: uri},
+            content_changes: [%{text: text}]
+          }
+        },
+        lsp
+      ) do
     for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
         task != lsp.assigns.runtime_task.pid do
       Process.exit(task, :kill)
     end
 
-    {:noreply, lsp}
+    {:noreply, put_in(lsp.assigns.documents[uri], String.split(text, "\n"))}
   end
 
   def handle_notification(
