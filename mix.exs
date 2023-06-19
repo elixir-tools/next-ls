@@ -10,6 +10,11 @@ defmodule NextLS.MixProject do
       start_permanent: Mix.env() == :prod,
       package: package(),
       deps: deps(),
+      docs: [
+        # The main page in the docs
+        main: "README",
+        extras: ["README.md"]
+      ],
       dialyzer: [ignore_warnings: ".dialyzer_ignore.exs"]
     ]
   end

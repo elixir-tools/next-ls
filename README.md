@@ -1,23 +1,31 @@
 # NextLS
 
-NextLS is an experimental language server for Elixir.
+[![Discord](https://img.shields.io/badge/Discord-5865F3?style=flat&logo=discord&logoColor=white&link=https://discord.gg/nNDMwTJ8)](https://discord.gg/6XdGnxVA2A)
+[![Hex.pm](https://img.shields.io/hexpm/v/next_ls)](https://hex.pm/packages/next_ls)
+[![GitHub Discussions](https://img.shields.io/github/discussions/elixir-tools/discussions)](https://github.com/orgs/elixir-tools/discussions)
 
-One goal is to create a language server to test the power of [gen_lsp](https://github.com/mhanberg/gen_lsp), a library I'm working on for creating language servers. I also want a playground to be able to push the limits of what an Elixir language server can do.
+The language server for Elixir that just works. 😎
+
+Still in heavy development, currently supporting the following features:
+
+- Compiler Diagnostics
+- Code Formatting
+
+## Editor Support
+
+<ul>
+<li>Neovim: <a href="https://github.com/elixir-tools/elixir-tools.nvim">elixir-tools.nvim</a></li>
+<li>VSCode: <a href="https://github.com/elixir-tools/elixir-tools.vscode">elixir-tools.vscode</a></li>
+</ul>
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `next_ls` to your list of dependencies in `mix.exs`:
+The preferred way to use NextLS is through one of the supported editor extensions.
 
-```elixir
-def deps do
-  [
-    {:next_ls, "~> 0.1.0"}
-  ]
-end
-```
+If you need to install NextLS on it's own, you can download the executable hosted by the GitHub release. The executable is an Elixir script that utilizes `Mix.install/2`.
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/next_ls>.
+### Note
 
+NextLS creates an `.elixir-tools` hidden directory in your project.
+
+This should be added to your project's `.gitignore`.
