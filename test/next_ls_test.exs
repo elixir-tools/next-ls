@@ -181,4 +181,72 @@ defmodule NextLSTest do
     #   }
     # )
   end
+
+  test "formats", %{client: client} do
+    assert :ok ==
+             notify(client, %{
+               method: "initialized",
+               jsonrpc: "2.0",
+               params: %{}
+             })
+
+    notify client, %{
+      method: "textDocument/didOpen",
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://lib/foo/bar.ex",
+          languageId: "elixir",
+          version: 1,
+          text: """
+          defmodule Foo.Bar do
+            def run() do
+
+
+              :ok
+            end
+          end
+          """
+        }
+      }
+    }
+
+    request client, %{
+      method: "textDocument/formatting",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
+    new_text =
+      """
+      defmodule Foo.Bar do
+        def run() do
+          :ok
+        end
+      end
+      """
+      |> String.trim()
+
+    assert_result(
+      2,
+      [
+        %{
+          "newText" => ^new_text,
+          "range" => %{
+            "start" => %{"character" => 0, "line" => 0},
+            "end" => %{"character" => 0, "line" => 8}
+          }
+        }
+      ]
+    )
+  end
 end

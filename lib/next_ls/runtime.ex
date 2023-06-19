@@ -33,7 +33,7 @@ defmodule NextLS.Runtime do
   end
 
   def compile(server) do
-    GenServer.call(server, :compile)
+    GenServer.call(server, :compile, :infinity)
   end
 
   @impl GenServer
@@ -110,8 +110,6 @@ defmodule NextLS.Runtime do
 
   def handle_call(:compile, _, %{node: node} = state) do
     {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
-
-    foo = "foo"
 
     Registry.dispatch(state.extension_registry, :extension, fn entries ->
       for {pid, _} <- entries do
