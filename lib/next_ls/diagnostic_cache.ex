@@ -1,8 +1,6 @@
 defmodule NextLS.DiagnosticCache do
   # TODO: this should be an ETS table
-  @moduledoc """
-  Cache for diagnostics.
-  """
+  @moduledoc false
   use Agent
 
   def start_link(opts) do

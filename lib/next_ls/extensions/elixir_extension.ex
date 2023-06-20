@@ -1,4 +1,5 @@
 defmodule NextLS.ElixirExtension do
+  @moduledoc false
   use GenServer
 
   alias NextLS.DiagnosticCache
