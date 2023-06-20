@@ -162,7 +162,7 @@ defmodule NextLS do
                wait_until(fn ->
                  NextLS.Runtime.ready?(runtime)
                end) do
-          GenLSP.error(lsp, "Failed to start runtime")
+          GenLSP.error(lsp, "[NextLS] Failed to start runtime")
           raise "Failed to boot runtime"
         end
 
@@ -297,7 +297,7 @@ defmodule NextLS do
   end
 
   def handle_info({:log, message}, lsp) do
-    GenLSP.log(lsp, String.trim(message))
+    GenLSP.log(lsp, "[NextLS] " <> String.trim(message))
 
     {:noreply, lsp}
   end
