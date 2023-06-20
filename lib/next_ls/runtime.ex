@@ -10,7 +10,9 @@ defmodule NextLS.Runtime do
     GenServer.start_link(__MODULE__, opts, Keyword.take(opts, [:name]))
   end
 
-  @spec call(pid(), mfa()) :: any()
+  @type mod_fun_arg :: {atom(), atom(), list()}
+
+  @spec call(pid(), mod_fun_arg()) :: any()
   def call(server, mfa), do: GenServer.call(server, {:call, mfa})
 
   @spec ready?(pid()) :: boolean()
