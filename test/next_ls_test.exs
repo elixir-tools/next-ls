@@ -190,6 +190,9 @@ defmodule NextLSTest do
                params: %{}
              })
 
+    assert_notification "window/logMessage",
+                        %{"message" => "[NextLS] Runtime ready..."}
+
     notify client, %{
       method: "textDocument/didOpen",
       jsonrpc: "2.0",
@@ -226,15 +229,13 @@ defmodule NextLSTest do
       }
     }
 
-    new_text =
-      """
-      defmodule Foo.Bar do
-        def run() do
-          :ok
-        end
+    new_text = """
+    defmodule Foo.Bar do
+      def run() do
+        :ok
       end
-      """
-      |> String.trim()
+    end
+    """
 
     assert_result(
       2,

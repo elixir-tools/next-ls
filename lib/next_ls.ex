@@ -97,9 +97,11 @@ defmodule NextLS do
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    working_dir = URI.parse(lsp.assigns.root_uri).path
-    {opts, _} = Code.eval_file(".formatter.exs", working_dir)
-    new_document = Code.format_string!(Enum.join(document, "\n"), opts) |> IO.iodata_to_binary()
+    {formatter, _} = Runtime.call(lsp.assigns.runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]})
+
+    new_document =
+      Runtime.call(lsp.assigns.runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]})
+      |> IO.iodata_to_binary()
 
     {:reply,
      [
