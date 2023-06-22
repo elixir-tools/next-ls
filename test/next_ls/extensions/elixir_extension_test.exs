@@ -35,6 +35,20 @@ defmodule NextLS.ElixirExtensionTest do
       details: nil
     }
 
+    with_iodata = %Mix.Task.Compiler.Diagnostic{
+      file: "/Users/mitchell/src/next_ls/lib/next_ls/runtime.ex",
+      severity: :warning,
+      message: [
+        "ElixirExtension.foo/0",
+        " is undefined (module ",
+        "ElixirExtension",
+        " is not available or is yet to be defined)"
+      ],
+      position: 29,
+      compiler_name: "Elixir",
+      details: nil
+    }
+
     start_and_end = %Mix.Task.Compiler.Diagnostic{
       file: "lib/baz.ex",
       severity: :hint,
@@ -44,11 +58,30 @@ defmodule NextLS.ElixirExtensionTest do
       details: nil
     }
 
-    send(extension, {:compiler, [only_line, line_and_col, start_and_end]})
+    send(extension, {:compiler, [only_line, line_and_col, start_and_end, with_iodata]})
 
     assert_receive :publish
 
     assert %{
+             with_iodata.file => [
+               %GenLSP.Structures.Diagnostic{
+                 severity: 2,
+                 message:
+                   "ElixirExtension.foo/0" <>
+                     " is undefined (module " <> "ElixirExtension" <> " is not available or is yet to be defined)",
+                 source: "Elixir",
+                 range: %GenLSP.Structures.Range{
+                   start: %GenLSP.Structures.Position{
+                     line: 28,
+                     character: 0
+                   },
+                   end: %GenLSP.Structures.Position{
+                     line: 28,
+                     character: 999
+                   }
+                 }
+               }
+             ],
              only_line.file => [
                %GenLSP.Structures.Diagnostic{
                  severity: 2,

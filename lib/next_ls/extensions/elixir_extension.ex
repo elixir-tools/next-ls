@@ -38,7 +38,7 @@ defmodule NextLS.ElixirExtension do
       #       be responsible for this. The open documents live in the LSP process
       DiagnosticCache.put(state.cache, :elixir, d.file, %GenLSP.Structures.Diagnostic{
         severity: severity(d.severity),
-        message: d.message,
+        message: IO.iodata_to_binary(d.message),
         source: d.compiler_name,
         range: range(d.position)
       })
