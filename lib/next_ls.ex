@@ -101,7 +101,8 @@ defmodule NextLS do
     runtime = lsp.assigns.runtime
 
     with {:ok, {formatter, _}} <- Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]}),
-         {:ok, response} <- Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
+         {:ok, response} when is_binary(response) or is_list(response) <-
+           Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
       {:reply,
        [
          %TextEdit{
@@ -124,6 +125,9 @@ defmodule NextLS do
           }
         })
 
+        {:reply, nil, lsp}
+
+      _ ->
         {:reply, nil, lsp}
     end
   end
