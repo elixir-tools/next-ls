@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/elixir-tools/next-ls/compare/v0.2.0...v0.2.1) (2023-06-23)
+
+
+### Bug Fixes
+
+* bump gen_lsp ([#24](https://github.com/elixir-tools/next-ls/issues/24)) ([721b7da](https://github.com/elixir-tools/next-ls/commit/721b7dac169decff6cfdeb7a57dedb13cbacb6ad))
+
 ## [0.2.0](https://github.com/elixir-tools/next-ls/compare/v0.1.1...v0.2.0) (2023-06-23)
 
 
