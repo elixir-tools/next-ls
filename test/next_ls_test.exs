@@ -52,8 +52,7 @@ defmodule NextLSTest do
                params: %{}
              })
 
-    assert_notification "window/logMessage",
-                        %{"message" => "[NextLS] Runtime ready..."}
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
 
     assert :ok ==
              request(client, %{
@@ -63,7 +62,7 @@ defmodule NextLSTest do
                params: nil
              })
 
-    assert_result(2, nil)
+    assert_result 2, nil
   end
 
   test "returns method not found for unimplemented requests", %{
@@ -90,39 +89,30 @@ defmodule NextLSTest do
                }
              })
 
-    assert_notification(
-      "window/logMessage",
-      %{
-        "message" => "[NextLS] Method Not Found: textDocument/documentSymbol",
-        "type" => 2
-      }
-    )
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] Method Not Found: textDocument/documentSymbol",
+      "type" => 2
+    }
 
-    assert_error(
-      ^id,
-      %{
-        "code" => -32_601,
-        "message" => "Method Not Found: textDocument/documentSymbol"
-      }
-    )
+    assert_error ^id, %{
+      "code" => -32_601,
+      "message" => "Method Not Found: textDocument/documentSymbol"
+    }
   end
 
   test "can initialize the server" do
-    assert_result(
-      1,
-      %{
-        "capabilities" => %{
-          "textDocumentSync" => %{
-            "openClose" => true,
-            "save" => %{
-              "includeText" => true
-            },
-            "change" => 1
-          }
-        },
-        "serverInfo" => %{"name" => "NextLS"}
-      }
-    )
+    assert_result 1, %{
+      "capabilities" => %{
+        "textDocumentSync" => %{
+          "openClose" => true,
+          "save" => %{
+            "includeText" => true
+          },
+          "change" => 1
+        }
+      },
+      "serverInfo" => %{"name" => "NextLS"}
+    }
   end
 
   test "publishes diagnostics once the client has initialized", %{client: client, cwd: cwd} do
@@ -133,37 +123,28 @@ defmodule NextLSTest do
                params: %{}
              })
 
-    assert_notification(
-      "window/logMessage",
-      %{
-        "message" => "[NextLS] LSP Initialized!",
-        "type" => 4
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] LSP Initialized!",
+      "type" => 4
+    }
+
+    assert_notification "$/progress", %{"value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime..."}}
+
+    assert_notification "$/progress", %{
+      "value" => %{
+        "kind" => "end",
+        "message" => "NextLS runtime has initialized!"
       }
-    )
+    }
 
-    assert_notification("$/progress", %{"value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime..."}})
+    assert_notification "$/progress", %{"value" => %{"kind" => "begin", "title" => "Compiling..."}}
 
-    assert_notification(
-      "$/progress",
-      %{
-        "value" => %{
-          "kind" => "end",
-          "message" => "NextLS runtime has initialized!"
-        }
+    assert_notification "$/progress", %{
+      "value" => %{
+        "kind" => "end",
+        "message" => "Compiled!"
       }
-    )
-
-    assert_notification("$/progress", %{"value" => %{"kind" => "begin", "title" => "Compiling..."}})
-
-    assert_notification(
-      "$/progress",
-      %{
-        "value" => %{
-          "kind" => "end",
-          "message" => "Compiled!"
-        }
-      }
-    )
+    }
 
     for file <- ["bar.ex"] do
       uri =
@@ -173,24 +154,21 @@ defmodule NextLSTest do
           path: Path.join([cwd, "lib", file])
         })
 
-      assert_notification(
-        "textDocument/publishDiagnostics",
-        %{
-          "uri" => ^uri,
-          "diagnostics" => [
-            %{
-              "source" => "Elixir",
-              "severity" => 2,
-              "message" =>
-                "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
-              "range" => %{
-                "start" => %{"line" => 1, "character" => 0},
-                "end" => %{"line" => 1, "character" => 999}
-              }
+      assert_notification "textDocument/publishDiagnostics", %{
+        "uri" => ^uri,
+        "diagnostics" => [
+          %{
+            "source" => "Elixir",
+            "severity" => 2,
+            "message" =>
+              "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+            "range" => %{
+              "start" => %{"line" => 1, "character" => 0},
+              "end" => %{"line" => 1, "character" => 999}
             }
-          ]
-        }
-      )
+          }
+        ]
+      }
     end
   end
 
@@ -240,8 +218,7 @@ defmodule NextLSTest do
 
     assert_result 2, nil
 
-    assert_notification "window/logMessage",
-                        %{"message" => "[NextLS] Runtime ready..."}
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
 
     request client, %{
       method: "textDocument/formatting",
@@ -266,14 +243,11 @@ defmodule NextLSTest do
     end
     """
 
-    assert_result(
-      3,
-      [
-        %{
-          "newText" => ^new_text,
-          "range" => %{"start" => %{"character" => 0, "line" => 0}, "end" => %{"character" => 0, "line" => 8}}
-        }
-      ]
-    )
+    assert_result 3, [
+      %{
+        "newText" => ^new_text,
+        "range" => %{"start" => %{"character" => 0, "line" => 0}, "end" => %{"character" => 0, "line" => 8}}
+      }
+    ]
   end
 end
