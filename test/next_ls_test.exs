@@ -190,9 +190,6 @@ defmodule NextLSTest do
                params: %{}
              })
 
-    assert_notification "window/logMessage",
-                        %{"message" => "[NextLS] Runtime ready..."}
-
     notify client, %{
       method: "textDocument/didOpen",
       jsonrpc: "2.0",
@@ -229,6 +226,26 @@ defmodule NextLSTest do
       }
     }
 
+    assert_result 2, nil
+
+    assert_notification "window/logMessage",
+                        %{"message" => "[NextLS] Runtime ready..."}
+
+    request client, %{
+      method: "textDocument/formatting",
+      id: 3,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
     new_text = """
     defmodule Foo.Bar do
       def run() do
@@ -238,14 +255,11 @@ defmodule NextLSTest do
     """
 
     assert_result(
-      2,
+      3,
       [
         %{
           "newText" => ^new_text,
-          "range" => %{
-            "start" => %{"character" => 0, "line" => 0},
-            "end" => %{"character" => 0, "line" => 8}
-          }
+          "range" => %{"start" => %{"character" => 0, "line" => 0}, "end" => %{"character" => 0, "line" => 8}}
         }
       ]
     )

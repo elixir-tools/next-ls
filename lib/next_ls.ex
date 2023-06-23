@@ -96,26 +96,34 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
     document = lsp.assigns.documents[uri]
+    runtime = lsp.assigns.runtime
 
-    {formatter, _} = Runtime.call(lsp.assigns.runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]})
-
-    new_document =
-      Runtime.call(lsp.assigns.runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]})
-      |> IO.iodata_to_binary()
-
-    {:reply,
-     [
-       %TextEdit{
-         new_text: new_document,
-         range: %Range{
-           start: %Position{line: 0, character: 0},
-           end: %Position{
-             line: length(document),
-             character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+    with {:ok, {formatter, _}} <- Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]}),
+         {:ok, response} <- Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
+      {:reply,
+       [
+         %TextEdit{
+           new_text: IO.iodata_to_binary(response),
+           range: %Range{
+             start: %Position{line: 0, character: 0},
+             end: %Position{
+               line: length(document),
+               character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+             }
            }
          }
-       }
-     ], lsp}
+       ], lsp}
+    else
+      {:error, :not_ready} ->
+        GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
+          params: %GenLSP.Structures.ShowMessageParams{
+            type: GenLSP.Enumerations.MessageType.info(),
+            message: "The NextLS runtime is still initializing!"
+          }
+        })
+
+        {:reply, nil, lsp}
+    end
   end
 
   def handle_request(%Shutdown{}, lsp) do

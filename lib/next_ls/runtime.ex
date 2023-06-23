@@ -107,7 +107,11 @@ defmodule NextLS.Runtime do
 
   def handle_call({:call, {m, f, a}}, _from, %{node: node} = state) do
     reply = :rpc.call(node, m, f, a)
-    {:reply, reply, state}
+    {:reply, {:ok, reply}, state}
+  end
+
+  def handle_call({:call, _}, _from, state) do
+    {:reply, {:error, :not_ready}, state}
   end
 
   def handle_call(:compile, _, %{node: node} = state) do
