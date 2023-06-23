@@ -33,7 +33,9 @@ defmodule NextLS do
     ServerCapabilities,
     TextDocumentItem,
     TextDocumentSyncOptions,
-    TextEdit
+    TextEdit,
+    WorkDoneProgressBegin,
+    WorkDoneProgressEnd
   }
 
   alias NextLS.Runtime
@@ -156,6 +158,10 @@ defmodule NextLS do
 
     GenLSP.log(lsp, "[NextLS] Booting runime...")
 
+    token = token()
+
+    progress_start(lsp, token, "Initializing NextLS runtime...")
+
     {:ok, runtime} =
       DynamicSupervisor.start_child(
         lsp.assigns.dynamic_supervisor,
@@ -181,7 +187,11 @@ defmodule NextLS do
         :ready
       end)
 
-    {:noreply, assign(lsp, refresh_refs: Map.put(lsp.assigns.refresh_refs, task.ref, task.ref), runtime_task: task)}
+    {:noreply,
+     assign(lsp,
+       refresh_refs: Map.put(lsp.assigns.refresh_refs, task.ref, {token, "NextLS runtime has initialized!"}),
+       runtime_task: task
+     )}
   end
 
   def handle_notification(%TextDocumentDidSave{}, %{assigns: %{ready: false}} = lsp) do
@@ -197,6 +207,10 @@ defmodule NextLS do
         },
         %{assigns: %{ready: true}} = lsp
       ) do
+    token = token()
+
+    progress_start(lsp, token, "Compiling...")
+
     task =
       Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
         Runtime.compile(lsp.assigns.runtime)
@@ -205,7 +219,7 @@ defmodule NextLS do
     {:noreply,
      lsp
      |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))
-     |> then(&put_in(&1.assigns.refresh_refs[task.ref], task.ref))}
+     |> then(&put_in(&1.assigns.refresh_refs[task.ref], {token, "Compiled!"}))}
   end
 
   def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
@@ -268,20 +282,32 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info({ref, resp}, %{assigns: %{refresh_refs: refs}} = lsp)
-      when is_map_key(refs, ref) do
+  def handle_info({ref, resp}, %{assigns: %{refresh_refs: refs}} = lsp) when is_map_key(refs, ref) do
     Process.demonitor(ref, [:flush])
-    {_token, refs} = Map.pop(refs, ref)
+    {{token, msg}, refs} = Map.pop(refs, ref)
+
+    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
+      params: %GenLSP.Structures.ProgressParams{
+        token: token,
+        value: %WorkDoneProgressEnd{
+          kind: "end",
+          message: msg
+        }
+      }
+    })
 
     lsp =
       case resp do
         :ready ->
+          token = token()
+          progress_start(lsp, token, "Compiling...")
+
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
               Runtime.compile(lsp.assigns.runtime)
             end)
 
-          assign(lsp, ready: true, refresh_refs: Map.put(refs, task.ref, task.ref))
+          assign(lsp, ready: true, refresh_refs: Map.put(refs, task.ref, {token, "Compiled!"}))
 
         _ ->
           assign(lsp, refresh_refs: refs)
@@ -331,5 +357,24 @@ defmodule NextLS do
       Process.sleep(1000)
       wait_until(n - 1, cb)
     end
+  end
+
+  defp progress_start(lsp, token, msg) do
+    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
+      params: %GenLSP.Structures.ProgressParams{
+        token: token,
+        value: %WorkDoneProgressBegin{
+          kind: "begin",
+          title: msg
+        }
+      }
+    })
+  end
+
+  defp token() do
+    8
+    |> :crypto.strong_rand_bytes()
+    |> Base.url_encode64(padding: false)
+    |> binary_part(0, 8)
   end
 end

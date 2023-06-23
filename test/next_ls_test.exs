@@ -141,7 +141,29 @@ defmodule NextLSTest do
       }
     )
 
-    # assert_notification("$/progress", %{"value" => %{"kind" => "begin"}})
+    assert_notification("$/progress", %{"value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime..."}})
+
+    assert_notification(
+      "$/progress",
+      %{
+        "value" => %{
+          "kind" => "end",
+          "message" => "NextLS runtime has initialized!"
+        }
+      }
+    )
+
+    assert_notification("$/progress", %{"value" => %{"kind" => "begin", "title" => "Compiling..."}})
+
+    assert_notification(
+      "$/progress",
+      %{
+        "value" => %{
+          "kind" => "end",
+          "message" => "Compiled!"
+        }
+      }
+    )
 
     for file <- ["bar.ex"] do
       uri =
@@ -170,16 +192,6 @@ defmodule NextLSTest do
         }
       )
     end
-
-    # assert_notification(
-    #   "$/progress",
-    #   %{
-    #     "value" => %{
-    #       "kind" => "end",
-    #       "message" => "Found 5 issues"
-    #     }
-    #   }
-    # )
   end
 
   test "formats", %{client: client} do
