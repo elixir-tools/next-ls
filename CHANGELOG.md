@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/elixir-tools/next-ls/compare/v0.1.1...v0.2.0) (2023-06-23)
+
+
+### Features
+
+* progress messages ([#20](https://github.com/elixir-tools/next-ls/issues/20)) ([a68203b](https://github.com/elixir-tools/next-ls/commit/a68203b722f78dc4edf58d5a1289ab44865f395e))
+
+
+### Bug Fixes
+
+* **elixir:** compiler diagnostics have iodata ([#18](https://github.com/elixir-tools/next-ls/issues/18)) ([f28af33](https://github.com/elixir-tools/next-ls/commit/f28af33a31f19da2088d0c3f52beb04f801bac39)), closes [#15](https://github.com/elixir-tools/next-ls/issues/15)
+* gracefully handle uninitialized runtime ([#19](https://github.com/elixir-tools/next-ls/issues/19)) ([9975501](https://github.com/elixir-tools/next-ls/commit/997550161e818941fbddd56a587d1d5d93fbfd92))
+
 ## [0.1.1](https://github.com/elixir-tools/next-ls/compare/v0.1.0...v0.1.1) (2023-06-20)
 
 
