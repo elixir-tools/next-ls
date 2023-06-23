@@ -28,6 +28,26 @@ defmodule NextLs.RuntimeTest do
     [logger: logger, cwd: Path.absname(tmp_dir)]
   end
 
+  test "returns the response in an ok tuple", %{logger: logger, cwd: cwd} do
+    start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
+    pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
+
+    Process.link(pid)
+
+    assert wait_for_ready(pid)
+
+    assert {:ok, "\"hi\""} = Runtime.call(pid, {Kernel, :inspect, ["hi"]})
+  end
+
+  test "call returns an error when the runtime is node ready", %{logger: logger, cwd: cwd} do
+    start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
+    pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
+
+    Process.link(pid)
+
+    assert {:error, :not_ready} = Runtime.call(pid, {IO, :puts, ["hi"]})
+  end
+
   test "compiles the code and returns diagnostics", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
 
