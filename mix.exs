@@ -30,7 +30,7 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:gen_lsp, "~> 0.2"},
+      {:gen_lsp, "~> 0.2.1"},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
