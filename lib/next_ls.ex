@@ -148,7 +148,7 @@ defmodule NextLS do
 
   @impl true
   def handle_notification(%Initialized{}, lsp) do
-    GenLSP.log(lsp, "[NextLS] LSP Initialized!")
+    GenLSP.log(lsp, "[NextLS] NextLS v#{version()} has initialized!")
 
     working_dir = URI.parse(lsp.assigns.root_uri).path
 
@@ -380,5 +380,12 @@ defmodule NextLS do
     |> :crypto.strong_rand_bytes()
     |> Base.url_encode64(padding: false)
     |> binary_part(0, 8)
+  end
+
+  defp version() do
+    case :application.get_key(:next_ls, :vsn) do
+      {:ok, version} -> to_string(version)
+      _ -> "dev"
+    end
   end
 end

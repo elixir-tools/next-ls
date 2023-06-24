@@ -124,7 +124,7 @@ defmodule NextLSTest do
              })
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] LSP Initialized!",
+      "message" => "[NextLS] NextLS v" <> _,
       "type" => 4
     }
 
