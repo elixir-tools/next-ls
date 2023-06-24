@@ -250,4 +250,52 @@ defmodule NextLSTest do
       }
     ]
   end
+
+  test "formatting gracefully handles files with syntax errors", %{client: client} do
+    assert :ok ==
+             notify(client, %{
+               method: "initialized",
+               jsonrpc: "2.0",
+               params: %{}
+             })
+
+    notify client, %{
+      method: "textDocument/didOpen",
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://lib/foo/bar.ex",
+          languageId: "elixir",
+          version: 1,
+          text: """
+          defmodule Foo.Bar do
+            def run() do
+
+
+              :ok
+          end
+          """
+        }
+      }
+    }
+
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+
+    request client, %{
+      method: "textDocument/formatting",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
+    assert_result 2, nil
+  end
 end
