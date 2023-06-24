@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/elixir-tools/next-ls/compare/v0.2.2...v0.2.3) (2023-06-24)
+
+
+### Bug Fixes
+
+* log next-ls version on start ([c10ab90](https://github.com/elixir-tools/next-ls/commit/c10ab9047449866bf2e446a9891fb46e112efcee))
+
 ## [0.2.2](https://github.com/elixir-tools/next-ls/compare/v0.2.1...v0.2.2) (2023-06-24)
 
 
