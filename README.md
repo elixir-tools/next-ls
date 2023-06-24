@@ -16,6 +16,29 @@ Still in heavy development, currently supporting the following features:
 <ul>
 <li>Neovim: <a href="https://github.com/elixir-tools/elixir-tools.nvim">elixir-tools.nvim</a></li>
 <li>VSCode: <a href="https://github.com/elixir-tools/elixir-tools.vscode">elixir-tools.vscode</a></li>
+<li>
+<details>
+<summary>Emacs</summary>
+
+Using eglot:
+
+```elisp
+(require 'eglot)
+
+(add-to-list 'exec-path "path/to/next-ls/bin/")
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               `((elixir-ts-mode heex-ts-mode elixir-mode) .
+                 ("nextls" "--stdio=true"))))
+
+(add-hook 'elixir-mode-hook 'eglot-ensure)
+(add-hook 'elixir-ts-mode-hook 'eglot-ensure)
+(add-hook 'heex-ts-mode-hook 'eglot-ensure)
+```
+
+</details>
+</li>
 </ul>
 
 ## Installation
