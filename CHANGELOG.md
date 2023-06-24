@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/elixir-tools/next-ls/compare/v0.2.1...v0.2.2) (2023-06-24)
+
+
+### Bug Fixes
+
+* handle formatting files with syntax errors ([#26](https://github.com/elixir-tools/next-ls/issues/26)) ([b124b16](https://github.com/elixir-tools/next-ls/commit/b124b16aedfd234ac365dd3446635721cf4ad38e))
+
 ## [0.2.1](https://github.com/elixir-tools/next-ls/compare/v0.2.0...v0.2.1) (2023-06-23)
 
 
