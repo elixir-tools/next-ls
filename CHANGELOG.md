@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/elixir-tools/next-ls/compare/v0.3.2...v0.3.3) (2023-06-25)
+
+
+### Bug Fixes
+
+* correctly set compiler diagnostic columns ([d2bbae8](https://github.com/elixir-tools/next-ls/commit/d2bbae829fafe78d71727235acd6b715397a6cf3))
+
 ## [0.3.2](https://github.com/elixir-tools/next-ls/compare/v0.3.1...v0.3.2) (2023-06-25)
 
 
