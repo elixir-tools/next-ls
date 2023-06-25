@@ -58,11 +58,11 @@ defmodule NextLS.ElixirExtension do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: start_line - 1,
-        character: start_col
+        character: start_col - 1
       },
       end: %GenLSP.Structures.Position{
         line: end_line - 1,
-        character: end_col
+        character: end_col - 1
       }
     }
   end
@@ -71,7 +71,7 @@ defmodule NextLS.ElixirExtension do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: line - 1,
-        character: col
+        character: col - 1
       },
       end: %GenLSP.Structures.Position{
         line: line - 1,

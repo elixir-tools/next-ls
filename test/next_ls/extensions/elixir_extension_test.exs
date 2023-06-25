@@ -107,7 +107,7 @@ defmodule NextLS.ElixirExtensionTest do
                  range: %GenLSP.Structures.Range{
                    start: %GenLSP.Structures.Position{
                      line: 3,
-                     character: 7
+                     character: 6
                    },
                    end: %GenLSP.Structures.Position{
                      line: 3,
@@ -124,11 +124,11 @@ defmodule NextLS.ElixirExtensionTest do
                  range: %GenLSP.Structures.Range{
                    start: %GenLSP.Structures.Position{
                      line: 3,
-                     character: 7
+                     character: 6
                    },
                    end: %GenLSP.Structures.Position{
                      line: 7,
-                     character: 3
+                     character: 2
                    }
                  }
                }
