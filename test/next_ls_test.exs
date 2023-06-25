@@ -169,8 +169,8 @@ defmodule NextLSTest do
             "message" =>
               "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
             "range" => %{
-              "start" => %{"line" => 1, "character" => ^char},
-              "end" => %{"line" => 1, "character" => 999}
+              "start" => %{"line" => 3, "character" => ^char},
+              "end" => %{"line" => 3, "character" => 999}
             }
           }
         ]
