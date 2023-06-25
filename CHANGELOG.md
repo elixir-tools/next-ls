@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/elixir-tools/next-ls/compare/v0.3.0...v0.3.1) (2023-06-25)
+
+
+### Bug Fixes
+
+* use correct directory for symbol table ([#34](https://github.com/elixir-tools/next-ls/issues/34)) ([3e83987](https://github.com/elixir-tools/next-ls/commit/3e83987900bbd1d951bc1c7b7af80d566744a022))
+
 ## [0.3.0](https://github.com/elixir-tools/next-ls/compare/v0.2.3...v0.3.0) (2023-06-25)
 
 
