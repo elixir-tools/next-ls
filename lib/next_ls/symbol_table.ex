@@ -25,6 +25,8 @@ defmodule NextLS.SymbolTable do
   def init(args) do
     path = Keyword.fetch!(args, :path)
 
+    File.mkdir_p!(path)
+
     {:ok, name} =
       :dets.open_file(:symbol_table,
         file: Path.join(path, "symbol_table.dets") |> String.to_charlist(),

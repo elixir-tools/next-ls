@@ -37,7 +37,7 @@ defmodule NextLS.LSPSupervisor do
         {Task.Supervisor, name: NextLS.TaskSupervisor},
         {GenLSP.Buffer, buffer_opts},
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
-        {NextLS.SymbolTable, name: :symbol_table, path: Path.expand("~/.cache/nvim/elixir-tools.nvim")},
+        {NextLS.SymbolTable, name: :symbol_table, path: Path.expand(".elixir-tools")},
         {Registry, name: NextLS.ExtensionRegistry, keys: :duplicate},
         {NextLS,
          cache: :diagnostic_cache,
