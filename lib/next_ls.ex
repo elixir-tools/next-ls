@@ -63,6 +63,7 @@ defmodule NextLS do
     extension_registry = Keyword.fetch!(args, :extension_registry)
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
     cache = Keyword.fetch!(args, :cache)
+    symbol_table = Keyword.fetch!(args, :symbol_table)
 
     {:ok,
      assign(lsp,
@@ -70,6 +71,7 @@ defmodule NextLS do
        documents: %{},
        refresh_refs: %{},
        cache: cache,
+       symbol_table: symbol_table,
        task_supervisor: task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
        extension_registry: extension_registry,

@@ -16,7 +16,7 @@ defmodule NextLS.SymbolTableTest do
     assert :sys.get_state(pid).table == :symbol_table
   end
 
-  test "builds the symbol table", %{dir: dir, pid: pid} do
+  test "builds the symbol table", %{pid: pid} do
     symbols = symbols()
 
     SymbolTable.put_symbols(pid, symbols)

@@ -15,7 +15,7 @@ defmodule NextLSTest do
     start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
     extensions = [NextLS.ElixirExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
-    symbol_table = start_supervised!(NextLS.SymbolTable)
+    symbol_table = start_supervised!({NextLS.SymbolTable, [path: tmp_dir]})
 
     server =
       server(NextLS,
