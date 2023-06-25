@@ -1,4 +1,6 @@
-#!/usr/bin/env -S elixir --sname undefined
+#!/usr/bin/env elixir
+
+Node.start("next-ls-#{System.system_time()}", :shortnames)
 
 System.no_halt(true)
 

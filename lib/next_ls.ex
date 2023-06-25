@@ -40,6 +40,7 @@ defmodule NextLS do
 
   alias NextLS.Runtime
   alias NextLS.DiagnosticCache
+  alias NextLS.SymbolTable
 
   def start_link(args) do
     {args, opts} =
@@ -48,7 +49,8 @@ defmodule NextLS do
         :task_supervisor,
         :dynamic_supervisor,
         :extensions,
-        :extension_registry
+        :extension_registry,
+        :symbol_table
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -211,6 +213,8 @@ defmodule NextLS do
         },
         %{assigns: %{ready: true}} = lsp
       ) do
+    dbg(self())
+    dbg(Node.self())
     token = token()
 
     progress_start(lsp, token, "Compiling...")
@@ -265,6 +269,11 @@ defmodule NextLS do
   end
 
   def handle_notification(_notification, lsp) do
+    {:noreply, lsp}
+  end
+
+  def handle_info({:tracer, payload}, lsp) do
+    SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
     {:noreply, lsp}
   end
 
@@ -342,7 +351,9 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info(_, lsp) do
+  def handle_info(message, lsp) do
+    IO.puts("catcall")
+    dbg(message)
     {:noreply, lsp}
   end
 

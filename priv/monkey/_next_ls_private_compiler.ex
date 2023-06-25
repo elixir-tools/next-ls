@@ -1,3 +1,24 @@
+defmodule NextLSPrivate.Tracer do
+  def trace({:on_module, _, _}, env) do
+    parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+
+    defs = Module.definitions_in(env.module)
+
+    defs =
+      for {name, arity} = _def <- defs do
+        {name, Module.get_definition(env.module, {name, arity})}
+      end
+
+    Process.send(parent, {:tracer, %{file: env.file, module: env.module, defs: defs}}, [])
+
+    :ok
+  end
+
+  def trace(_event, _env) do
+    :ok
+  end
+end
+
 defmodule :_next_ls_private_compiler do
   @moduledoc false
 
@@ -15,7 +36,7 @@ defmodule :_next_ls_private_compiler do
     # --no-compile, so nothing was compiled, but the
     # task was not re-enabled it seems
     Mix.Task.rerun("deps.loadpaths")
-    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors"])
+    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors", "--tracer", "NextLSPrivate.Tracer"])
   rescue
     e -> {:error, e}
   end

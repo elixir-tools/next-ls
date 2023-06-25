@@ -15,6 +15,7 @@ defmodule NextLSTest do
     start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
     extensions = [NextLS.ElixirExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
+    symbol_table = start_supervised!(NextLS.SymbolTable)
 
     server =
       server(NextLS,
@@ -22,7 +23,8 @@ defmodule NextLSTest do
         dynamic_supervisor: rvisor,
         extension_registry: Registry.NextLSTest,
         extensions: extensions,
-        cache: cache
+        cache: cache,
+        symbol_table: symbol_table
       )
 
     Process.link(server.lsp)
