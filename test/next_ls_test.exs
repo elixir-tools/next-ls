@@ -8,6 +8,8 @@ defmodule NextLSTest do
   setup %{tmp_dir: tmp_dir} do
     File.cp_r!("test/support/project", tmp_dir)
 
+    File.rm_rf!(Path.join(tmp_dir, ".elixir-tools"))
+
     root_path = Path.absname(tmp_dir)
 
     tvisor = start_supervised!(Task.Supervisor)
@@ -15,7 +17,7 @@ defmodule NextLSTest do
     start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
     extensions = [NextLS.ElixirExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
-    symbol_table = start_supervised!({NextLS.SymbolTable, [path: tmp_dir]})
+    symbol_table = start_supervised!({NextLS.SymbolTable, path: tmp_dir})
 
     server =
       server(NextLS,
@@ -167,8 +169,8 @@ defmodule NextLSTest do
             "message" =>
               "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
             "range" => %{
-              "start" => %{"line" => 1, "character" => ^char},
-              "end" => %{"line" => 1, "character" => 999}
+              "start" => %{"line" => 3, "character" => ^char},
+              "end" => %{"line" => 3, "character" => 999}
             }
           }
         ]
@@ -301,5 +303,100 @@ defmodule NextLSTest do
     }
 
     assert_result 2, nil
+  end
+
+  test "workspace symbols", %{client: client, cwd: cwd} do
+    assert :ok ==
+             notify(client, %{
+               method: "initialized",
+               jsonrpc: "2.0",
+               params: %{}
+             })
+
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: ""
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert %{
+             "kind" => 12,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 3,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 3,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/lib/bar.ex"
+             },
+             "name" => "foo"
+           } in symbols
+
+    assert %{
+             "kind" => 2,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 0,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 0,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/lib/bar.ex"
+             },
+             "name" => "Bar"
+           } in symbols
+
+    assert %{
+             "kind" => 23,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 1,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 1,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/lib/bar.ex"
+             },
+             "name" => "%Bar{}"
+           } in symbols
+
+    assert %{
+             "kind" => 2,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 3,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 3,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/lib/code_action.ex"
+             },
+             "name" => "Foo.CodeAction.NestedMod"
+           } in symbols
   end
 end

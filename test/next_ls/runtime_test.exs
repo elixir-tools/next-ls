@@ -73,9 +73,9 @@ defmodule NextLs.RuntimeTest do
              ] = Runtime.compile(pid)
 
       if Version.match?(System.version(), ">= 1.15.0") do
-        assert position == {2, 11}
+        assert position == {4, 11}
       else
-        assert position == 2
+        assert position == 4
       end
 
       File.write!(file, """

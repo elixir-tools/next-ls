@@ -16,8 +16,11 @@ defmodule NextLS.SymbolTable do
 
   @spec put_symbols(pid() | atom(), list(tuple())) :: :ok
   def put_symbols(server, symbols), do: GenServer.cast(server, {:put_symbols, symbols})
+
   @spec symbols(pid() | atom()) :: list(struct())
   def symbols(server), do: GenServer.call(server, :symbols)
+
+  def close(server), do: GenServer.call(server, :close)
 
   def init(args) do
     path = Keyword.fetch!(args, :path)
@@ -42,16 +45,54 @@ defmodule NextLS.SymbolTable do
     {:reply, symbols, state}
   end
 
+  def handle_call(:close, _, state) do
+    :dets.close(state.table)
+
+    {:reply, :ok, state}
+  end
+
   def handle_cast({:put_symbols, symbols}, state) do
     %{
       module: mod,
+      module_line: module_line,
+      struct: struct,
       file: file,
       defs: defs
     } = symbols
 
     :dets.delete(state.table, mod)
 
-    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
+    :dets.insert(
+      state.table,
+      {mod,
+       %Symbol{
+         module: mod,
+         file: file,
+         type: :defmodule,
+         name: Macro.to_string(mod),
+         line: module_line,
+         col: 1
+       }}
+    )
+
+    if struct do
+      {_, _, meta, _} = defs[:__struct__]
+
+      :dets.insert(
+        state.table,
+        {mod,
+         %Symbol{
+           module: mod,
+           file: file,
+           type: :defstruct,
+           name: "%#{Macro.to_string(mod)}{}",
+           line: meta[:line],
+           col: 1
+         }}
+      )
+    end
+
+    for {name, {:v1, type, _meta, clauses}} <- defs, name != :__struct__, {meta, _, _, _} <- clauses do
       :dets.insert(
         state.table,
         {mod,
@@ -61,7 +102,7 @@ defmodule NextLS.SymbolTable do
            type: type,
            name: name,
            line: meta[:line],
-           col: meta[:column]
+           col: meta[:column] || 1
          }}
       )
     end

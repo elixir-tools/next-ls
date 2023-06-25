@@ -1,5 +1,5 @@
 defmodule NextLSPrivate.Tracer do
-  def trace({:on_module, _, _}, env) do
+  def trace({:on_module, bytecode, _}, env) do
     parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
 
     defs = Module.definitions_in(env.module)
@@ -9,7 +9,15 @@ defmodule NextLSPrivate.Tracer do
         {name, Module.get_definition(env.module, {name, arity})}
       end
 
-    Process.send(parent, {:tracer, %{file: env.file, module: env.module, defs: defs}}, [])
+    {:ok, {_, [{'Dbgi', bin}]}} = :beam_lib.chunks(bytecode, ['Dbgi'])
+
+    {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} = :erlang.binary_to_term(bin)
+
+    Process.send(
+      parent,
+      {:tracer, %{file: env.file, module: env.module, module_line: line, struct: struct, defs: defs}},
+      []
+    )
 
     :ok
   end
