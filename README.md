@@ -10,6 +10,7 @@ Still in heavy development, currently supporting the following features:
 
 - Compiler Diagnostics
 - Code Formatting
+- Workspace Symbols
 
 ## Editor Support
 

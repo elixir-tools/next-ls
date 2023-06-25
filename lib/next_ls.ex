@@ -20,7 +20,8 @@ defmodule NextLS do
   alias GenLSP.Requests.{
     Initialize,
     Shutdown,
-    TextDocumentFormatting
+    TextDocumentFormatting,
+    WorkspaceSymbol
   }
 
   alias GenLSP.Structures.{
@@ -29,13 +30,15 @@ defmodule NextLS do
     InitializeResult,
     Position,
     Range,
+    Location,
     SaveOptions,
     ServerCapabilities,
     TextDocumentItem,
     TextDocumentSyncOptions,
     TextEdit,
     WorkDoneProgressBegin,
-    WorkDoneProgressEnd
+    WorkDoneProgressEnd,
+    SymbolInformation
   }
 
   alias NextLS.Runtime
@@ -94,10 +97,36 @@ defmodule NextLS do
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
          },
-         document_formatting_provider: true
+         document_formatting_provider: true,
+         workspace_symbol_provider: true
        },
        server_info: %{name: "NextLS"}
      }, assign(lsp, root_uri: root_uri)}
+  end
+
+  def handle_request(%WorkspaceSymbol{params: %{query: _query}}, lsp) do
+    symbols =
+      for %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(lsp.assigns.symbol_table) do
+        %SymbolInformation{
+          name: to_string(symbol.name),
+          kind: elixir_kind_to_lsp_kind(symbol.type),
+          location: %Location{
+            uri: "file://#{symbol.file}",
+            range: %Range{
+              start: %Position{
+                line: symbol.line - 1,
+                character: symbol.col - 1
+              },
+              end: %Position{
+                line: symbol.line - 1,
+                character: symbol.col - 1
+              }
+            }
+          }
+        }
+      end
+
+    {:reply, symbols, lsp}
   end
 
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
@@ -274,10 +303,13 @@ defmodule NextLS do
 
   def handle_info({:tracer, payload}, lsp) do
     SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
+    GenLSP.log(lsp, "[NextLS] Updated the symbols table!")
     {:noreply, lsp}
   end
 
   def handle_info(:publish, lsp) do
+    GenLSP.log(lsp, "[NextLS] Compiled!")
+
     all =
       for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache), {file, diagnostics} <- cache, reduce: %{} do
         d -> Map.update(d, file, diagnostics, fn value -> value ++ diagnostics end)
@@ -351,7 +383,8 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info(_message, lsp) do
+  def handle_info(message, lsp) do
+    GenLSP.log(lsp, "[NextLS] Unhanded message: #{inspect(message)}")
     {:noreply, lsp}
   end
 
@@ -397,4 +430,10 @@ defmodule NextLS do
       _ -> "dev"
     end
   end
+
+  defp elixir_kind_to_lsp_kind(:defmodule), do: GenLSP.Enumerations.SymbolKind.module()
+  defp elixir_kind_to_lsp_kind(:defstruct), do: GenLSP.Enumerations.SymbolKind.struct()
+
+  defp elixir_kind_to_lsp_kind(kind) when kind in [:def, :defp, :defmacro, :defmacrop],
+    do: GenLSP.Enumerations.SymbolKind.function()
 end

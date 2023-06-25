@@ -23,20 +23,28 @@ defmodule NextLS.SymbolTableTest do
 
     assert [
              %SymbolTable.Symbol{
-               module: "NextLS",
+               module: NextLS,
                file: "/Users/alice/next_ls/lib/next_ls.ex",
                type: :def,
                name: :start_link,
                line: 45,
-               col: nil
+               col: 1
              },
              %SymbolTable.Symbol{
-               module: "NextLS",
+               module: NextLS,
                file: "/Users/alice/next_ls/lib/next_ls.ex",
                type: :def,
                name: :start_link,
                line: 44,
-               col: nil
+               col: 1
+             },
+             %SymbolTable.Symbol{
+               module: NextLS,
+               file: "/Users/alice/next_ls/lib/next_ls.ex",
+               type: :defmodule,
+               name: "NextLS",
+               line: 1,
+               col: 1
              }
            ] == SymbolTable.symbols(pid)
   end
@@ -44,7 +52,9 @@ defmodule NextLS.SymbolTableTest do
   defp symbols() do
     %{
       file: "/Users/alice/next_ls/lib/next_ls.ex",
-      module: "NextLS",
+      module: NextLS,
+      module_line: 1,
+      struct: nil,
       defs: [
         start_link:
           {:v1, :def, [line: 44],
