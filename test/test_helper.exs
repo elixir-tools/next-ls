@@ -1,6 +1,6 @@
 {:ok, _pid} = Node.start(:"nextls#{System.system_time()}", :shortnames)
 
-Logger.configure(level: :warn)
+Logger.configure(level: :warning)
 
 timeout =
   if System.get_env("CI", "false") == "true" do

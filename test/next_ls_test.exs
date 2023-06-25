@@ -156,6 +156,8 @@ defmodule NextLSTest do
           path: Path.join([cwd, "lib", file])
         })
 
+      char = if Version.match?(System.version(), ">= 1.15.0"), do: 11, else: 0
+
       assert_notification "textDocument/publishDiagnostics", %{
         "uri" => ^uri,
         "diagnostics" => [
@@ -165,7 +167,7 @@ defmodule NextLSTest do
             "message" =>
               "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
             "range" => %{
-              "start" => %{"line" => 1, "character" => 0},
+              "start" => %{"line" => 1, "character" => ^char},
               "end" => %{"line" => 1, "character" => 999}
             }
           }
