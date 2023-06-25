@@ -104,9 +104,17 @@ defmodule NextLS do
      }, assign(lsp, root_uri: root_uri)}
   end
 
-  def handle_request(%WorkspaceSymbol{params: %{query: _query}}, lsp) do
+  def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
+    filter = fn sym ->
+      if query == "" do
+        true
+      else
+        to_string(sym) =~ query
+      end
+    end
+
     symbols =
-      for %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(lsp.assigns.symbol_table) do
+      for %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(lsp.assigns.symbol_table), filter.(symbol.name) do
         %SymbolInformation{
           name: to_string(symbol.name),
           kind: elixir_kind_to_lsp_kind(symbol.type),
