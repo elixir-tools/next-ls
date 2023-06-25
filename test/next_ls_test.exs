@@ -399,4 +399,64 @@ defmodule NextLSTest do
              "name" => "Foo.CodeAction.NestedMod"
            } in symbols
   end
+
+  test "workspace symbols with query", %{client: client, cwd: cwd} do
+    assert :ok ==
+             notify(client, %{
+               method: "initialized",
+               jsonrpc: "2.0",
+               params: %{}
+             })
+
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: "fo"
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert [
+             %{
+               "kind" => 12,
+               "location" => %{
+                 "range" => %{
+                   "start" => %{
+                     "line" => 3,
+                     "character" => 0
+                   },
+                   "end" => %{
+                     "line" => 3,
+                     "character" => 0
+                   }
+                 },
+                 "uri" => "file://#{cwd}/lib/bar.ex"
+               },
+               "name" => "foo"
+             },
+             %{
+               "kind" => 12,
+               "location" => %{
+                 "range" => %{
+                   "start" => %{
+                     "line" => 4,
+                     "character" => 0
+                   },
+                   "end" => %{
+                     "line" => 4,
+                     "character" => 0
+                   }
+                 },
+                 "uri" => "file://#{cwd}/lib/code_action.ex"
+               },
+               "name" => "foo"
+             }
+           ] == symbols
+  end
 end
