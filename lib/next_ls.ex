@@ -215,8 +215,6 @@ defmodule NextLS do
         },
         %{assigns: %{ready: true}} = lsp
       ) do
-    dbg(self())
-    dbg(Node.self())
     token = token()
 
     progress_start(lsp, token, "Compiling...")
@@ -353,9 +351,7 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info(message, lsp) do
-    IO.puts("catcall")
-    dbg(message)
+  def handle_info(_message, lsp) do
     {:noreply, lsp}
   end
 
