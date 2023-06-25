@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/elixir-tools/next-ls/compare/v0.2.3...v0.3.0) (2023-06-25)
+
+
+### Features
+
+* basic symbol table ([#30](https://github.com/elixir-tools/next-ls/issues/30)) ([37fc91a](https://github.com/elixir-tools/next-ls/commit/37fc91a2e03f21479f421db5860bbd0901331c20))
+* filter workspace symbols using query ([#32](https://github.com/elixir-tools/next-ls/issues/32)) ([65f4ee4](https://github.com/elixir-tools/next-ls/commit/65f4ee4594e102065871c75852f637083e2ca599))
+* workspace symbols ([#31](https://github.com/elixir-tools/next-ls/issues/31)) ([c1aa20c](https://github.com/elixir-tools/next-ls/commit/c1aa20c62caf20aa6c9f321cae1329b973f663a8))
+
 ## [0.2.3](https://github.com/elixir-tools/next-ls/compare/v0.2.2...v0.2.3) (2023-06-24)
 
 
