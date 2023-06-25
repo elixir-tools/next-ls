@@ -40,6 +40,7 @@ defmodule NextLS do
 
   alias NextLS.Runtime
   alias NextLS.DiagnosticCache
+  alias NextLS.SymbolTable
 
   def start_link(args) do
     {args, opts} =
@@ -48,7 +49,8 @@ defmodule NextLS do
         :task_supervisor,
         :dynamic_supervisor,
         :extensions,
-        :extension_registry
+        :extension_registry,
+        :symbol_table
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -61,6 +63,7 @@ defmodule NextLS do
     extension_registry = Keyword.fetch!(args, :extension_registry)
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
     cache = Keyword.fetch!(args, :cache)
+    symbol_table = Keyword.fetch!(args, :symbol_table)
 
     {:ok,
      assign(lsp,
@@ -68,6 +71,7 @@ defmodule NextLS do
        documents: %{},
        refresh_refs: %{},
        cache: cache,
+       symbol_table: symbol_table,
        task_supervisor: task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
        extension_registry: extension_registry,
@@ -268,6 +272,11 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
+  def handle_info({:tracer, payload}, lsp) do
+    SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
+    {:noreply, lsp}
+  end
+
   def handle_info(:publish, lsp) do
     all =
       for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache), {file, diagnostics} <- cache, reduce: %{} do
@@ -342,7 +351,7 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info(_, lsp) do
+  def handle_info(_message, lsp) do
     {:noreply, lsp}
   end
 

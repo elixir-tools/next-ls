@@ -4,4 +4,4 @@
 
 cd "$(dirname "$0")"/.. || exit 1
 
-elixir --sname undefined -S mix run --no-halt -e "Application.ensure_all_started(:next_ls)" -- "$@"
+elixir --sname "next-ls-$RANDOM" -S mix run --no-halt -e "Application.ensure_all_started(:next_ls)" -- "$@"

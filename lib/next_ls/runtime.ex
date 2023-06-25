@@ -40,7 +40,7 @@ defmodule NextLS.Runtime do
 
   @impl GenServer
   def init(opts) do
-    sname = "nextls#{System.system_time()}"
+    sname = "nextls-runtime-#{System.system_time()}"
     working_dir = Keyword.fetch!(opts, :working_dir)
     parent = Keyword.fetch!(opts, :parent)
     extension_registry = Keyword.fetch!(opts, :extension_registry)
@@ -55,6 +55,7 @@ defmodule NextLS.Runtime do
           :stream,
           cd: working_dir,
           env: [
+            {'NEXTLS_PARENT_PID', :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
             {'MIX_ENV', 'dev'},
             {'MIX_BUILD_ROOT', '.elixir-tools/_build'}
           ],
@@ -86,6 +87,8 @@ defmodule NextLS.Runtime do
         |> :code.priv_dir()
         |> Path.join("monkey/_next_ls_private_compiler.ex")
         |> then(&:rpc.call(node, Code, :compile_file, [&1]))
+
+        :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
 
         send(me, {:node, node})
       else

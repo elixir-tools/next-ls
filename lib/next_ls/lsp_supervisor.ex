@@ -36,10 +36,12 @@ defmodule NextLS.LSPSupervisor do
         {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
         {GenLSP.Buffer, buffer_opts},
-        {NextLS.DiagnosticCache, [name: :diagnostic_cache]},
+        {NextLS.DiagnosticCache, name: :diagnostic_cache},
+        {NextLS.SymbolTable, name: :symbol_table, path: Path.expand("~/.cache/nvim/elixir-tools.nvim")},
         {Registry, name: NextLS.ExtensionRegistry, keys: :duplicate},
         {NextLS,
          cache: :diagnostic_cache,
+         symbol_table: :symbol_table,
          task_supervisor: NextLS.TaskSupervisor,
          dynamic_supervisor: NextLS.DynamicSupervisor,
          extension_registry: NextLS.ExtensionRegistry}

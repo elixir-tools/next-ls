@@ -66,11 +66,17 @@ defmodule NextLs.RuntimeTest do
                  severity: :warning,
                  message:
                    "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
-                 position: 2,
+                 position: position,
                  compiler_name: "Elixir",
                  details: nil
                }
              ] = Runtime.compile(pid)
+
+      if Version.match?(System.version(), ">= 1.15.0") do
+        assert position == {2, 11}
+      else
+        assert position == 2
+      end
 
       File.write!(file, """
       defmodule Bar do
