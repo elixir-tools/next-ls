@@ -1,6 +1,6 @@
 #!/usr/bin/env elixir
 
-Node.start("next-ls-#{System.system_time()}", :shortnames)
+Node.start(:"next-ls-#{System.system_time()}", :shortnames)
 
 System.no_halt(true)
 
