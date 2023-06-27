@@ -158,7 +158,7 @@ defmodule NextLSTest do
           path: Path.join([cwd, "lib", file])
         })
 
-      char = if Version.match?(System.version(), ">= 1.15.0"), do: 11, else: 0
+      char = if Version.match?(System.version(), ">= 1.15.0"), do: 10, else: 0
 
       assert_notification "textDocument/publishDiagnostics", %{
         "uri" => ^uri,
