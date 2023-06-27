@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.5](https://github.com/elixir-tools/next-ls/compare/v0.3.4...v0.3.5) (2023-06-27)
+
+
+### Bug Fixes
+
+* add type to workspace symbol ([#67](https://github.com/elixir-tools/next-ls/issues/67)) ([905ff62](https://github.com/elixir-tools/next-ls/commit/905ff6260a868d743702562be29ed3906ad42df0))
+* filter out hidden functions from workspace symbols ([#66](https://github.com/elixir-tools/next-ls/issues/66)) ([202a906](https://github.com/elixir-tools/next-ls/commit/202a90699d8e1bcb3c0a25c36fb1785923c80d31)), closes [#39](https://github.com/elixir-tools/next-ls/issues/39)
+* properly close the symbol table on shutdown ([#65](https://github.com/elixir-tools/next-ls/issues/65)) ([837d02f](https://github.com/elixir-tools/next-ls/commit/837d02fcfdb3de4e4b440e5f184c04edba69d11f))
+
 ## [0.3.4](https://github.com/elixir-tools/next-ls/compare/v0.3.3...v0.3.4) (2023-06-27)
 
 
