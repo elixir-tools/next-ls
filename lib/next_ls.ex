@@ -252,6 +252,11 @@ defmodule NextLS do
         },
         %{assigns: %{ready: true}} = lsp
       ) do
+    for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
+        task != lsp.assigns.runtime_task.pid do
+      Process.exit(task, :kill)
+    end
+
     token = token()
 
     progress_start(lsp, token, "Compiling...")
@@ -339,15 +344,7 @@ defmodule NextLS do
     Process.demonitor(ref, [:flush])
     {{token, msg}, refs} = Map.pop(refs, ref)
 
-    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
-      params: %GenLSP.Structures.ProgressParams{
-        token: token,
-        value: %WorkDoneProgressEnd{
-          kind: "end",
-          message: msg
-        }
-      }
-    })
+    progress_end(lsp, token, msg)
 
     lsp =
       case resp do
@@ -371,7 +368,9 @@ defmodule NextLS do
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{refresh_refs: refs}} = lsp)
       when is_map_key(refs, ref) do
-    {_token, refs} = Map.pop(refs, ref)
+    {{token, _}, refs} = Map.pop(refs, ref)
+
+    progress_end(lsp, token)
 
     {:noreply, assign(lsp, refresh_refs: refs)}
   end
@@ -420,6 +419,18 @@ defmodule NextLS do
         value: %WorkDoneProgressBegin{
           kind: "begin",
           title: msg
+        }
+      }
+    })
+  end
+
+  defp progress_end(lsp, token, msg \\ nil) do
+    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
+      params: %GenLSP.Structures.ProgressParams{
+        token: token,
+        value: %WorkDoneProgressEnd{
+          kind: "end",
+          message: msg
         }
       }
     })
