@@ -174,6 +174,8 @@ defmodule NextLS do
   end
 
   def handle_request(%Shutdown{}, lsp) do
+    SymbolTable.close(lsp.assigns.symbol_table)
+
     {:reply, nil, assign(lsp, exit_code: 0)}
   end
 
