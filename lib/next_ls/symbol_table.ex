@@ -94,7 +94,9 @@ defmodule NextLS.SymbolTable do
       )
     end
 
-    for {name, {:v1, type, _meta, clauses}} <- defs, name != :__struct__, {meta, _, _, _} <- clauses do
+    for {name, {:v1, type, _meta, clauses}} <- defs,
+        not String.match?(to_string(name), ~r/__.*__/),
+        {meta, _, _, _} <- clauses do
       :dets.insert(
         state.table,
         {mod,

@@ -56,6 +56,7 @@ defmodule NextLS.SymbolTableTest do
       module_line: 1,
       struct: nil,
       defs: [
+        __foo__: {:v1, :def, [line: 900], [{[line: 900], [], [], nil}]},
         start_link:
           {:v1, :def, [line: 44],
            [
