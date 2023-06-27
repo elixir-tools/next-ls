@@ -342,7 +342,7 @@ defmodule NextLSTest do
                },
                "uri" => "file://#{cwd}/lib/bar.ex"
              },
-             "name" => "foo"
+             "name" => "def foo"
            } in symbols
 
     assert %{
@@ -360,7 +360,7 @@ defmodule NextLSTest do
                },
                "uri" => "file://#{cwd}/lib/bar.ex"
              },
-             "name" => "Bar"
+             "name" => "defmodule Bar"
            } in symbols
 
     assert %{
@@ -396,7 +396,7 @@ defmodule NextLSTest do
                },
                "uri" => "file://#{cwd}/lib/code_action.ex"
              },
-             "name" => "Foo.CodeAction.NestedMod"
+             "name" => "defmodule Foo.CodeAction.NestedMod"
            } in symbols
   end
 
@@ -438,7 +438,7 @@ defmodule NextLSTest do
                  },
                  "uri" => "file://#{cwd}/lib/bar.ex"
                },
-               "name" => "foo"
+               "name" => "def foo"
              },
              %{
                "kind" => 12,
@@ -455,7 +455,7 @@ defmodule NextLSTest do
                  },
                  "uri" => "file://#{cwd}/lib/code_action.ex"
                },
-               "name" => "foo"
+               "name" => "def foo"
              }
            ] == symbols
   end

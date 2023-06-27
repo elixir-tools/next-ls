@@ -115,8 +115,15 @@ defmodule NextLS do
 
     symbols =
       for %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(lsp.assigns.symbol_table), filter.(symbol.name) do
+        name =
+          if symbol.type != :defstruct do
+            "#{symbol.type} #{symbol.name}"
+          else
+            "#{symbol.name}"
+          end
+
         %SymbolInformation{
-          name: to_string(symbol.name),
+          name: name,
           kind: elixir_kind_to_lsp_kind(symbol.type),
           location: %Location{
             uri: "file://#{symbol.file}",
