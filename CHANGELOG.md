@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/elixir-tools/next-ls/compare/v0.3.3...v0.3.4) (2023-06-27)
+
+
+### Bug Fixes
+
+* cancel current progress messages when changing/saving file ([#61](https://github.com/elixir-tools/next-ls/issues/61)) ([dca3b25](https://github.com/elixir-tools/next-ls/commit/dca3b25d420294a4ded8f920fdf9be54022ebc58)), closes [#40](https://github.com/elixir-tools/next-ls/issues/40)
+
 ## [0.3.3](https://github.com/elixir-tools/next-ls/compare/v0.3.2...v0.3.3) (2023-06-25)
 
 
