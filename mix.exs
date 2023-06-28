@@ -4,7 +4,7 @@ defmodule NextLS.MixProject do
   def project do
     [
       app: :next_ls,
-      description: "The langauge server for Elixir that just works",
+      description: "The language server for Elixir that just works",
       version: "0.3.5",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
