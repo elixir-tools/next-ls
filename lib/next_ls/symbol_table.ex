@@ -5,6 +5,16 @@ defmodule NextLS.SymbolTable do
   defmodule Symbol do
     defstruct [:file, :module, :type, :name, :line, :col]
 
+    @type t :: %__MODULE__{
+            file: String.t(),
+            module: module(),
+            type: atom(),
+            name: atom(),
+            line: integer(),
+            col: integer()
+          }
+
+    @spec new(keyword()) :: t()
     def new(args) do
       struct(__MODULE__, args)
     end
@@ -20,6 +30,10 @@ defmodule NextLS.SymbolTable do
   @spec symbols(pid() | atom()) :: list(struct())
   def symbols(server), do: GenServer.call(server, :symbols)
 
+  @spec symbols(pid() | atom(), String.t()) :: list(struct())
+  def symbols(server, file), do: GenServer.call(server, {:symbols, file})
+
+  @spec close(pid() | atom()) :: :ok | {:error, term()}
   def close(server), do: GenServer.call(server, :close)
 
   def init(args) do
@@ -36,10 +50,26 @@ defmodule NextLS.SymbolTable do
     {:ok, %{table: name}}
   end
 
+  def handle_call({:symbols, file}, _, state) do
+    symbols =
+      case :dets.lookup(state.table, file) do
+        [{_, symbols} | _rest] -> symbols
+        _ -> []
+      end
+
+    {:reply, symbols, state}
+  end
+
   def handle_call(:symbols, _, state) do
     symbols =
       :dets.foldl(
-        fn {_key, symbol}, acc -> [symbol | acc] end,
+        fn {_key, symbol}, acc ->
+          if String.match?(to_string(symbol.name), ~r/__.*__/) do
+            acc
+          else
+            [symbol | acc]
+          end
+        end,
         [],
         state.table
       )
@@ -63,6 +93,7 @@ defmodule NextLS.SymbolTable do
     } = symbols
 
     :dets.delete(state.table, mod)
+    :dets.delete(state.table, file)
 
     :dets.insert(
       state.table,
@@ -94,9 +125,7 @@ defmodule NextLS.SymbolTable do
       )
     end
 
-    for {name, {:v1, type, _meta, clauses}} <- defs,
-        not String.match?(to_string(name), ~r/__.*__/),
-        {meta, _, _, _} <- clauses do
+    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
       :dets.insert(
         state.table,
         {mod,
