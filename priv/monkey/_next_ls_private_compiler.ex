@@ -9,7 +9,7 @@ defmodule NextLSPrivate.Tracer do
         {name, Module.get_definition(env.module, {name, arity})}
       end
 
-    {:ok, {_, [{'Dbgi', bin}]}} = :beam_lib.chunks(bytecode, ['Dbgi'])
+    {:ok, {_, [{~c"Dbgi", bin}]}} = :beam_lib.chunks(bytecode, [~c"Dbgi"])
 
     {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} = :erlang.binary_to_term(bin)
 
