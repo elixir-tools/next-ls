@@ -93,7 +93,6 @@ defmodule NextLS.SymbolTable do
     } = symbols
 
     :dets.delete(state.table, mod)
-    :dets.delete(state.table, file)
 
     :dets.insert(
       state.table,
