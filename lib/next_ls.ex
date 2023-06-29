@@ -20,6 +20,7 @@ defmodule NextLS do
   alias GenLSP.Requests.{
     Initialize,
     Shutdown,
+    TextDocumentDocumentSymbol,
     TextDocumentFormatting,
     WorkspaceSymbol
   }
@@ -28,21 +29,21 @@ defmodule NextLS do
     DidOpenTextDocumentParams,
     InitializeParams,
     InitializeResult,
+    Location,
     Position,
     Range,
-    Location,
     SaveOptions,
     ServerCapabilities,
+    SymbolInformation,
     TextDocumentItem,
     TextDocumentSyncOptions,
     TextEdit,
     WorkDoneProgressBegin,
-    WorkDoneProgressEnd,
-    SymbolInformation
+    WorkDoneProgressEnd
   }
 
-  alias NextLS.Runtime
   alias NextLS.DiagnosticCache
+  alias NextLS.Runtime
   alias NextLS.SymbolTable
 
   def start_link(args) do
@@ -85,10 +86,7 @@ defmodule NextLS do
   end
 
   @impl true
-  def handle_request(
-        %Initialize{params: %InitializeParams{root_uri: root_uri}},
-        lsp
-      ) do
+  def handle_request(%Initialize{params: %InitializeParams{root_uri: root_uri}}, lsp) do
     {:reply,
      %InitializeResult{
        capabilities: %ServerCapabilities{
@@ -98,10 +96,26 @@ defmodule NextLS do
            change: TextDocumentSyncKind.full()
          },
          document_formatting_provider: true,
-         workspace_symbol_provider: true
+         workspace_symbol_provider: true,
+         document_symbol_provider: true
        },
        server_info: %{name: "NextLS"}
      }, assign(lsp, root_uri: root_uri)}
+  end
+
+  def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
+    symbols =
+      try do
+        lsp.assigns.documents[uri]
+        |> Enum.join("\n")
+        |> NextLS.DocumentSymbol.fetch()
+      rescue
+        e ->
+          GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
+          nil
+      end
+
+    {:reply, symbols, lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
