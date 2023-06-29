@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/elixir-tools/next-ls/compare/v0.3.5...v0.4.0) (2023-06-29)
+
+
+### Features
+
+* document symbols ([#69](https://github.com/elixir-tools/next-ls/issues/69)) ([bf80999](https://github.com/elixir-tools/next-ls/commit/bf809997bd51bc25b1abec610954e82de4be499d)), closes [#41](https://github.com/elixir-tools/next-ls/issues/41)
+
+
+### Bug Fixes
+
+* **docs:** typo in mix.exs ([#70](https://github.com/elixir-tools/next-ls/issues/70)) ([db11c1c](https://github.com/elixir-tools/next-ls/commit/db11c1c0449e2513c49576203dc4d2f6ffdfbdf8))
+
 ## [0.3.5](https://github.com/elixir-tools/next-ls/compare/v0.3.4...v0.3.5) (2023-06-27)
 
 
