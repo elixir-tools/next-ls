@@ -55,9 +55,9 @@ defmodule NextLS.Runtime do
           :stream,
           cd: working_dir,
           env: [
-            {'NEXTLS_PARENT_PID', :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
-            {'MIX_ENV', 'dev'},
-            {'MIX_BUILD_ROOT', '.elixir-tools/_build'}
+            {~c"NEXTLS_PARENT_PID", :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
+            {~c"MIX_ENV", ~c"dev"},
+            {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
           ],
           args: [
             System.find_executable("elixir"),
