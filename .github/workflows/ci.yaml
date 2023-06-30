@@ -38,9 +38,6 @@ jobs:
       - name: Start EPMD
         run: epmd -daemon
 
-      - name: Compile test project
-        run: (cd test/support/project && mix deps.get && mix compile)
-
       - name: Compile
         env:
           MIX_ENV: test

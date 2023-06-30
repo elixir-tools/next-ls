@@ -1,5 +1,6 @@
 defmodule NextLs.RuntimeTest do
   use ExUnit.Case, async: true
+  import NextLS.Support.Utils
 
   @moduletag :tmp_dir
 
@@ -9,7 +10,17 @@ defmodule NextLs.RuntimeTest do
   alias NextLS.Runtime
 
   setup %{tmp_dir: tmp_dir} do
-    File.cp_r!("test/support/project", tmp_dir)
+    File.write!(Path.join(tmp_dir, "mix.exs"), mix_exs())
+    File.mkdir_p!(Path.join(tmp_dir, "lib"))
+
+    File.write!(Path.join(tmp_dir, "lib/bar.ex"), """
+    defmodule Bar do
+      defstruct [:foo]
+
+      def foo(arg1) do
+      end
+    end
+    """)
 
     {:ok, logger} =
       Task.start_link(fn ->

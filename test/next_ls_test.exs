@@ -1,12 +1,48 @@
 defmodule NextLSTest do
   use ExUnit.Case, async: true
+  import NextLS.Support.Utils
 
   @moduletag :tmp_dir
 
   import GenLSP.Test
 
   setup %{tmp_dir: tmp_dir} do
-    File.cp_r!("test/support/project", tmp_dir)
+    File.write!(Path.join(tmp_dir, "mix.exs"), mix_exs())
+    File.mkdir_p!(Path.join(tmp_dir, "lib"))
+
+    File.write!(Path.join(tmp_dir, "lib/bar.ex"), """
+    defmodule Bar do
+      defstruct [:foo]
+
+      def foo(arg1) do
+      end
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "lib/code_action.ex"), """
+    defmodule Foo.CodeAction do
+      # some comment
+
+      defmodule NestedMod do
+        def foo do
+          :ok
+        end
+      end
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "lib/foo.ex"), """
+    defmodule Foo do
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "lib/project.ex"), """
+    defmodule Project do
+      def hello do
+        :world
+      end
+    end
+    """)
 
     File.rm_rf!(Path.join(tmp_dir, ".elixir-tools"))
 
@@ -69,9 +105,7 @@ defmodule NextLSTest do
     assert_result 2, nil
   end
 
-  test "returns method not found for unimplemented requests", %{
-    client: client
-  } do
+  test "returns method not found for unimplemented requests", %{client: client} do
     id = System.unique_integer([:positive])
 
     assert :ok ==
