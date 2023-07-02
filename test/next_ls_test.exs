@@ -468,6 +468,16 @@ defmodule NextLSTest do
 
   describe "two" do
     setup %{cwd: cwd} do
+      remote = Path.join(cwd, "lib/remote.ex")
+
+      File.write!(remote, """
+      defmodule Remote do
+        def bang!() do
+          "‼️"
+        end
+      end
+      """)
+
       imported = Path.join(cwd, "lib/imported.ex")
 
       File.write!(imported, """
@@ -484,6 +494,7 @@ defmodule NextLSTest do
       defmodule Foo do
         import Imported
         def run() do
+          Remote.bang!()
           process()
         end
 
@@ -494,7 +505,7 @@ defmodule NextLSTest do
       end
       """)
 
-      [bar: bar, imported: imported]
+      [bar: bar, imported: imported, remote: remote]
     end
 
     setup :with_lsp
@@ -517,7 +528,7 @@ defmodule NextLSTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 3, character: 6},
+          position: %{line: 4, character: 6},
           textDocument: %{uri: uri}
         }
       })
@@ -525,11 +536,11 @@ defmodule NextLSTest do
       assert_result 4, %{
         "range" => %{
           "start" => %{
-            "line" => 6,
+            "line" => 7,
             "character" => 0
           },
           "end" => %{
-            "line" => 6,
+            "line" => 7,
             "character" => 0
           }
         },
@@ -555,12 +566,52 @@ defmodule NextLSTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 7, character: 5},
+          position: %{line: 8, character: 5},
           textDocument: %{uri: uri}
         }
       })
 
       uri = uri(imported)
+
+      assert_result 4, %{
+        "range" => %{
+          "start" => %{
+            "line" => 1,
+            "character" => 0
+          },
+          "end" => %{
+            "line" => 1,
+            "character" => 0
+          }
+        },
+        "uri" => ^uri
+      }
+    end
+
+    test "go to remote function definition", %{client: client, bar: bar, remote: remote} do
+      assert :ok ==
+               notify(client, %{
+                 method: "initialized",
+                 jsonrpc: "2.0",
+                 params: %{}
+               })
+
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 3, character: 12},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      uri = uri(remote)
 
       assert_result 4, %{
         "range" => %{
