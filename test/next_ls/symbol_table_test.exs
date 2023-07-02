@@ -5,6 +5,7 @@ defmodule NextLS.SymbolTableTest do
   alias NextLS.SymbolTable
 
   setup %{tmp_dir: dir} do
+    File.mkdir_p!(dir)
     pid = start_supervised!({SymbolTable, [path: dir]})
 
     Process.link(pid)
