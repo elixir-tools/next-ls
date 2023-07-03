@@ -13,11 +13,6 @@ defmodule NextLS.SymbolTable do
             line: integer(),
             col: integer()
           }
-
-    @spec new(keyword()) :: t()
-    def new(args) do
-      struct(__MODULE__, args)
-    end
   end
 
   def start_link(args) do
