@@ -8,17 +8,24 @@ defmodule NextLS.SymbolTableTest do
     File.mkdir_p!(dir)
 
     # this fails with `{:error, incompatible_arguments}` on CI a lot, and I have no idea why
-    pid =
-      try do
-        start_supervised!({SymbolTable, [path: dir]})
-      rescue
-        _ ->
-          Process.sleep(250)
-          start_supervised!({SymbolTable, [path: dir]})
-      end
+    pid = try_start_supervised({SymbolTable, [path: dir]}, 10)
 
     Process.link(pid)
     [pid: pid, dir: dir]
+  end
+
+  defp try_start_supervised(spec, 0) do
+    start_supervised!(spec)
+  end
+
+  defp try_start_supervised(spec, num) do
+    try do
+      start_supervised!(spec)
+    rescue
+      _ ->
+        Process.sleep(250)
+        try_start_supervised(spec, num - 1)
+    end
   end
 
   test "creates a dets table", %{dir: dir, pid: pid} do
