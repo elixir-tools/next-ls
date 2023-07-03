@@ -41,7 +41,7 @@ defmodule NextLS.SymbolTable do
 
     {:ok, name} =
       :dets.open_file(:symbol_table,
-        file: Path.join(path, "symbol_table.dets") |> String.to_charlist() |> dbg(),
+        file: Path.join(path, "symbol_table.dets") |> String.to_charlist() |> IO.inspect(),
         type: :duplicate_bag
       )
 
