@@ -6,7 +6,16 @@ defmodule NextLS.SymbolTableTest do
 
   setup %{tmp_dir: dir} do
     File.mkdir_p!(dir)
-    pid = start_supervised!({SymbolTable, [path: dir]})
+
+    # this fails with `{:error, incompatible_arguments}` on CI a lot, and I have no idea why
+    pid =
+      try do
+        start_supervised!({SymbolTable, [path: dir]})
+      rescue
+        _ ->
+          Process.sleep(250)
+          start_supervised!({SymbolTable, [path: dir]})
+      end
 
     Process.link(pid)
     [pid: pid, dir: dir]
