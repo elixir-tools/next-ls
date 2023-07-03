@@ -36,17 +36,19 @@ defmodule NextLS.SymbolTable do
 
   def init(args) do
     path = Keyword.fetch!(args, :path)
+    symbol_table_name = Keyword.get(args, :symbol_table_name, :symbol_table)
+    reference_table_name = Keyword.get(args, :reference_table_name, :reference_table)
 
     File.mkdir_p!(path)
 
     {:ok, name} =
-      :dets.open_file(:symbol_table,
+      :dets.open_file(symbol_table_name,
         file: Path.join(path, "symbol_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
 
     {:ok, ref_name} =
-      :dets.open_file(:reference_table,
+      :dets.open_file(reference_table_name,
         file: Path.join(path, "reference_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
