@@ -7,6 +7,7 @@ defmodule NextLS.MixProject do
       description: "The language server for Elixir that just works",
       version: "0.4.0",
       elixir: "~> 1.13",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       package: package(),
       deps: deps(),
@@ -26,6 +27,9 @@ defmodule NextLS.MixProject do
       mod: {NextLS.Application, []}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do

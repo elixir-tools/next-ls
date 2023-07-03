@@ -1,2 +1,0 @@
-defmodule Foo do
-end
