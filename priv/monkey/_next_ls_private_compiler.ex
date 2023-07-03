@@ -1,12 +1,33 @@
 defmodule NextLSPrivate.Tracer do
-  def trace(:start, env) do
+  def trace(:start, _env) do
+    :ok
+  end
+
+  def trace({:alias_reference, meta, module}, env) do
+    parent = parent_pid()
+
+    alias_map = Map.new(env.aliases, fn {alias, mod} -> {mod, alias} end)
+
+    Process.send(
+      parent,
+      {{:tracer, :reference},
+       %{
+         meta: meta,
+         identifier: Map.get(alias_map, module, module),
+         file: env.file,
+         type: :alias,
+         module: module
+       }},
+      []
+    )
+
     :ok
   end
 
   def trace({type, meta, module, func, arity}, env)
       when type in [:remote_function, :remote_macro, :imported_macro] and
              module not in [:elixir_def, :elixir_utils, Kernel, Enum] do
-    parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+    parent = parent_pid()
 
     if type == :remote_macro && meta[:closing][:line] != meta[:line] do
       # this is the case that a macro is getting expanded from inside
@@ -15,12 +36,13 @@ defmodule NextLSPrivate.Tracer do
     else
       Process.send(
         parent,
-        {{:tracer, :local_function},
+        {{:tracer, :reference},
          %{
            meta: meta,
-           func: func,
+           identifier: func,
            arity: arity,
            file: env.file,
+           type: :function,
            module: module
          }},
         []
@@ -31,16 +53,17 @@ defmodule NextLSPrivate.Tracer do
   end
 
   def trace({type, meta, func, arity}, env) when type in [:local_function, :local_macro] do
-    parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+    parent = parent_pid()
 
     Process.send(
       parent,
-      {{:tracer, :local_function},
+      {{:tracer, :reference},
        %{
          meta: meta,
-         func: func,
+         identifier: func,
          arity: arity,
          file: env.file,
+         type: :function,
          module: env.module
        }},
       []
@@ -50,7 +73,7 @@ defmodule NextLSPrivate.Tracer do
   end
 
   def trace({:on_module, bytecode, _}, env) do
-    parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+    parent = parent_pid()
 
     defs = Module.definitions_in(env.module)
 
@@ -81,6 +104,10 @@ defmodule NextLSPrivate.Tracer do
 
   def trace(_event, _env) do
     :ok
+  end
+
+  defp parent_pid() do
+    "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
   end
 end
 

@@ -91,14 +91,14 @@ defmodule NextLS.SymbolTable do
   def handle_cast({:put_reference, reference}, state) do
     %{
       meta: meta,
-      func: func,
-      arity: _arity,
-      file: file,
-      module: _module
+      identifier: identifier,
+      file: file
     } = reference
 
     col = meta[:column] || 0
-    range = {{meta[:line], col}, {meta[:line], col + String.length(to_string(func))}}
+
+    range =
+      {{meta[:line], col}, {meta[:line], col + String.length(to_string(identifier) |> String.replace("Elixir.", ""))}}
 
     :dets.insert(state.reference_table, {
       {file, range},
@@ -150,9 +150,6 @@ defmodule NextLS.SymbolTable do
     end
 
     for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
-      _ = foo()
-      _ = foo()
-
       :dets.insert(
         state.table,
         {mod,
@@ -169,6 +166,4 @@ defmodule NextLS.SymbolTable do
 
     {:noreply, state}
   end
-
-  def foo(), do: :ok
 end
