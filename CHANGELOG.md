@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/elixir-tools/next-ls/compare/v0.4.0...v0.5.0) (2023-07-03)
+
+
+### Features
+
+* **definition:** aliases ([#83](https://github.com/elixir-tools/next-ls/issues/83)) ([6156f11](https://github.com/elixir-tools/next-ls/commit/6156f1176581e5caa7b176528e7b72942943e61c))
+* **definition:** go to imported function ([#79](https://github.com/elixir-tools/next-ls/issues/79)) ([afe2990](https://github.com/elixir-tools/next-ls/commit/afe299013ee64ecc5b1477b4ca8bdae51bf0fa76))
+* **definition:** local function ([#78](https://github.com/elixir-tools/next-ls/issues/78)) ([57ccc2e](https://github.com/elixir-tools/next-ls/commit/57ccc2eb6d90df5bd652022f5002ade6e0b79605))
+* **definition:** remote function definition ([#80](https://github.com/elixir-tools/next-ls/issues/80)) ([adbf009](https://github.com/elixir-tools/next-ls/commit/adbf009ffa8c5347d01b0dbdc418670192c8dec1))
+* **definitions:** macros ([#81](https://github.com/elixir-tools/next-ls/issues/81)) ([1d3b022](https://github.com/elixir-tools/next-ls/commit/1d3b022657b09661afc8171428bf021409c3c4a9))
+
 ## [0.4.0](https://github.com/elixir-tools/next-ls/compare/v0.3.5...v0.4.0) (2023-06-29)
 
 
