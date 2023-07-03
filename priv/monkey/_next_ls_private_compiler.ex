@@ -3,26 +3,34 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({:remote_function, meta, module, func, arity}, env) do
+  def trace({type, meta, module, func, arity}, env)
+      when type in [:remote_function, :remote_macro, :imported_macro] and
+             module not in [:elixir_def, :elixir_utils, Kernel, Enum] do
     parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
 
-    Process.send(
-      parent,
-      {{:tracer, :local_function},
-       %{
-         meta: meta,
-         func: func,
-         arity: arity,
-         file: env.file,
-         module: module
-       }},
-      []
-    )
+    if type == :remote_macro && meta[:closing][:line] != meta[:line] do
+      # this is the case that a macro is getting expanded from inside
+      # another macro expansion
+      :noop
+    else
+      Process.send(
+        parent,
+        {{:tracer, :local_function},
+         %{
+           meta: meta,
+           func: func,
+           arity: arity,
+           file: env.file,
+           module: module
+         }},
+        []
+      )
+    end
 
     :ok
   end
 
-  def trace({:local_function, meta, func, arity}, env) do
+  def trace({type, meta, func, arity}, env) when type in [:local_function, :local_macro] do
     parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
 
     Process.send(

@@ -13,7 +13,8 @@ defmodule NextLS.Definition do
         ]
       )
 
-    :dets.traverse(dets_symbol_table, fn x -> {:continue, x} end)
+    # :dets.traverse(dets_symbol_table, fn x -> {:continue, x} end) |> dbg
+    # :dets.traverse(dets_ref_table, fn x -> {:continue, x} end) |> dbg
 
     case ref do
       [ref] ->
