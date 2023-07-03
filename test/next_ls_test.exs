@@ -801,6 +801,71 @@ defmodule NextLSTest do
     end
   end
 
+  describe "module go to definition" do
+    setup %{cwd: cwd} do
+      peace = Path.join(cwd, "lib/peace.ex")
+
+      File.write!(peace, """
+      defmodule MyApp.Peace do
+        def and_love() do
+          "✌️"
+        end
+      end
+      """)
+
+      bar = Path.join(cwd, "lib/bar.ex")
+
+      File.write!(bar, """
+      defmodule Bar do
+        alias MyApp.Peace
+        def run() do
+          Peace.and_love()
+        end
+      end
+      """)
+
+      [bar: bar, peace: peace]
+    end
+
+    setup :with_lsp
+
+    test "go to module definition", %{client: client, bar: bar, peace: peace} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 3, character: 5},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      uri = uri(peace)
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{
+                          "line" => 0,
+                          "character" => 0
+                        },
+                        "end" => %{
+                          "line" => 0,
+                          "character" => 0
+                        }
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+  end
+
   defp with_lsp(%{tmp_dir: tmp_dir}) do
     root_path = Path.absname(tmp_dir)
 

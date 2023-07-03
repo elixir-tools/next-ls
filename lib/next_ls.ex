@@ -117,6 +117,9 @@ defmodule NextLS do
         nil ->
           nil
 
+        [] ->
+          nil
+
         [{file, line, column} | _] ->
           %Location{
             uri: "file://#{file}",
@@ -372,13 +375,11 @@ defmodule NextLS do
 
   def handle_info({:tracer, payload}, lsp) do
     SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
-    GenLSP.log(lsp, "[NextLS] Updated the symbols table!")
     {:noreply, lsp}
   end
 
-  def handle_info({{:tracer, :local_function}, payload}, lsp) do
+  def handle_info({{:tracer, :reference}, payload}, lsp) do
     SymbolTable.put_reference(lsp.assigns.symbol_table, payload)
-    GenLSP.log(lsp, "[NextLS] Updated the reference table!")
     {:noreply, lsp}
   end
 

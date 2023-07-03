@@ -87,6 +87,13 @@ defmodule NextLS.Runtime do
         |> :code.priv_dir()
         |> Path.join("monkey/_next_ls_private_compiler.ex")
         |> then(&:rpc.call(node, Code, :compile_file, [&1]))
+        |> tap(fn
+          {:badrpc, :EXIT, {error, _}} ->
+            send(parent, {:log, error})
+
+          _ ->
+            :ok
+        end)
 
         :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
 

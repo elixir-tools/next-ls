@@ -16,18 +16,34 @@ defmodule NextLS.Definition do
     # :dets.traverse(dets_symbol_table, fn x -> {:continue, x} end) |> dbg
     # :dets.traverse(dets_ref_table, fn x -> {:continue, x} end) |> dbg
 
-    case ref do
-      [ref] ->
-        :dets.select(
-          dets_symbol_table,
-          [
-            {{:_, %{line: :"$3", name: :"$2", module: :"$1", col: :"$4", file: :"$5"}},
-             [{:andalso, {:==, :"$1", ref.module}, {:==, :"$2", ref.func}}], [{{:"$5", :"$3", :"$4"}}]}
-          ]
-        )
+    # dbg(ref)
 
-      _ ->
-        nil
+    query =
+      case ref do
+        [%{type: :alias} = ref] ->
+          [
+            {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
+             [
+               {:andalso, {:==, :"$1", ref.module}, {:==, :"$2", Macro.to_string(ref.module)}}
+             ], [{{:"$5", :"$3", :"$4"}}]}
+          ]
+
+        [%{type: :function} = ref] ->
+          [
+            {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
+             [
+               {:andalso, {:==, :"$1", ref.module}, {:==, :"$2", ref.identifier}}
+             ], [{{:"$5", :"$3", :"$4"}}]}
+          ]
+
+        _ ->
+          nil
+      end
+
+    if query do
+      :dets.select(dets_symbol_table, query)
+    else
+      nil
     end
   end
 end
