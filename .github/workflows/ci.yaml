@@ -43,6 +43,9 @@ jobs:
           MIX_ENV: test
         run: mix compile
 
+      - name: remove tmp dir
+        run: rm -rf tmp
+
       - name: Run Tests
         run: mix test
 
