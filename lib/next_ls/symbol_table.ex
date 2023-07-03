@@ -97,7 +97,8 @@ defmodule NextLS.SymbolTable do
       module: _module
     } = reference
 
-    range = {{meta[:line], meta[:column]}, {meta[:line], meta[:column] + String.length(to_string(func))}}
+    col = meta[:column] || 0
+    range = {{meta[:line], col}, {meta[:line], col + String.length(to_string(func))}}
 
     :dets.insert(state.reference_table, {
       {file, range},
