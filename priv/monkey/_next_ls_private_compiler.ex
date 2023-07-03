@@ -1,4 +1,33 @@
 defmodule NextLSPrivate.Tracer do
+  def trace(:start, env) do
+    :ok
+  end
+
+  def trace({:local_function, meta, func, arity}, env) do
+    parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+
+    module =
+      case Macro.Env.lookup_import(env, {func, arity}) do
+        [{_, module}] -> module
+        [] -> env.module
+      end
+
+    Process.send(
+      parent,
+      {{:tracer, :local_function},
+       %{
+         meta: meta,
+         func: func,
+         arity: arity,
+         file: env.file,
+         module: module
+       }},
+      []
+    )
+
+    :ok
+  end
+
   def trace({:on_module, bytecode, _}, env) do
     parent = "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
 
@@ -15,7 +44,14 @@ defmodule NextLSPrivate.Tracer do
 
     Process.send(
       parent,
-      {:tracer, %{file: env.file, module: env.module, module_line: line, struct: struct, defs: defs}},
+      {:tracer,
+       %{
+         file: env.file,
+         module: env.module,
+         module_line: line,
+         struct: struct,
+         defs: defs
+       }},
       []
     )
 

@@ -22,6 +22,9 @@ defmodule NextLS.SymbolTable do
   @spec put_symbols(pid() | atom(), list(tuple())) :: :ok
   def put_symbols(server, symbols), do: GenServer.cast(server, {:put_symbols, symbols})
 
+  @spec put_reference(pid() | atom(), map()) :: :ok
+  def put_reference(server, reference), do: GenServer.cast(server, {:put_reference, reference})
+
   @spec symbols(pid() | atom()) :: list(struct())
   def symbols(server), do: GenServer.call(server, :symbols)
 
@@ -42,7 +45,13 @@ defmodule NextLS.SymbolTable do
         type: :duplicate_bag
       )
 
-    {:ok, %{table: name}}
+    {:ok, ref_name} =
+      :dets.open_file(:reference_table,
+        file: Path.join(path, "reference_table.dets") |> String.to_charlist(),
+        type: :duplicate_bag
+      )
+
+    {:ok, %{table: name, reference_table: ref_name}}
   end
 
   def handle_call({:symbols, file}, _, state) do
@@ -74,8 +83,28 @@ defmodule NextLS.SymbolTable do
 
   def handle_call(:close, _, state) do
     :dets.close(state.table)
+    :dets.close(state.reference_table)
 
     {:reply, :ok, state}
+  end
+
+  def handle_cast({:put_reference, reference}, state) do
+    %{
+      meta: meta,
+      func: func,
+      arity: _arity,
+      file: file,
+      module: _module
+    } = reference
+
+    range = {{meta[:line], meta[:column]}, {meta[:line], meta[:column] + String.length(to_string(func))}}
+
+    :dets.insert(state.reference_table, {
+      {file, range},
+      reference
+    })
+
+    {:noreply, state}
   end
 
   def handle_cast({:put_symbols, symbols}, state) do
@@ -120,6 +149,9 @@ defmodule NextLS.SymbolTable do
     end
 
     for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
+      _ = foo()
+      _ = foo()
+
       :dets.insert(
         state.table,
         {mod,
@@ -136,4 +168,6 @@ defmodule NextLS.SymbolTable do
 
     {:noreply, state}
   end
+
+  def foo(), do: :ok
 end

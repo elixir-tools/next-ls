@@ -21,6 +21,7 @@ defmodule NextLS do
     Initialize,
     Shutdown,
     TextDocumentDocumentSymbol,
+    TextDocumentDefinition,
     TextDocumentFormatting,
     WorkspaceSymbol
   }
@@ -45,6 +46,7 @@ defmodule NextLS do
   alias NextLS.DiagnosticCache
   alias NextLS.Runtime
   alias NextLS.SymbolTable
+  alias NextLS.Definition
 
   def start_link(args) do
     {args, opts} =
@@ -97,10 +99,41 @@ defmodule NextLS do
          },
          document_formatting_provider: true,
          workspace_symbol_provider: true,
-         document_symbol_provider: true
+         document_symbol_provider: true,
+         definition_provider: true
        },
        server_info: %{name: "NextLS"}
      }, assign(lsp, root_uri: root_uri)}
+  end
+
+  def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
+    result =
+      case Definition.fetch(
+             URI.parse(uri).path,
+             {position.line + 1, position.character + 1},
+             :symbol_table,
+             :reference_table
+           ) do
+        nil ->
+          nil
+
+        [{file, line, column} | _] ->
+          %Location{
+            uri: "file://#{file}",
+            range: %Range{
+              start: %Position{
+                line: line - 1,
+                character: column - 1
+              },
+              end: %Position{
+                line: line - 1,
+                character: column - 1
+              }
+            }
+          }
+      end
+
+    {:reply, result, lsp}
   end
 
   def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
@@ -340,6 +373,12 @@ defmodule NextLS do
   def handle_info({:tracer, payload}, lsp) do
     SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
     GenLSP.log(lsp, "[NextLS] Updated the symbols table!")
+    {:noreply, lsp}
+  end
+
+  def handle_info({{:tracer, :local_function}, payload}, lsp) do
+    SymbolTable.put_reference(lsp.assigns.symbol_table, payload)
+    GenLSP.log(lsp, "[NextLS] Updated the reference table!")
     {:noreply, lsp}
   end
 
