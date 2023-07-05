@@ -11,6 +11,8 @@ Still in heavy development, currently supporting the following features:
 - Compiler Diagnostics
 - Code Formatting
 - Workspace Symbols
+- Document Symbols
+- Go To Definition
 
 ## Editor Support
 
