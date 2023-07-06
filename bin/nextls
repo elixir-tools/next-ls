@@ -9,7 +9,7 @@ Logger.configure(level: :none)
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 
-default_version = "0.5.0" # x-release-please-version
+default_version = "0.5.1" # x-release-please-version
 
 Mix.install([{:next_ls, System.get_env("NEXTLS_VERSION", default_version)}])
 
