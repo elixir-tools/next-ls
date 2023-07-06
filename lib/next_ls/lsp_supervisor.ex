@@ -35,6 +35,7 @@ defmodule NextLS.LSPSupervisor do
       children = [
         {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
+        {Task.Supervisor, name: :runtime_task_supervisor},
         {GenLSP.Buffer, buffer_opts},
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
         {NextLS.SymbolTable, name: :symbol_table, path: Path.expand(".elixir-tools")},
@@ -43,6 +44,7 @@ defmodule NextLS.LSPSupervisor do
          cache: :diagnostic_cache,
          symbol_table: :symbol_table,
          task_supervisor: NextLS.TaskSupervisor,
+         runtime_task_supervisor: :runtime_task_supervisor,
          dynamic_supervisor: NextLS.DynamicSupervisor,
          extension_registry: NextLS.ExtensionRegistry}
       ]

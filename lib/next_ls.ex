@@ -53,6 +53,7 @@ defmodule NextLS do
       Keyword.split(args, [
         :cache,
         :task_supervisor,
+        :runtime_task_supervisor,
         :dynamic_supervisor,
         :extensions,
         :extension_registry,
@@ -65,6 +66,7 @@ defmodule NextLS do
   @impl true
   def init(lsp, args) do
     task_supervisor = Keyword.fetch!(args, :task_supervisor)
+    runtime_task_supervisor = Keyword.fetch!(args, :runtime_task_supervisor)
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
     extension_registry = Keyword.fetch!(args, :extension_registry)
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
@@ -81,6 +83,7 @@ defmodule NextLS do
        logger: logger,
        symbol_table: symbol_table,
        task_supervisor: task_supervisor,
+       runtime_task_supervisor: runtime_task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
        extension_registry: extension_registry,
        extensions: extensions,
@@ -272,6 +275,7 @@ defmodule NextLS do
       DynamicSupervisor.start_child(
         lsp.assigns.dynamic_supervisor,
         {NextLS.Runtime,
+         task_supervisor: lsp.assigns.runtime_task_supervisor,
          extension_registry: lsp.assigns.extension_registry,
          working_dir: working_dir,
          parent: self(),
