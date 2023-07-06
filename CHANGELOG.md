@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/elixir-tools/next-ls/compare/v0.5.0...v0.5.1) (2023-07-06)
+
+
+### Bug Fixes
+
+* run compiler in task ([#95](https://github.com/elixir-tools/next-ls/issues/95)) ([96bfc76](https://github.com/elixir-tools/next-ls/commit/96bfc76250a568ea313693586adffd2de5249692)), closes [#60](https://github.com/elixir-tools/next-ls/issues/60)
+* start dedicated process for runtime logging ([#94](https://github.com/elixir-tools/next-ls/issues/94)) ([32f8313](https://github.com/elixir-tools/next-ls/commit/32f8313dfd0d279214b999a746aeb10cf1e8dbf3)), closes [#92](https://github.com/elixir-tools/next-ls/issues/92)
+
 ## [0.5.0](https://github.com/elixir-tools/next-ls/compare/v0.4.0...v0.5.0) (2023-07-03)
 
 
