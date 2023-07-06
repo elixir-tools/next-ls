@@ -44,6 +44,7 @@ defmodule NextLS.Runtime do
     working_dir = Keyword.fetch!(opts, :working_dir)
     parent = Keyword.fetch!(opts, :parent)
     logger = Keyword.fetch!(opts, :logger)
+    task_supervisor = Keyword.fetch!(opts, :task_supervisor)
     extension_registry = Keyword.fetch!(opts, :extension_registry)
 
     port =
@@ -104,7 +105,16 @@ defmodule NextLS.Runtime do
       end
     end)
 
-    {:ok, %{port: port, logger: logger, parent: parent, errors: nil, extension_registry: extension_registry}}
+    {:ok,
+     %{
+       compiler_ref: nil,
+       port: port,
+       task_supervisor: task_supervisor,
+       logger: logger,
+       parent: parent,
+       errors: nil,
+       extension_registry: extension_registry
+     }}
   end
 
   @impl GenServer
@@ -125,19 +135,37 @@ defmodule NextLS.Runtime do
     {:reply, {:error, :not_ready}, state}
   end
 
-  def handle_call(:compile, _, %{node: node} = state) do
-    {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
+  def handle_call(:compile, from, %{node: node} = state) do
+    task =
+      Task.Supervisor.async_nolink(state.task_supervisor, fn ->
+        {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
 
-    Registry.dispatch(state.extension_registry, :extension, fn entries ->
-      for {pid, _} <- entries do
-        send(pid, {:compiler, errors})
-      end
-    end)
+        Registry.dispatch(state.extension_registry, :extension, fn entries ->
+          for {pid, _} <- entries do
+            send(pid, {:compiler, errors})
+          end
+        end)
 
-    {:reply, errors, %{state | errors: errors}}
+        errors
+      end)
+
+    {:noreply, %{state | compiler_ref: %{task.ref => from}}}
   end
 
   @impl GenServer
+  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
+    Process.demonitor(ref, [:flush])
+
+    GenServer.reply(compiler_ref[ref], errors)
+
+    {:noreply, %{state | compiler_ref: nil}}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_ref: compiler_ref} = state)
+      when is_map_key(compiler_ref, ref) do
+    {:noreply, %{state | compiler_ref: nil}}
+  end
+
   def handle_info({:node, node}, state) do
     Node.monitor(node, true)
     {:noreply, Map.put(state, :node, node)}

@@ -869,7 +869,8 @@ defmodule NextLSTest do
   defp with_lsp(%{tmp_dir: tmp_dir}) do
     root_path = Path.absname(tmp_dir)
 
-    tvisor = start_supervised!(Task.Supervisor)
+    tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
+    r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
     start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
     extensions = [NextLS.ElixirExtension]
@@ -879,6 +880,7 @@ defmodule NextLSTest do
     server =
       server(NextLS,
         task_supervisor: tvisor,
+        runtime_task_supervisor: r_tvisor,
         dynamic_supervisor: rvisor,
         extension_registry: Registry.NextLSTest,
         extensions: extensions,

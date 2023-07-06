@@ -41,10 +41,16 @@ defmodule NextLs.RuntimeTest do
 
   test "returns the response in an ok tuple", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
+    tvisor = start_supervised!(Task.Supervisor)
 
     pid =
       start_supervised!(
-        {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+        {Runtime,
+         task_supervisor: tvisor,
+         working_dir: cwd,
+         parent: self(),
+         logger: logger,
+         extension_registry: RuntimeTestRegistry}
       )
 
     Process.link(pid)
@@ -57,9 +63,16 @@ defmodule NextLs.RuntimeTest do
   test "call returns an error when the runtime is node ready", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
 
+    tvisor = start_supervised!(Task.Supervisor)
+
     pid =
       start_supervised!(
-        {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+        {Runtime,
+         task_supervisor: tvisor,
+         working_dir: cwd,
+         parent: self(),
+         logger: logger,
+         extension_registry: RuntimeTestRegistry}
       )
 
     Process.link(pid)
@@ -70,10 +83,17 @@ defmodule NextLs.RuntimeTest do
   test "compiles the code and returns diagnostics", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
 
+    tvisor = start_supervised!(Task.Supervisor)
+
     capture_log(fn ->
       pid =
         start_supervised!(
-          {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+          {Runtime,
+           task_supervisor: tvisor,
+           working_dir: cwd,
+           parent: self(),
+           logger: logger,
+           extension_registry: RuntimeTestRegistry}
         )
 
       Process.link(pid)
