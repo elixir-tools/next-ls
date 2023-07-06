@@ -1,4 +1,4 @@
-# NextLS
+# Next LS
 
 [![Discord](https://img.shields.io/badge/Discord-5865F3?style=flat&logo=discord&logoColor=white&link=https://discord.gg/nNDMwTJ8)](https://discord.gg/6XdGnxVA2A)
 [![Hex.pm](https://img.shields.io/hexpm/v/next_ls)](https://hex.pm/packages/next_ls)
