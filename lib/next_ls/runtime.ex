@@ -43,6 +43,7 @@ defmodule NextLS.Runtime do
     sname = "nextls-runtime-#{System.system_time()}"
     working_dir = Keyword.fetch!(opts, :working_dir)
     parent = Keyword.fetch!(opts, :parent)
+    logger = Keyword.fetch!(opts, :logger)
     extension_registry = Keyword.fetch!(opts, :extension_registry)
 
     port =
@@ -81,7 +82,7 @@ defmodule NextLS.Runtime do
       with {:ok, host} <- :inet.gethostname(),
            node <- :"#{sname}@#{host}",
            true <- connect(node, port, 120) do
-        send(parent, {:log, "Connected to node #{node}"})
+        NextLS.Logger.log(logger, "Connected to node #{node}")
 
         :next_ls
         |> :code.priv_dir()
@@ -89,7 +90,7 @@ defmodule NextLS.Runtime do
         |> then(&:rpc.call(node, Code, :compile_file, [&1]))
         |> tap(fn
           {:badrpc, :EXIT, {error, _}} ->
-            send(parent, {:log, error})
+            NextLS.Logger.error(logger, error)
 
           _ ->
             :ok
@@ -103,7 +104,7 @@ defmodule NextLS.Runtime do
       end
     end)
 
-    {:ok, %{port: port, parent: parent, errors: nil, extension_registry: extension_registry}}
+    {:ok, %{port: port, logger: logger, parent: parent, errors: nil, extension_registry: extension_registry}}
   end
 
   @impl GenServer
@@ -143,12 +144,12 @@ defmodule NextLS.Runtime do
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do
-    send(state.parent, {:log, data})
+    NextLS.Logger.log(state.logger, data)
     {:noreply, state}
   end
 
   def handle_info({port, other}, %{port: port} = state) do
-    send(state.parent, {:log, other})
+    NextLS.Logger.log(state.logger, other)
     {:noreply, state}
   end
 

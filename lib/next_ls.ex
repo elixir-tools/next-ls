@@ -70,6 +70,7 @@ defmodule NextLS do
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
     cache = Keyword.fetch!(args, :cache)
     symbol_table = Keyword.fetch!(args, :symbol_table)
+    {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
     {:ok,
      assign(lsp,
@@ -77,6 +78,7 @@ defmodule NextLS do
        documents: %{},
        refresh_refs: %{},
        cache: cache,
+       logger: logger,
        symbol_table: symbol_table,
        task_supervisor: task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
@@ -269,7 +271,11 @@ defmodule NextLS do
     {:ok, runtime} =
       DynamicSupervisor.start_child(
         lsp.assigns.dynamic_supervisor,
-        {NextLS.Runtime, extension_registry: lsp.assigns.extension_registry, working_dir: working_dir, parent: self()}
+        {NextLS.Runtime,
+         extension_registry: lsp.assigns.extension_registry,
+         working_dir: working_dir,
+         parent: self(),
+         logger: lsp.assigns.logger}
       )
 
     Process.monitor(runtime)
@@ -445,12 +451,6 @@ defmodule NextLS do
     GenLSP.error(lsp, "[NextLS] The runtime has crashed")
 
     {:noreply, assign(lsp, runtime: nil)}
-  end
-
-  def handle_info({:log, message}, lsp) do
-    GenLSP.log(lsp, "[NextLS] " <> String.trim(message))
-
-    {:noreply, lsp}
   end
 
   def handle_info(message, lsp) do

@@ -26,8 +26,8 @@ defmodule NextLs.RuntimeTest do
       Task.start_link(fn ->
         recv = fn recv ->
           receive do
-            {:log, msg} ->
-              Logger.debug(msg)
+            msg ->
+              Logger.debug(inspect(msg))
           end
 
           recv.(recv)
@@ -41,7 +41,11 @@ defmodule NextLs.RuntimeTest do
 
   test "returns the response in an ok tuple", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
-    pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
+
+    pid =
+      start_supervised!(
+        {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+      )
 
     Process.link(pid)
 
@@ -52,7 +56,11 @@ defmodule NextLs.RuntimeTest do
 
   test "call returns an error when the runtime is node ready", %{logger: logger, cwd: cwd} do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
-    pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
+
+    pid =
+      start_supervised!(
+        {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+      )
 
     Process.link(pid)
 
@@ -63,7 +71,10 @@ defmodule NextLs.RuntimeTest do
     start_supervised!({Registry, keys: :unique, name: RuntimeTestRegistry})
 
     capture_log(fn ->
-      pid = start_supervised!({Runtime, working_dir: cwd, parent: logger, extension_registry: RuntimeTestRegistry})
+      pid =
+        start_supervised!(
+          {Runtime, working_dir: cwd, parent: self(), logger: logger, extension_registry: RuntimeTestRegistry}
+        )
 
       Process.link(pid)
 
