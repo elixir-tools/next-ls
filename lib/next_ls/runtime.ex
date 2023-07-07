@@ -57,6 +57,7 @@ defmodule NextLS.Runtime do
           :stream,
           cd: working_dir,
           env: [
+            {~c"LSP", ~c"nextls"},
             {~c"NEXTLS_PARENT_PID", :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
             {~c"MIX_ENV", ~c"dev"},
             {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
