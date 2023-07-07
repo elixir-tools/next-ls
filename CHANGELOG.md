@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/elixir-tools/next-ls/compare/v0.5.1...v0.5.2) (2023-07-07)
+
+
+### Bug Fixes
+
+* add LSP var ([#98](https://github.com/elixir-tools/next-ls/issues/98)) ([d8554a8](https://github.com/elixir-tools/next-ls/commit/d8554a864f4f538113d20bb5692968fdf7a39884))
+
 ## [0.5.1](https://github.com/elixir-tools/next-ls/compare/v0.5.0...v0.5.1) (2023-07-06)
 
 
