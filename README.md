@@ -42,6 +42,26 @@ Using eglot:
 
 </details>
 </li>
+<li>
+<details>
+<summary>Helix</summary>
+
+Add the following config to your `~/.config/helix/languages.toml`.
+
+```toml
+[language-server]
+next-ls = { command = "path/to/next-ls", args = ["--stdio=true"] }
+
+[[language]]
+name = "elixir"
+language-servers = [ "next-ls" ]
+
+[[language]]
+name = "heex"
+language-servers = [ "next-ls" ]
+```
+</details>
+</li>
 </ul>
 
 ## Installation
