@@ -29,7 +29,7 @@ defmodule NextLS.LSPSupervisor do
             [communication: {GenLSP.Communication.TCP, [port: opts[:port]]}]
 
           true ->
-            raise "Unknown option"
+            raise "Unknown option. Expected --stdio or --port=INTEGER."
         end
 
       children = [
