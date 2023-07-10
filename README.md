@@ -13,6 +13,7 @@ Still in heavy development, currently supporting the following features:
 - Workspace Symbols
 - Document Symbols
 - Go To Definition
+- Hover
 
 ## Editor Support
 

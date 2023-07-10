@@ -23,6 +23,7 @@ defmodule NextLS do
     TextDocumentDocumentSymbol,
     TextDocumentDefinition,
     TextDocumentFormatting,
+    TextDocumentHover,
     WorkspaceSymbol
   }
 
@@ -105,7 +106,8 @@ defmodule NextLS do
          document_formatting_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
-         definition_provider: true
+         definition_provider: true,
+         hover_provider: true
        },
        server_info: %{name: "NextLS"}
      }, assign(lsp, root_uri: root_uri)}
@@ -157,6 +159,19 @@ defmodule NextLS do
       end
 
     {:reply, symbols, lsp}
+  end
+
+  def handle_request(%TextDocumentHover{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
+    hover =
+      try do
+        NextLS.Hover.fetch(lsp, lsp.assigns.documents[uri], position)
+      rescue
+        e ->
+          GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
+          nil
+      end
+
+    {:reply, hover, lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do

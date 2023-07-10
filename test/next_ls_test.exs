@@ -866,6 +866,323 @@ defmodule NextLSTest do
     end
   end
 
+  describe "hover language feature" do
+    # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
+    setup %{cwd: cwd} do
+      File.mkdir_p!(Path.join([cwd, "lib", "bar"]))
+      baz = Path.join(cwd, "lib/bar/baz.ex")
+
+      File.write!(baz, """
+      defmodule Bar.Baz do
+        @moduledoc "Bar.Baz module"
+
+        @doc "Bar.Baz.q function"
+        def q do
+          "q"
+        end
+      end
+      """)
+
+      fiz = Path.join(cwd, "lib/bar/fiz.ex")
+
+      File.write!(fiz, """
+      defmodule Bar.Fiz do
+        # No doc
+        def q do
+          "q"
+        end
+      end
+      """)
+
+      guz = Path.join(cwd, "lib/bar/guz.ex")
+
+      File.write!(guz, """
+      defmodule Bar.Guz do
+        @moduledoc "Bar.Guz module"
+
+        @doc "Bar.Guz.q function"
+        def q do
+          "q"
+        end
+      end
+      """)
+
+      foo = Path.join(cwd, "lib/foo.ex")
+
+      File.write!(foo, """
+      defmodule Foo do
+        @moduledoc "Foo module"
+
+        @doc "Foo.bar function"
+        def bar do
+          "baz"
+        end
+      end
+      """)
+
+      example = Path.join(cwd, "lib/example.ex")
+
+      File.write!(example, """
+      defmodule Example do
+        @moduledoc "Example doc"
+        alias Foo, as: Foz
+
+        alias Bar.{
+          Fiz,
+          Baz
+        }
+
+        alias Bar.Guz
+
+        def test do
+          q1 = Atom.to_string(:atom)
+          q2 = Foz.bar()
+          q3 = Baz.q()
+          q4 = Fiz.q()
+          q5 = Guz.q()
+
+          [q1] ++ [q2] ++ [q3] ++ [q4] ++ [q5]
+        end
+      end
+      """)
+
+      File.rm_rf!(Path.join(cwd, ".elixir-tools"))
+
+      [example: example]
+    end
+
+    setup :with_lsp
+
+    test "gets module or function doc when hovering", %{client: client, example: example} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      example_uri = uri(example)
+
+      notify client, %{
+        method: "textDocument/didOpen",
+        jsonrpc: "2.0",
+        params: %{
+          textDocument: %{
+            uri: example_uri,
+            languageId: "elixir",
+            version: 1,
+            text: File.read!(example)
+          }
+        }
+      }
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 1,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 0, character: 10},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 1,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Example doc"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 10, "line" => 0},
+                        "end" => %{"character" => 17, "line" => 0}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 2,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 2, character: 8},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 2,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Foo module"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 8, "line" => 2},
+                        "end" => %{"character" => 11, "line" => 2}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 3,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 2, character: 17},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 3,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Foo module"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 17, "line" => 2},
+                        "end" => %{"character" => 20, "line" => 2}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 6, character: 5},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 4,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Bar.Baz module"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 4, "line" => 6},
+                        "end" => %{"character" => 7, "line" => 6}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 5,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 9, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 5,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Bar.Guz module"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 8, "line" => 9},
+                        "end" => %{"character" => 15, "line" => 9}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 6,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 12, character: 9},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 6,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Atoms are constants" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 9, "line" => 12},
+                        "end" => %{"character" => 13, "line" => 12}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 7,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 12, character: 22},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 7,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Converts an atom" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 9, "line" => 12},
+                        "end" => %{"character" => 23, "line" => 12}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 8,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 14, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 8,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Bar.Baz.q function"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 9, "line" => 14},
+                        "end" => %{"character" => 14, "line" => 14}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 9,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 15, character: 11},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 9, nil, 500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 10,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 15, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 10, nil, 500
+    end
+  end
+
   defp with_lsp(%{tmp_dir: tmp_dir}) do
     root_path = Path.absname(tmp_dir)
 
