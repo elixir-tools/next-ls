@@ -934,14 +934,20 @@ defmodule NextLSTest do
 
         alias Bar.Guz
 
+        defstruct [:foo]
+
         def test do
           q1 = Atom.to_string(:atom)
           q2 = Foz.bar()
           q3 = Baz.q()
           q4 = Fiz.q()
           q5 = Guz.q()
+          q6 = to_string(:abs)
+          :timer.sleep(1)
+          a = %Example{foo: "a"}
 
-          [q1] ++ [q2] ++ [q3] ++ [q4] ++ [q5]
+
+          [q1] ++ [q2] ++ [q3] ++ [q4] ++ [q5] ++ [q6]
         end
       end
       """)
@@ -1093,7 +1099,7 @@ defmodule NextLSTest do
         id: 6,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 12, character: 9},
+          position: %{line: 14, character: 9},
           textDocument: %{uri: example_uri}
         }
       }
@@ -1105,8 +1111,8 @@ defmodule NextLSTest do
                         "value" => "Atoms are constants" <> _
                       },
                       "range" => %{
-                        "start" => %{"character" => 9, "line" => 12},
-                        "end" => %{"character" => 13, "line" => 12}
+                        "start" => %{"character" => 9, "line" => 14},
+                        "end" => %{"character" => 13, "line" => 14}
                       }
                     },
                     500
@@ -1116,7 +1122,7 @@ defmodule NextLSTest do
         id: 7,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 12, character: 22},
+          position: %{line: 14, character: 22},
           textDocument: %{uri: example_uri}
         }
       }
@@ -1128,8 +1134,8 @@ defmodule NextLSTest do
                         "value" => "Converts an atom" <> _
                       },
                       "range" => %{
-                        "start" => %{"character" => 9, "line" => 12},
-                        "end" => %{"character" => 23, "line" => 12}
+                        "start" => %{"character" => 9, "line" => 14},
+                        "end" => %{"character" => 23, "line" => 14}
                       }
                     },
                     500
@@ -1139,7 +1145,7 @@ defmodule NextLSTest do
         id: 8,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 14, character: 13},
+          position: %{line: 16, character: 13},
           textDocument: %{uri: example_uri}
         }
       }
@@ -1151,8 +1157,8 @@ defmodule NextLSTest do
                         "value" => "Bar.Baz.q function"
                       },
                       "range" => %{
-                        "start" => %{"character" => 9, "line" => 14},
-                        "end" => %{"character" => 14, "line" => 14}
+                        "start" => %{"character" => 9, "line" => 16},
+                        "end" => %{"character" => 14, "line" => 16}
                       }
                     },
                     500
@@ -1162,7 +1168,7 @@ defmodule NextLSTest do
         id: 9,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 15, character: 11},
+          position: %{line: 17, character: 11},
           textDocument: %{uri: example_uri}
         }
       }
@@ -1174,12 +1180,127 @@ defmodule NextLSTest do
         id: 10,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 15, character: 13},
+          position: %{line: 17, character: 13},
           textDocument: %{uri: example_uri}
         }
       }
 
       assert_result 10, nil, 500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 11,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 19, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 11,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Converts the argument to a string" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 9, "line" => 19},
+                        "end" => %{"character" => 18, "line" => 19}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 12,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 20, character: 7},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 12,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "\n\ttimer\n\n  This module provides useful functions related to time" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 4, "line" => 20},
+                        "end" => %{"character" => 10, "line" => 20}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 13,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 20, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 13,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "\n  -spec sleep(Time) -> ok when Time :: timeout().\n\n  Suspends the process" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 4, "line" => 20},
+                        "end" => %{"character" => 16, "line" => 20}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 14,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 21, character: 13},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 14,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Example doc"
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 8, "line" => 21},
+                        "end" => %{"character" => 16, "line" => 21}
+                      }
+                    },
+                    500
+
+      request client, %{
+        method: "textDocument/hover",
+        id: 15,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 13, character: 3},
+          textDocument: %{uri: example_uri}
+        }
+      }
+
+      assert_result 15,
+                    %{
+                      "contents" => %{
+                        "kind" => "markdown",
+                        "value" => "Defines a public function with the given name and body" <> _
+                      },
+                      "range" => %{
+                        "start" => %{"character" => 2, "line" => 13},
+                        "end" => %{"character" => 5, "line" => 13}
+                      }
+                    },
+                    500
     end
   end
 
