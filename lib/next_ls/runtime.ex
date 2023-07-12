@@ -64,14 +64,13 @@ defmodule NextLS.Runtime do
           ],
           args: [
             System.find_executable("elixir"),
+            "--no-halt",
             "--sname",
             sname,
             "-S",
             "mix",
-            "run",
-            "--no-halt",
-            "--no-compile",
-            "--no-start"
+            "loadpaths",
+            "--no-compile"
           ]
         ]
       )
