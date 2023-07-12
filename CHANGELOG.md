@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.3](https://github.com/elixir-tools/next-ls/compare/v0.5.2...v0.5.3) (2023-07-12)
+
+
+### Bug Fixes
+
+* add `:crypto` to extra_applications ([480aa01](https://github.com/elixir-tools/next-ls/commit/480aa01d9498c1370dce5d2ed3a3a1c14d7f2a63)), closes [#100](https://github.com/elixir-tools/next-ls/issues/100)
+* better error message when passing invalid flags ([#107](https://github.com/elixir-tools/next-ls/issues/107)) ([5e2f55f](https://github.com/elixir-tools/next-ls/commit/5e2f55f56c7278c1bb37a9e96056190b92fa2bfc)), closes [#103](https://github.com/elixir-tools/next-ls/issues/103)
+* properly decode requests with `none` parameters ([#106](https://github.com/elixir-tools/next-ls/issues/106)) ([b8ccf12](https://github.com/elixir-tools/next-ls/commit/b8ccf12aba542b3494cc5fc3010c678617c29a84))
+* use loadpaths instead of run ([#108](https://github.com/elixir-tools/next-ls/issues/108)) ([97a8fe5](https://github.com/elixir-tools/next-ls/commit/97a8fe5377a4382513a9e60e2ed4da6ac847834a))
+
 ## [0.5.2](https://github.com/elixir-tools/next-ls/compare/v0.5.1...v0.5.2) (2023-07-07)
 
 
