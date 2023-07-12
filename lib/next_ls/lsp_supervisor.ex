@@ -5,6 +5,25 @@ defmodule NextLS.LSPSupervisor do
 
   @env Mix.env()
 
+  defmodule OptionsError do
+    @moduledoc false
+    defexception [:message]
+
+    @impl true
+    def exception(options) do
+      msg = """
+      Unknown Options: #{Enum.map_join(options, " ", fn {k, v} -> "#{k} #{v}" end)}
+
+      Valid options:
+
+      --stdio              Starts the server using stdio
+      --port port-number   Starts the server using TCP on the given port
+      """
+
+      %OptionsError{message: msg}
+    end
+  end
+
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -14,8 +33,8 @@ defmodule NextLS.LSPSupervisor do
     if @env == :test do
       :ignore
     else
-      {opts, _} =
-        OptionParser.parse!(System.argv(),
+      {opts, _, invalid} =
+        OptionParser.parse(System.argv(),
           strict: [stdio: :boolean, port: :integer]
         )
 
@@ -29,7 +48,7 @@ defmodule NextLS.LSPSupervisor do
             [communication: {GenLSP.Communication.TCP, [port: opts[:port]]}]
 
           true ->
-            raise "Unknown option"
+            raise OptionsError, invalid
         end
 
       children = [
