@@ -1,17 +1,12 @@
 defmodule NextLS.Definition do
   def fetch(file, {line, col}, dets_symbol_table, dets_ref_table) do
     ref =
-      :dets.select(
-        dets_ref_table,
-        [
-          {{{:"$1", {{:"$2", :"$3"}, {:"$4", :"$5"}}}, :"$6"},
-           [
-             {:andalso,
-              {:andalso, {:andalso, {:andalso, {:==, :"$1", file}, {:"=<", :"$2", line}}, {:"=<", :"$3", col}},
-               {:"=<", line, :"$4"}}, {:"=<", col, :"$5"}}
-           ], [:"$6"]}
-        ]
-      )
+      dets_ref_table
+      |> :dets.lookup(file)
+      |> Enum.find(fn
+        {_file, {{{begin_line, begin_col}, {end_line, end_col}}, _ref}} ->
+          line >= begin_line && col >= begin_col && line <= end_line && col <= end_col
+      end)
 
     # :dets.traverse(dets_symbol_table, fn x -> {:continue, x} end) |> dbg
     # :dets.traverse(dets_ref_table, fn x -> {:continue, x} end) |> dbg
@@ -20,7 +15,7 @@ defmodule NextLS.Definition do
 
     query =
       case ref do
-        [%{type: :alias} = ref] ->
+        {_file, {_range, %{type: :alias} = ref}} ->
           [
             {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
              [
@@ -28,7 +23,7 @@ defmodule NextLS.Definition do
              ], [{{:"$5", :"$3", :"$4"}}]}
           ]
 
-        [%{type: :function} = ref] ->
+        {_file, {_range, %{type: :function} = ref}} ->
           [
             {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
              [

@@ -102,10 +102,7 @@ defmodule NextLS.SymbolTable do
     range =
       {{meta[:line], col}, {meta[:line], col + String.length(to_string(identifier) |> String.replace("Elixir.", ""))}}
 
-    :dets.insert(state.reference_table, {
-      {file, range},
-      reference
-    })
+    :dets.insert(state.reference_table, {file, {range, reference}})
 
     {:noreply, state}
   end
