@@ -73,8 +73,7 @@ defmodule NextLSTest do
                request(client, %{
                  method: "shutdown",
                  id: 2,
-                 jsonrpc: "2.0",
-                 params: nil
+                 jsonrpc: "2.0"
                })
 
       assert_result 2, nil
