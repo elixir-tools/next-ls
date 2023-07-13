@@ -265,7 +265,7 @@ defmodule NextLS do
         )
     end
 
-    GenLSP.log(lsp, "[NextLS] Booting runime...")
+    GenLSP.log(lsp, "[NextLS] Booting runtime...")
 
     token = token()
 
