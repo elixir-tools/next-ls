@@ -45,6 +45,7 @@ defmodule NextLS do
   }
 
   alias NextLS.DiagnosticCache
+  alias NextLS.ReferenceTable
   alias NextLS.Runtime
   alias NextLS.SymbolTable
   alias NextLS.Definition
@@ -58,7 +59,8 @@ defmodule NextLS do
         :dynamic_supervisor,
         :extensions,
         :extension_registry,
-        :symbol_table
+        :symbol_table,
+        :reference_table
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -73,6 +75,7 @@ defmodule NextLS do
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
     cache = Keyword.fetch!(args, :cache)
     symbol_table = Keyword.fetch!(args, :symbol_table)
+    reference_table = Keyword.fetch!(args, :reference_table)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
     {:ok,
@@ -83,6 +86,7 @@ defmodule NextLS do
        cache: cache,
        logger: logger,
        symbol_table: symbol_table,
+       reference_table: reference_table,
        task_supervisor: task_supervisor,
        runtime_task_supervisor: runtime_task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
@@ -119,7 +123,7 @@ defmodule NextLS do
              URI.parse(uri).path,
              {position.line + 1, position.character + 1},
              :symbol_table,
-             :reference_table
+             lsp.assigns.reference_table
            ) do
         nil ->
           nil
@@ -164,7 +168,7 @@ defmodule NextLS do
   def handle_request(%TextDocumentHover{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     hover =
       try do
-        NextLS.Hover.fetch(lsp, lsp.assigns.documents[uri], position)
+        NextLS.Hover.fetch(lsp, uri, position)
       rescue
         e ->
           GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
@@ -252,6 +256,7 @@ defmodule NextLS do
 
   def handle_request(%Shutdown{}, lsp) do
     SymbolTable.close(lsp.assigns.symbol_table)
+    ReferenceTable.close(lsp.assigns.reference_table)
 
     {:reply, nil, assign(lsp, exit_code: 0)}
   end
@@ -404,7 +409,7 @@ defmodule NextLS do
   end
 
   def handle_info({{:tracer, :reference}, payload}, lsp) do
-    SymbolTable.put_reference(lsp.assigns.symbol_table, payload)
+    ReferenceTable.put_reference(lsp.assigns.reference_table, payload)
     {:noreply, lsp}
   end
 

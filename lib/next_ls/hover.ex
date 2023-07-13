@@ -6,11 +6,15 @@ defmodule NextLS.Hover do
     Range
   }
 
+  alias NextLS.ReferenceTable
   alias NextLS.Runtime
 
-  @spec fetch(lsp :: GenLSP.LSP.t(), document :: [String.t()], position :: Position.t()) :: Hover.t() | nil
-  def fetch(lsp, document, position) do
-    with {module, function, range} <- get_surround_context(document, position),
+  @spec fetch(lsp :: GenLSP.LSP.t(), uri :: String.t(), position :: Position.t()) :: Hover.t() | nil
+  def fetch(lsp, uri, position) do
+    position = {position.line + 1, position.character + 1}
+    document = Enum.join(lsp.assigns.documents[uri], "\n")
+
+    with {module, function, range} <- find_reference(lsp, document, uri, position),
          docs when is_binary(docs) <- fetch_docs(lsp, document, module, function) do
       %Hover{
         contents: %MarkupContent{
@@ -22,47 +26,47 @@ defmodule NextLS.Hover do
     end
   end
 
-  defp get_surround_context(document, position) do
-    hover_line = position.line + 1
-    hover_column = position.character + 1
+  defp find_reference(lsp, document, uri, position) do
+    surround_context = Code.Fragment.surround_context(document, position)
 
-    case Code.Fragment.surround_context(Enum.join(document, "\n"), {hover_line, hover_column}) do
-      %{context: {:dot, {:alias, module}, function}} = context ->
-        {to_module(module), to_atom(function), build_range(context)}
+    if surround_context == :none do
+      nil
+    else
+      case ReferenceTable.reference(lsp.assigns.reference_table, URI.parse(uri).path, position) do
+        [%{type: :function, module: module, identifier: function} | _] ->
+          {module, function, build_range(surround_context)}
 
-      %{context: {:dot, {:unquoted_atom, erlang_module}, function}} = context ->
-        {to_atom(erlang_module), to_atom(function), build_range(context)}
+        [%{type: :alias, module: module} | _] ->
+          {module, nil, build_range(surround_context)}
 
-      %{context: {context_type, module}} = context when context_type in [:alias, :struct] ->
-        {to_module(module), nil, build_range(context)}
-
-      %{context: {:unquoted_atom, erlang_module}} = context ->
-        {to_atom(erlang_module), nil, build_range(context)}
-
-      %{context: {context_type, function}} = context when context_type in [:local_call, :local_or_var] ->
-        {nil, to_atom(function), build_range(context)}
-
-      _other ->
-        nil
+        _other ->
+          find_in_context(surround_context)
+      end
     end
+  end
+
+  defp find_in_context(%{context: {:alias, module}} = context) do
+    {to_module(module), nil, build_range(context)}
+  end
+
+  defp find_in_context(%{context: {:unquoted_atom, erlang_module}} = context) do
+    {to_atom(erlang_module), nil, build_range(context)}
+  end
+
+  defp find_in_context(_context) do
+    nil
   end
 
   defp fetch_docs(lsp, document, module, nil) do
     with {:ok, {_, _, _, _, docs, _, _} = docs_v1} <- request_docs(lsp, document, module) do
-      print_doc(module, nil, docs, docs_v1)
+      print_doc(module, nil, nil, docs, docs_v1)
     end
-  end
-
-  defp fetch_docs(lsp, document, nil, function) do
-    [Kernel, Kernel.SpecialForms]
-    |> Stream.map(&fetch_docs(lsp, document, &1, function))
-    |> Enum.find(&(!is_nil(&1)))
   end
 
   defp fetch_docs(lsp, document, module, function) do
     with {:ok, {_, _, _, _, _, _, functions_docs} = docs_v1} <- request_docs(lsp, document, module),
-         {_, _, _, function_docs, _} <- find_function_docs(functions_docs, function) do
-      print_doc(module, function, function_docs, docs_v1)
+         {_, _, [spec], function_docs, _} <- find_function_docs(functions_docs, function) do
+      print_doc(module, function, spec, function_docs, docs_v1)
     end
   end
 
@@ -80,22 +84,19 @@ defmodule NextLS.Hover do
           end
         end
 
+      {:ok, {:error, :chunk_not_found}} ->
+        nil
+
       other ->
         other
     end
-  end
-
-  defp send_fetch_docs_request(lsp, module) do
-    Runtime.call(lsp.assigns.runtime, {Code, :fetch_docs, [module]})
   end
 
   defp find_aliased_module(document, module) do
     module = to_quoted_module(module)
 
     ast =
-      document
-      |> Enum.join("\n")
-      |> Code.string_to_quoted(
+      Code.string_to_quoted(document,
         unescape: false,
         token_metadata: true,
         columns: true
@@ -134,11 +135,50 @@ defmodule NextLS.Hover do
     aliased_module
   end
 
+  defp send_fetch_docs_request(lsp, module) do
+    Runtime.call(lsp.assigns.runtime, {Code, :fetch_docs, [module]})
+  end
+
   defp build_range(%{begin: {line, start}, end: {_, finish}}) do
     %Range{
       start: %Position{line: line - 1, character: start - 1},
       end: %Position{line: line - 1, character: finish - 1}
     }
+  end
+
+  defp find_function_docs(docs, function) do
+    Enum.find(docs, fn
+      {{type, ^function, _}, _, _, _, _} when type in [:function, :macro] -> true
+      _ -> false
+    end)
+  end
+
+  defp print_doc(_module, _function, _spec, :none, _docs_v1) do
+    nil
+  end
+
+  defp print_doc(_module, _function, _spec, :hidden, _docs_v1) do
+    nil
+  end
+
+  defp print_doc(_module, nil, _spec, doc, {_, _, _, "text/markdown", _, _, _}) do
+    doc["en"]
+  end
+
+  defp print_doc(_module, _function, spec, doc, {_, _, _, "text/markdown", _, _, _}) do
+    print_function_spec(spec) <> doc["en"]
+  end
+
+  defp print_doc(module, nil, _spec, _doc, {_, _, :erlang, "application/erlang+html", _, _, _} = docs_v1) do
+    :shell_docs.render(module, docs_v1, %{ansi: false}) |> Enum.join()
+  end
+
+  defp print_doc(module, function, spec, _doc, {_, _, :erlang, "application/erlang+html", _, _, _} = docs_v1) do
+    print_function_spec(spec) <> (:shell_docs.render(module, function, docs_v1, %{ansi: false}) |> Enum.join())
+  end
+
+  defp print_function_spec(spec) do
+    "### " <> spec <> "\n\n"
   end
 
   defp from_quoted_module_to_module(quoted_module) do
@@ -160,31 +200,8 @@ defmodule NextLS.Hover do
   defp to_quoted_module(module) when is_atom(module) do
     module
     |> Atom.to_string()
+    |> String.replace("Elixir.", "")
     |> String.split(".")
-    |> List.delete_at(0)
     |> Enum.map(&String.to_atom/1)
-  end
-
-  defp find_function_docs(docs, function) do
-    Enum.find(docs, fn
-      {{type, ^function, _}, _, _, _, _} when type in [:function, :macro] -> true
-      _ -> false
-    end)
-  end
-
-  defp print_doc(_module, _function, :none, _docs_v1) do
-    nil
-  end
-
-  defp print_doc(_module, _function, doc, {_, _, _, "text/markdown", _, _, _}) do
-    doc["en"]
-  end
-
-  defp print_doc(module, nil, _doc, {_, _, :erlang, "application/erlang+html", _, _, _} = docs_v1) do
-    :shell_docs.render(module, docs_v1, %{ansi: false}) |> Enum.join()
-  end
-
-  defp print_doc(module, function, _doc, {_, _, :erlang, "application/erlang+html", _, _, _} = docs_v1) do
-    :shell_docs.render(module, function, docs_v1, %{ansi: false}) |> Enum.join()
   end
 end

@@ -32,17 +32,21 @@ defmodule NextLS.LSPSupervisor do
             raise "Unknown option"
         end
 
+      path = Path.expand(".elixir-tools")
+
       children = [
         {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
         {Task.Supervisor, name: :runtime_task_supervisor},
         {GenLSP.Buffer, buffer_opts},
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
-        {NextLS.SymbolTable, name: :symbol_table, path: Path.expand(".elixir-tools")},
+        {NextLS.SymbolTable, name: :symbol_table, path: path},
+        {NextLS.ReferenceTable, name: :reference_table, path: path},
         {Registry, name: NextLS.ExtensionRegistry, keys: :duplicate},
         {NextLS,
          cache: :diagnostic_cache,
          symbol_table: :symbol_table,
+         reference_table: :reference_table,
          task_supervisor: NextLS.TaskSupervisor,
          runtime_task_supervisor: :runtime_task_supervisor,
          dynamic_supervisor: NextLS.DynamicSupervisor,

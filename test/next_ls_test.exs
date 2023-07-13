@@ -944,10 +944,10 @@ defmodule NextLSTest do
           q5 = Guz.q()
           q6 = to_string(:abs)
           :timer.sleep(1)
-          a = %Example{foo: "a"}
+          q7 = %Example{foo: "a"}
 
 
-          [q1] ++ [q2] ++ [q3] ++ [q4] ++ [q5] ++ [q6]
+          [q1] ++ [q2] ++ [q3] ++ [q4] ++ [q5] ++ [q6] ++ [q7.foo]
         end
       end
       """)
@@ -979,6 +979,8 @@ defmodule NextLSTest do
         }
       }
 
+      # 1. `defmodule` macro
+
       request client, %{
         method: "textDocument/hover",
         id: 1,
@@ -1001,6 +1003,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 2. `alias` macro with :as option
 
       request client, %{
         method: "textDocument/hover",
@@ -1025,6 +1029,8 @@ defmodule NextLSTest do
                     },
                     500
 
+      # 3. `alias` macro with :as option
+
       request client, %{
         method: "textDocument/hover",
         id: 3,
@@ -1047,6 +1053,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 4. Multi `alias` macro
 
       request client, %{
         method: "textDocument/hover",
@@ -1071,6 +1079,8 @@ defmodule NextLSTest do
                     },
                     500
 
+      # 5. `alias` macro
+
       request client, %{
         method: "textDocument/hover",
         id: 5,
@@ -1093,6 +1103,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 6. Module reference
 
       request client, %{
         method: "textDocument/hover",
@@ -1117,6 +1129,8 @@ defmodule NextLSTest do
                     },
                     500
 
+      # 7. Function reference
+
       request client, %{
         method: "textDocument/hover",
         id: 7,
@@ -1131,7 +1145,9 @@ defmodule NextLSTest do
                     %{
                       "contents" => %{
                         "kind" => "markdown",
-                        "value" => "Converts an atom" <> _
+                        "value" =>
+                          "### atom_to_binary/1\n\n\n  -spec atom_to_binary(Atom) -> binary() when Atom :: atom()" <>
+                            _
                       },
                       "range" => %{
                         "start" => %{"character" => 9, "line" => 14},
@@ -1139,6 +1155,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 8. User-defined module reference
 
       request client, %{
         method: "textDocument/hover",
@@ -1154,7 +1172,7 @@ defmodule NextLSTest do
                     %{
                       "contents" => %{
                         "kind" => "markdown",
-                        "value" => "Bar.Baz.q function"
+                        "value" => "### q()\n\nBar.Baz.q function"
                       },
                       "range" => %{
                         "start" => %{"character" => 9, "line" => 16},
@@ -1162,6 +1180,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 9. User-defined module reference without doc
 
       request client, %{
         method: "textDocument/hover",
@@ -1175,6 +1195,8 @@ defmodule NextLSTest do
 
       assert_result 9, nil, 500
 
+      # 10. User-defined function reference without doc
+
       request client, %{
         method: "textDocument/hover",
         id: 10,
@@ -1186,6 +1208,8 @@ defmodule NextLSTest do
       }
 
       assert_result 10, nil, 500
+
+      # 11. Kernel function
 
       request client, %{
         method: "textDocument/hover",
@@ -1201,7 +1225,7 @@ defmodule NextLSTest do
                     %{
                       "contents" => %{
                         "kind" => "markdown",
-                        "value" => "Converts the argument to a string" <> _
+                        "value" => "### to_string(term)\n\nConverts the argument to a string" <> _
                       },
                       "range" => %{
                         "start" => %{"character" => 9, "line" => 19},
@@ -1209,6 +1233,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 12. Erlang module reference
 
       request client, %{
         method: "textDocument/hover",
@@ -1233,6 +1259,8 @@ defmodule NextLSTest do
                     },
                     500
 
+      # 13. Erlang function reference
+
       request client, %{
         method: "textDocument/hover",
         id: 13,
@@ -1247,7 +1275,9 @@ defmodule NextLSTest do
                     %{
                       "contents" => %{
                         "kind" => "markdown",
-                        "value" => "\n  -spec sleep(Time) -> ok when Time :: timeout().\n\n  Suspends the process" <> _
+                        "value" =>
+                          "### sleep/1\n\n\n  -spec sleep(Time) -> ok when Time :: timeout().\n\n  Suspends the process" <>
+                            _
                       },
                       "range" => %{
                         "start" => %{"character" => 4, "line" => 20},
@@ -1255,6 +1285,8 @@ defmodule NextLSTest do
                       }
                     },
                     500
+
+      # 14. Struct reference
 
       request client, %{
         method: "textDocument/hover",
@@ -1273,11 +1305,13 @@ defmodule NextLSTest do
                         "value" => "Example doc"
                       },
                       "range" => %{
-                        "start" => %{"character" => 8, "line" => 21},
-                        "end" => %{"character" => 16, "line" => 21}
+                        "start" => %{"character" => 9, "line" => 21},
+                        "end" => %{"character" => 17, "line" => 21}
                       }
                     },
                     500
+
+      # 15. Macro
 
       request client, %{
         method: "textDocument/hover",
@@ -1293,7 +1327,8 @@ defmodule NextLSTest do
                     %{
                       "contents" => %{
                         "kind" => "markdown",
-                        "value" => "Defines a public function with the given name and body" <> _
+                        "value" =>
+                          "### def(call, expr \\\\ nil)\n\nDefines a public function with the given name and body" <> _
                       },
                       "range" => %{
                         "start" => %{"character" => 2, "line" => 13},
@@ -1314,6 +1349,7 @@ defmodule NextLSTest do
     extensions = [NextLS.ElixirExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
     symbol_table = start_supervised!({NextLS.SymbolTable, path: tmp_dir})
+    reference_table = start_supervised!({NextLS.ReferenceTable, path: tmp_dir})
 
     server =
       server(NextLS,
@@ -1323,7 +1359,8 @@ defmodule NextLSTest do
         extension_registry: Registry.NextLSTest,
         extensions: extensions,
         cache: cache,
-        symbol_table: symbol_table
+        symbol_table: symbol_table,
+        reference_table: reference_table
       )
 
     Process.link(server.lsp)
