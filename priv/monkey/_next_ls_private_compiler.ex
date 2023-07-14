@@ -114,11 +114,20 @@ end
 defmodule :_next_ls_private_compiler do
   @moduledoc false
 
-  def compile() do
+  def compile(opts) do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
 
     Mix.Task.clear()
+
+    args = ["--no-protocol-consolidation", "--return-errors", "--tracer", "NextLSPrivate.Tracer"]
+
+    args =
+      if Keyword.get(opts, :force) do
+        ["--force" | args]
+      else
+        args
+      end
 
     # load the paths for deps and compile them
     # will noop if they are already compiled
@@ -128,7 +137,7 @@ defmodule :_next_ls_private_compiler do
     # --no-compile, so nothing was compiled, but the
     # task was not re-enabled it seems
     Mix.Task.rerun("deps.loadpaths")
-    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors", "--tracer", "NextLSPrivate.Tracer"])
+    Mix.Task.rerun("compile", args)
   rescue
     e -> {:error, e}
   end

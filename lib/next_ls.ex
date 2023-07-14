@@ -112,12 +112,14 @@ defmodule NextLS do
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
+    {symbol_table, reference_table, _config} = SymbolTable.tables(lsp.assigns.symbol_table)
+
     result =
       case Definition.fetch(
              URI.parse(uri).path,
              {position.line + 1, position.character + 1},
-             :symbol_table,
-             :reference_table
+             symbol_table,
+             reference_table
            ) do
         nil ->
           nil
@@ -413,21 +415,31 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info({ref, resp}, %{assigns: %{refresh_refs: refs}} = lsp) when is_map_key(refs, ref) do
+  def handle_info({ref, runtime_response}, %{assigns: %{refresh_refs: refs}} = lsp) when is_map_key(refs, ref) do
     Process.demonitor(ref, [:flush])
     {{token, msg}, refs} = Map.pop(refs, ref)
 
     progress_end(lsp, token, msg)
 
     lsp =
-      case resp do
+      case runtime_response do
         :ready ->
           token = token()
           progress_start(lsp, token, "Compiling...")
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-              Runtime.compile(lsp.assigns.runtime)
+              opts = []
+
+              opts =
+                if SymbolTable.version_changed?(lsp.assigns.symbol_table) do
+                  SymbolTable.flush(lsp.assigns.symbol_table)
+                  Keyword.put(opts, :force, true)
+                else
+                  opts
+                end
+
+              Runtime.compile(lsp.assigns.runtime, opts)
             end)
 
           assign(lsp, ready: true, refresh_refs: Map.put(refs, task.ref, {token, "Compiled!"}))

@@ -1,16 +1,12 @@
 defmodule NextLSTest do
   use ExUnit.Case, async: true
-  import NextLS.Support.Utils
 
   @moduletag :tmp_dir
 
   import GenLSP.Test
+  import NextLS.Support.Utils
 
-  setup %{tmp_dir: tmp_dir} do
-    File.mkdir_p!(Path.join(tmp_dir, "lib"))
-    File.write!(Path.join(tmp_dir, "mix.exs"), mix_exs())
-    [cwd: tmp_dir]
-  end
+  setup :setup_project_dir
 
   describe "one" do
     setup %{tmp_dir: tmp_dir} do
@@ -865,48 +861,83 @@ defmodule NextLSTest do
     end
   end
 
-  defp with_lsp(%{tmp_dir: tmp_dir}) do
-    root_path = Path.absname(tmp_dir)
+  describe "table schema update" do
+    setup %{cwd: cwd} do
+      file = Path.join(cwd, "lib/file.ex")
 
-    tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
-    r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
-    rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
-    start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
-    extensions = [NextLS.ElixirExtension]
-    cache = start_supervised!(NextLS.DiagnosticCache)
-    symbol_table = start_supervised!({NextLS.SymbolTable, path: tmp_dir})
+      File.write!(file, """
+      defmodule MyApp.Peace do
+        def and_love() do
+          "✌️"
+        end
+      end
+      """)
 
-    server =
-      server(NextLS,
-        task_supervisor: tvisor,
-        runtime_task_supervisor: r_tvisor,
-        dynamic_supervisor: rvisor,
-        extension_registry: Registry.NextLSTest,
-        extensions: extensions,
-        cache: cache,
-        symbol_table: symbol_table
-      )
+      :ok
+    end
 
-    Process.link(server.lsp)
+    setup :with_lsp
 
-    client = client(server)
+    test "recompiles files again if version changes", %{client: client, tmp_dir: tmp_dir, cwd: cwd} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiling 1 file (.ex)"}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
-    assert :ok ==
-             request(client, %{
-               method: "initialize",
-               id: 1,
-               jsonrpc: "2.0",
-               params: %{capabilities: %{}, rootUri: "file://#{root_path}"}
-             })
+      assert :ok ==
+               request(client, %{
+                 method: "shutdown",
+                 id: 2,
+                 jsonrpc: "2.0",
+                 params: nil
+               })
 
-    [server: server, client: client, cwd: root_path]
-  end
+      assert_result 2, nil
 
-  defp uri(path) when is_binary(path) do
-    URI.to_string(%URI{
-      scheme: "file",
-      host: "",
-      path: path
-    })
+      # Simulating that the stored version is older than the current one
+      {:ok, config} = :dets.open_file(tmp_dir |> Path.join("config.dets") |> String.to_charlist())
+      :dets.insert(config, {"symbol_table_schema_version", "0.0.1-alpha+001"})
+      :dets.close(config)
+
+      server = start_lsp(tmp_dir, prefix: "-after-version-bump")
+
+      client = client(server)
+
+      assert :ok ==
+               request(client, %{
+                 method: "initialize",
+                 id: 1,
+                 jsonrpc: "2.0",
+                 params: %{capabilities: %{}, rootUri: "file://#{cwd}"}
+               })
+
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiling 1 file (.ex)"}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      server = start_lsp(tmp_dir, prefix: "-no-version-bump")
+
+      client = client(server)
+
+      assert :ok ==
+               request(client, %{
+                 method: "initialize",
+                 id: 1,
+                 jsonrpc: "2.0",
+                 params: %{capabilities: %{}, rootUri: "file://#{cwd}"}
+               })
+
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+
+      refute_receive %{
+        "jsonrpc" => "2.0",
+        "method" => "window/logMessage",
+        "params" => %{"message" => "[NextLS] Compiling 1 file (.ex)"}
+      }
+
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    end
   end
 end

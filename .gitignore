@@ -24,3 +24,6 @@ next_ls-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+/.elixir-tools/
+.DS_Store

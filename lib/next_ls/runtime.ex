@@ -34,8 +34,8 @@ defmodule NextLS.Runtime do
     end
   end
 
-  def compile(server) do
-    GenServer.call(server, :compile, :infinity)
+  def compile(server, opts \\ []) do
+    GenServer.call(server, {:compile, opts}, :infinity)
   end
 
   @impl GenServer
@@ -135,10 +135,10 @@ defmodule NextLS.Runtime do
     {:reply, {:error, :not_ready}, state}
   end
 
-  def handle_call(:compile, from, %{node: node} = state) do
+  def handle_call({:compile, opts}, from, %{node: node} = state) do
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-        {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
+        {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [opts])
 
         Registry.dispatch(state.extension_registry, :extension, fn entries ->
           for {pid, _} <- entries do
