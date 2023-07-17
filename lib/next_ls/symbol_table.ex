@@ -41,6 +41,8 @@ defmodule NextLS.SymbolTable do
 
     File.mkdir_p!(path)
 
+    File.write!(Path.join(path, ".gitignore"), "*\n")
+
     {:ok, name} =
       :dets.open_file(symbol_table_name,
         file: Path.join(path, "symbol_table.dets") |> String.to_charlist(),
