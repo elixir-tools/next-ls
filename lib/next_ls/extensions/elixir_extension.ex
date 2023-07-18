@@ -57,11 +57,11 @@ defmodule NextLS.ElixirExtension do
   defp range({start_line, start_col, end_line, end_col}) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
-        line: start_line - 1,
+        line: clamp(start_line - 1),
         character: start_col - 1
       },
       end: %GenLSP.Structures.Position{
-        line: end_line - 1,
+        line: clamp(end_line - 1),
         character: end_col - 1
       }
     }
@@ -70,11 +70,11 @@ defmodule NextLS.ElixirExtension do
   defp range({line, col}) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
-        line: line - 1,
+        line: clamp(line - 1),
         character: col - 1
       },
       end: %GenLSP.Structures.Position{
-        line: line - 1,
+        line: clamp(line - 1),
         character: 999
       }
     }
@@ -83,13 +83,15 @@ defmodule NextLS.ElixirExtension do
   defp range(line) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
-        line: line - 1,
+        line: clamp(line - 1),
         character: 0
       },
       end: %GenLSP.Structures.Position{
-        line: line - 1,
+        line: clamp(line - 1),
         character: 999
       }
     }
   end
+
+  def clamp(line), do: max(line, 0)
 end
