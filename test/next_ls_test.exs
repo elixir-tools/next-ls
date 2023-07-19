@@ -514,7 +514,6 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-
       assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 

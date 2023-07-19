@@ -284,7 +284,6 @@ defmodule NextLS do
         )
     end
 
-
     GenLSP.log(lsp, "[NextLS] Booting runtime...")
 
     runtimes =
