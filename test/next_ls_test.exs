@@ -60,14 +60,9 @@ defmodule NextLSTest do
     end
 
     test "responds correctly to a shutdown request", %{client: client} do
-      assert :ok ==
-               notify(client, %{
-                 method: "initialized",
-                 jsonrpc: "2.0",
-                 params: %{}
-               })
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
 
       assert :ok ==
                request(client, %{
@@ -119,7 +114,7 @@ defmodule NextLSTest do
             "change" => 1
           }
         },
-        "serverInfo" => %{"name" => "NextLS"}
+        "serverInfo" => %{"name" => "Next LS"}
       }
     end
 
@@ -136,12 +131,14 @@ defmodule NextLSTest do
         "type" => 4
       }
 
-      assert_notification "$/progress", %{"value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime..."}}
+      assert_notification "$/progress", %{
+        "value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime for folder my_proj..."}
+      }
 
       assert_notification "$/progress", %{
         "value" => %{
           "kind" => "end",
-          "message" => "NextLS runtime has initialized!"
+          "message" => "NextLS runtime for folder my_proj has initialized!"
         }
       }
 
@@ -182,7 +179,7 @@ defmodule NextLSTest do
       end
     end
 
-    test "formats", %{client: client} do
+    test "formats", %{client: client, cwd: cwd} do
       assert :ok ==
                notify(client, %{
                  method: "initialized",
@@ -195,7 +192,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://lib/foo/bar.ex",
+            uri: "file://#{cwd}/lib/foo/bar.ex",
             languageId: "elixir",
             version: 1,
             text: """
@@ -217,7 +214,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://lib/foo/bar.ex"
+            uri: "file://#{cwd}/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -228,7 +225,7 @@ defmodule NextLSTest do
 
       assert_result 2, nil
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
 
       request client, %{
         method: "textDocument/formatting",
@@ -236,7 +233,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://lib/foo/bar.ex"
+            uri: "file://#{cwd}/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -261,7 +258,7 @@ defmodule NextLSTest do
       ]
     end
 
-    test "formatting gracefully handles files with syntax errors", %{client: client} do
+    test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} do
       assert :ok ==
                notify(client, %{
                  method: "initialized",
@@ -274,7 +271,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://lib/foo/bar.ex",
+            uri: "file://#{cwd}/lib/foo/bar.ex",
             languageId: "elixir",
             version: 1,
             text: """
@@ -289,7 +286,7 @@ defmodule NextLSTest do
         }
       }
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
 
       request client, %{
         method: "textDocument/formatting",
@@ -297,7 +294,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://lib/foo/bar.ex"
+            uri: "file://#{cwd}/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -317,7 +314,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request client, %{
@@ -412,7 +409,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request client, %{
@@ -517,7 +514,8 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -555,7 +553,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -595,7 +593,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -689,7 +687,6 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -727,7 +724,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -767,7 +764,7 @@ defmodule NextLSTest do
                  params: %{}
                })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -830,7 +827,7 @@ defmodule NextLSTest do
 
     test "go to module definition", %{client: client, bar: bar, peace: peace} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -896,7 +893,17 @@ defmodule NextLSTest do
                method: "initialize",
                id: 1,
                jsonrpc: "2.0",
-               params: %{capabilities: %{}, rootUri: "file://#{root_path}"}
+               params: %{
+                 capabilities: %{
+                   workspace: %{
+                     workspaceFolders: true
+                   }
+                 },
+                 workspaceFolders: [
+                   %{uri: "file://#{root_path}", name: "my_proj"}
+                 ],
+                 rootUri: "file://#{root_path}"
+               }
              })
 
     [server: server, client: client, cwd: root_path]

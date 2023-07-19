@@ -87,13 +87,26 @@ defmodule NextLS do
        dynamic_supervisor: dynamic_supervisor,
        extension_registry: extension_registry,
        extensions: extensions,
-       runtime_task: nil,
-       ready: false
+       runtime_tasks: nil,
+       ready: false,
+       client_capabilities: nil
      )}
   end
 
   @impl true
-  def handle_request(%Initialize{params: %InitializeParams{root_uri: root_uri}}, lsp) do
+  def handle_request(
+        %Initialize{
+          params: %InitializeParams{root_uri: root_uri, workspace_folders: workspace_folders, capabilities: caps}
+        },
+        lsp
+      ) do
+    workspace_folders =
+      if caps.workspace.workspace_folders do
+        workspace_folders
+      else
+        %{name: Path.basename(root_uri), uri: root_uri}
+      end
+
     {:reply,
      %InitializeResult{
        capabilities: %ServerCapabilities{
@@ -105,10 +118,16 @@ defmodule NextLS do
          document_formatting_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
-         definition_provider: true
+         definition_provider: true,
+         workspace: %{
+           workspace_folders: %GenLSP.Structures.WorkspaceFoldersServerCapabilities{
+             supported: true,
+             change_notifications: true
+           }
+         }
        },
-       server_info: %{name: "NextLS"}
-     }, assign(lsp, root_uri: root_uri)}
+       server_info: %{name: "Next LS"}
+     }, assign(lsp, root_uri: root_uri, workspace_folders: workspace_folders, client_capabilities: caps)}
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
@@ -201,7 +220,9 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
     document = lsp.assigns.documents[uri]
-    runtime = lsp.assigns.runtime
+
+    {_, %{runtime: runtime}} =
+      lsp.assigns.runtimes |> Enum.find(fn {_name, %{uri: wuri}} -> String.starts_with?(uri, wuri) end)
 
     with {:ok, {formatter, _}} <- Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]}),
          {:ok, response} when is_binary(response) or is_list(response) <-
@@ -255,8 +276,6 @@ defmodule NextLS do
   def handle_notification(%Initialized{}, lsp) do
     GenLSP.log(lsp, "[NextLS] NextLS v#{version()} has initialized!")
 
-    working_dir = URI.parse(lsp.assigns.root_uri).path
-
     for extension <- lsp.assigns.extensions do
       {:ok, _} =
         DynamicSupervisor.start_child(
@@ -265,46 +284,54 @@ defmodule NextLS do
         )
     end
 
+
     GenLSP.log(lsp, "[NextLS] Booting runtime...")
 
-    token = token()
+    runtimes =
+      for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
+        token = token()
+        progress_start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
 
-    progress_start(lsp, token, "Initializing NextLS runtime...")
+        {:ok, runtime} =
+          DynamicSupervisor.start_child(
+            lsp.assigns.dynamic_supervisor,
+            {NextLS.Runtime,
+             task_supervisor: lsp.assigns.runtime_task_supervisor,
+             extension_registry: lsp.assigns.extension_registry,
+             working_dir: URI.parse(uri).path,
+             parent: self(),
+             logger: lsp.assigns.logger}
+          )
 
-    {:ok, runtime} =
-      DynamicSupervisor.start_child(
-        lsp.assigns.dynamic_supervisor,
-        {NextLS.Runtime,
-         task_supervisor: lsp.assigns.runtime_task_supervisor,
-         extension_registry: lsp.assigns.extension_registry,
-         working_dir: working_dir,
-         parent: self(),
-         logger: lsp.assigns.logger}
-      )
+        Process.monitor(runtime)
 
-    Process.monitor(runtime)
+        {name,
+         %{uri: uri, runtime: runtime, refresh_ref: {token, "NextLS runtime for folder #{name} has initialized!"}}}
+      end
 
-    lsp = assign(lsp, runtime: runtime)
+    lsp = assign(lsp, runtimes: Map.new(runtimes))
 
-    task =
-      Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-        with false <-
-               wait_until(fn ->
-                 NextLS.Runtime.ready?(runtime)
-               end) do
-          GenLSP.error(lsp, "[NextLS] Failed to start runtime")
-          raise "Failed to boot runtime"
-        end
+    tasks =
+      for {name, workspace} <- runtimes do
+        Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
+          with false <- wait_until(fn -> NextLS.Runtime.ready?(workspace.runtime) end) do
+            GenLSP.error(lsp, "[NextLS] Failed to start runtime for folder #{name}")
+            raise "Failed to boot runtime"
+          end
 
-        GenLSP.log(lsp, "[NextLS] Runtime ready...")
+          GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
 
-        :ready
-      end)
+          {name, :ready}
+        end)
+      end
+
+    refresh_refs =
+      Enum.zip_with(tasks, runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
 
     {:noreply,
      assign(lsp,
-       refresh_refs: Map.put(lsp.assigns.refresh_refs, task.ref, {token, "NextLS runtime has initialized!"}),
-       runtime_task: task
+       refresh_refs: Map.merge(lsp.assigns.refresh_refs, refresh_refs),
+       runtime_tasks: tasks
      )}
   end
 
@@ -322,23 +349,27 @@ defmodule NextLS do
         %{assigns: %{ready: true}} = lsp
       ) do
     for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
-        task != lsp.assigns.runtime_task.pid do
+        task not in for(t <- lsp.assigns.runtime_tasks, do: t.pid) do
       Process.exit(task, :kill)
     end
 
     token = token()
 
     progress_start(lsp, token, "Compiling...")
+    runtimes = Enum.to_list(lsp.assigns.runtimes)
 
-    task =
-      Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-        Runtime.compile(lsp.assigns.runtime)
-      end)
+    tasks =
+      for {name, r} <- runtimes do
+        Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn -> {name, Runtime.compile(r.runtime)} end)
+      end
+
+    refresh_refs =
+      Enum.zip_with(tasks, runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
 
     {:noreply,
      lsp
      |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))
-     |> then(&put_in(&1.assigns.refresh_refs[task.ref], {token, "Compiled!"}))}
+     |> then(&put_in(&1.assigns.refresh_refs, refresh_refs))}
   end
 
   def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
@@ -355,7 +386,7 @@ defmodule NextLS do
         lsp
       ) do
     for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
-        task != lsp.assigns.runtime_task.pid do
+        task not in for(t <- lsp.assigns.runtime_tasks, do: t.pid) do
       Process.exit(task, :kill)
     end
 
@@ -421,13 +452,13 @@ defmodule NextLS do
 
     lsp =
       case resp do
-        :ready ->
+        {name, :ready} ->
           token = token()
           progress_start(lsp, token, "Compiling...")
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-              Runtime.compile(lsp.assigns.runtime)
+              {name, Runtime.compile(lsp.assigns.runtimes[name].runtime)}
             end)
 
           assign(lsp, ready: true, refresh_refs: Map.put(refs, task.ref, {token, "Compiled!"}))
@@ -448,13 +479,11 @@ defmodule NextLS do
     {:noreply, assign(lsp, refresh_refs: refs)}
   end
 
-  def handle_info(
-        {:DOWN, _ref, :process, runtime, _reason},
-        %{assigns: %{runtime: runtime}} = lsp
-      ) do
-    GenLSP.error(lsp, "[NextLS] The runtime has crashed")
+  def handle_info({:DOWN, _ref, :process, runtime, _reason}, %{assigns: %{runtimes: runtimes}} = lsp) do
+    {name, _} = Enum.find(runtimes, fn {_name, %{runtime: r}} -> r == runtime end)
+    GenLSP.error(lsp, "[NextLS] The runtime for #{name} has crashed")
 
-    {:noreply, assign(lsp, runtime: nil)}
+    {:noreply, assign(lsp, runtimes: Map.drop(runtimes, name))}
   end
 
   def handle_info(message, lsp) do
