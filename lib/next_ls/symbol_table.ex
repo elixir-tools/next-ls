@@ -39,10 +39,6 @@ defmodule NextLS.SymbolTable do
     symbol_table_name = Keyword.get(args, :symbol_table_name, :symbol_table)
     reference_table_name = Keyword.get(args, :reference_table_name, :reference_table)
 
-    File.mkdir_p!(path)
-
-    File.write!(Path.join(path, ".gitignore"), "*\n")
-
     {:ok, name} =
       :dets.open_file(symbol_table_name,
         file: Path.join(path, "symbol_table.dets") |> String.to_charlist(),
