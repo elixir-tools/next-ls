@@ -3,6 +3,7 @@ defmodule NextLS.SymbolTable do
   use GenServer
 
   defmodule Symbol do
+    @moduledoc false
     defstruct [:file, :module, :type, :name, :line, :col]
 
     @type t :: %__MODULE__{
@@ -41,13 +42,13 @@ defmodule NextLS.SymbolTable do
 
     {:ok, name} =
       :dets.open_file(symbol_table_name,
-        file: Path.join(path, "symbol_table.dets") |> String.to_charlist(),
+        file: path |> Path.join("symbol_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
 
     {:ok, ref_name} =
       :dets.open_file(reference_table_name,
-        file: Path.join(path, "reference_table.dets") |> String.to_charlist(),
+        file: path |> Path.join("reference_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
 
@@ -98,7 +99,8 @@ defmodule NextLS.SymbolTable do
     col = meta[:column] || 0
 
     range =
-      {{meta[:line], col}, {meta[:line], col + String.length(to_string(identifier) |> String.replace("Elixir.", ""))}}
+      {{meta[:line], col},
+       {meta[:line], col + String.length(identifier |> to_string() |> String.replace("Elixir.", ""))}}
 
     :dets.insert(state.reference_table, {
       {file, range},

@@ -1,4 +1,5 @@
 defmodule NextLS.Definition do
+  @moduledoc false
   def fetch(file, {line, col}, dets_symbol_table, dets_ref_table) do
     ref =
       :dets.select(

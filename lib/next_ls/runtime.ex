@@ -2,7 +2,8 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
-  @exe :code.priv_dir(:next_ls)
+  @exe :next_ls
+       |> :code.priv_dir()
        |> Path.join("cmd")
        |> Path.absname()
 
@@ -58,7 +59,7 @@ defmodule NextLS.Runtime do
           cd: working_dir,
           env: [
             {~c"LSP", ~c"nextls"},
-            {~c"NEXTLS_PARENT_PID", :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
+            {~c"NEXTLS_PARENT_PID", parent |> :erlang.term_to_binary() |> Base.encode64() |> String.to_charlist()},
             {~c"MIX_ENV", ~c"dev"},
             {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
           ],

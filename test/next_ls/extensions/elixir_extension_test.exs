@@ -1,8 +1,8 @@
 defmodule NextLS.ElixirExtensionTest do
   use ExUnit.Case, async: true
 
-  alias NextLS.ElixirExtension
   alias NextLS.DiagnosticCache
+  alias NextLS.ElixirExtension
 
   setup do
     cache = start_supervised!(DiagnosticCache)

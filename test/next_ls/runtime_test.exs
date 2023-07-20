@@ -1,13 +1,14 @@
 defmodule NextLs.RuntimeTest do
   use ExUnit.Case, async: true
+
+  import ExUnit.CaptureLog
   import NextLS.Support.Utils
 
-  @moduletag :tmp_dir
+  alias NextLS.Runtime
 
   require Logger
-  import ExUnit.CaptureLog
 
-  alias NextLS.Runtime
+  @moduletag :tmp_dir
 
   setup %{tmp_dir: tmp_dir} do
     File.write!(Path.join(tmp_dir, "mix.exs"), mix_exs())

@@ -9,6 +9,7 @@
   ],
   line_length: 120,
   import_deps: [:gen_lsp],
+  plugins: [Styler],
   inputs: [
     "{mix,.formatter}.exs",
     "{config,lib,}/**/*.{ex,exs}",
