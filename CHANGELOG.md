@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/elixir-tools/next-ls/compare/v0.5.4...v0.5.5) (2023-07-20)
+
+
+### Bug Fixes
+
+* add .gitignore file to .elixir-tools directory ([#113](https://github.com/elixir-tools/next-ls/issues/113)) ([24d9915](https://github.com/elixir-tools/next-ls/commit/24d99158cd616b3d9426e2d21ecfcfcb9d90ec8b))
+
 ## [0.5.4](https://github.com/elixir-tools/next-ls/compare/v0.5.3...v0.5.4) (2023-07-13)
 
 
