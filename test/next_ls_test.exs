@@ -1,10 +1,10 @@
 defmodule NextLSTest do
   use ExUnit.Case, async: true
+
+  import GenLSP.Test
   import NextLS.Support.Utils
 
   @moduletag :tmp_dir
-
-  import GenLSP.Test
 
   setup %{tmp_dir: tmp_dir} do
     File.mkdir_p!(Path.join(tmp_dir, "lib"))

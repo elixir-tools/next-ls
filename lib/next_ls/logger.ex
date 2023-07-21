@@ -1,4 +1,5 @@
 defmodule NextLS.Logger do
+  @moduledoc false
   use GenServer
 
   def start_link(arg) do
@@ -16,7 +17,7 @@ defmodule NextLS.Logger do
   end
 
   def handle_cast({:log, type, msg}, state) do
-    apply(GenLSP, type, [state.lsp, "[NextLS] #{msg}" |> String.trim()])
+    apply(GenLSP, type, [state.lsp, String.trim("[NextLS] #{msg}")])
     {:noreply, state}
   end
 end

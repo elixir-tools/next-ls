@@ -2,51 +2,38 @@ defmodule NextLS do
   @moduledoc false
   use GenLSP
 
+  alias GenLSP.Enumerations.ErrorCodes
+  alias GenLSP.Enumerations.TextDocumentSyncKind
   alias GenLSP.ErrorResponse
-
-  alias GenLSP.Enumerations.{
-    ErrorCodes,
-    TextDocumentSyncKind
-  }
-
-  alias GenLSP.Notifications.{
-    Exit,
-    Initialized,
-    TextDocumentDidChange,
-    TextDocumentDidOpen,
-    TextDocumentDidSave
-  }
-
-  alias GenLSP.Requests.{
-    Initialize,
-    Shutdown,
-    TextDocumentDocumentSymbol,
-    TextDocumentDefinition,
-    TextDocumentFormatting,
-    WorkspaceSymbol
-  }
-
-  alias GenLSP.Structures.{
-    DidOpenTextDocumentParams,
-    InitializeParams,
-    InitializeResult,
-    Location,
-    Position,
-    Range,
-    SaveOptions,
-    ServerCapabilities,
-    SymbolInformation,
-    TextDocumentItem,
-    TextDocumentSyncOptions,
-    TextEdit,
-    WorkDoneProgressBegin,
-    WorkDoneProgressEnd
-  }
-
+  alias GenLSP.Notifications.Exit
+  alias GenLSP.Notifications.Initialized
+  alias GenLSP.Notifications.TextDocumentDidChange
+  alias GenLSP.Notifications.TextDocumentDidOpen
+  alias GenLSP.Notifications.TextDocumentDidSave
+  alias GenLSP.Requests.Initialize
+  alias GenLSP.Requests.Shutdown
+  alias GenLSP.Requests.TextDocumentDefinition
+  alias GenLSP.Requests.TextDocumentDocumentSymbol
+  alias GenLSP.Requests.TextDocumentFormatting
+  alias GenLSP.Requests.WorkspaceSymbol
+  alias GenLSP.Structures.DidOpenTextDocumentParams
+  alias GenLSP.Structures.InitializeParams
+  alias GenLSP.Structures.InitializeResult
+  alias GenLSP.Structures.Location
+  alias GenLSP.Structures.Position
+  alias GenLSP.Structures.Range
+  alias GenLSP.Structures.SaveOptions
+  alias GenLSP.Structures.ServerCapabilities
+  alias GenLSP.Structures.SymbolInformation
+  alias GenLSP.Structures.TextDocumentItem
+  alias GenLSP.Structures.TextDocumentSyncOptions
+  alias GenLSP.Structures.TextEdit
+  alias GenLSP.Structures.WorkDoneProgressBegin
+  alias GenLSP.Structures.WorkDoneProgressEnd
+  alias NextLS.Definition
   alias NextLS.DiagnosticCache
   alias NextLS.Runtime
   alias NextLS.SymbolTable
-  alias NextLS.Definition
 
   def start_link(args) do
     {args, opts} =
@@ -222,7 +209,7 @@ defmodule NextLS do
     document = lsp.assigns.documents[uri]
 
     {_, %{runtime: runtime}} =
-      lsp.assigns.runtimes |> Enum.find(fn {_name, %{uri: wuri}} -> String.starts_with?(uri, wuri) end)
+      Enum.find(lsp.assigns.runtimes, fn {_name, %{uri: wuri}} -> String.starts_with?(uri, wuri) end)
 
     with {:ok, {formatter, _}} <- Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]}),
          {:ok, response} when is_binary(response) or is_list(response) <-
@@ -325,7 +312,7 @@ defmodule NextLS do
       end
 
     refresh_refs =
-      Enum.zip_with(tasks, runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
+      tasks |> Enum.zip_with(runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
 
     {:noreply,
      assign(lsp,
@@ -340,10 +327,7 @@ defmodule NextLS do
 
   def handle_notification(
         %TextDocumentDidSave{
-          params: %GenLSP.Structures.DidSaveTextDocumentParams{
-            text: text,
-            text_document: %{uri: uri}
-          }
+          params: %GenLSP.Structures.DidSaveTextDocumentParams{text: text, text_document: %{uri: uri}}
         },
         %{assigns: %{ready: true}} = lsp
       ) do
@@ -363,7 +347,7 @@ defmodule NextLS do
       end
 
     refresh_refs =
-      Enum.zip_with(tasks, runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
+      tasks |> Enum.zip_with(runtimes, fn task, {_name, runtime} -> {task.ref, runtime.refresh_ref} end) |> Map.new()
 
     {:noreply,
      lsp
@@ -376,12 +360,7 @@ defmodule NextLS do
   end
 
   def handle_notification(
-        %TextDocumentDidChange{
-          params: %{
-            text_document: %{uri: uri},
-            content_changes: [%{text: text}]
-          }
-        },
+        %TextDocumentDidChange{params: %{text_document: %{uri: uri}, content_changes: [%{text: text}]}},
         lsp
       ) do
     for task <- Task.Supervisor.children(lsp.assigns.task_supervisor),
@@ -394,9 +373,7 @@ defmodule NextLS do
 
   def handle_notification(
         %TextDocumentDidOpen{
-          params: %DidOpenTextDocumentParams{
-            text_document: %TextDocumentItem{text: text, uri: uri}
-          }
+          params: %DidOpenTextDocumentParams{text_document: %TextDocumentItem{text: text, uri: uri}}
         },
         lsp
       ) do
@@ -531,14 +508,14 @@ defmodule NextLS do
     })
   end
 
-  defp token() do
+  defp token do
     8
     |> :crypto.strong_rand_bytes()
     |> Base.url_encode64(padding: false)
     |> binary_part(0, 8)
   end
 
-  defp version() do
+  defp version do
     case :application.get_key(:next_ls, :vsn) do
       {:ok, version} -> to_string(version)
       _ -> "dev"

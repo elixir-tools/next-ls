@@ -1,8 +1,9 @@
 defmodule NextLS.SymbolTableTest do
   use ExUnit.Case, async: true
-  @moduletag :tmp_dir
 
   alias NextLS.SymbolTable
+
+  @moduletag :tmp_dir
 
   setup %{tmp_dir: dir} do
     File.mkdir_p!(dir)
@@ -19,13 +20,11 @@ defmodule NextLS.SymbolTableTest do
   end
 
   defp try_start_supervised(spec, num) do
-    try do
-      start_supervised!(spec)
-    rescue
-      _ ->
-        Process.sleep(250)
-        try_start_supervised(spec, num - 1)
-    end
+    start_supervised!(spec)
+  rescue
+    _ ->
+      Process.sleep(250)
+      try_start_supervised(spec, num - 1)
   end
 
   test "creates a dets table", %{dir: dir, pid: pid} do
@@ -66,7 +65,7 @@ defmodule NextLS.SymbolTableTest do
            ] == SymbolTable.symbols(pid)
   end
 
-  defp symbols() do
+  defp symbols do
     %{
       file: "/Users/alice/next_ls/lib/next_ls.ex",
       module: NextLS,
