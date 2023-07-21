@@ -867,7 +867,7 @@ defmodule NextLSTest do
     tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
-    start_supervised!({Registry, [keys: :unique, name: Registry.NextLSTest]})
+    start_supervised!({Registry, [keys: :duplicate, name: Registry.NextLSTest.Registry]})
     extensions = [NextLS.ElixirExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
     symbol_table = start_supervised!({NextLS.SymbolTable, path: tmp_dir})
@@ -877,7 +877,7 @@ defmodule NextLSTest do
         task_supervisor: tvisor,
         runtime_task_supervisor: r_tvisor,
         dynamic_supervisor: rvisor,
-        extension_registry: Registry.NextLSTest,
+        registry: Registry.NextLSTest.Registry,
         extensions: extensions,
         cache: cache,
         symbol_table: symbol_table

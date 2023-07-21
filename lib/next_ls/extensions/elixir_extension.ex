@@ -18,7 +18,7 @@ defmodule NextLS.ElixirExtension do
     registry = Keyword.fetch!(args, :registry)
     publisher = Keyword.fetch!(args, :publisher)
 
-    Registry.register(registry, :extension, :elixir)
+    Registry.register(registry, :extensions, :elixir)
 
     {:ok, %{cache: cache, registry: registry, publisher: publisher}}
   end
