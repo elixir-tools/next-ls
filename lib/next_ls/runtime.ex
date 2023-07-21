@@ -8,7 +8,7 @@ defmodule NextLS.Runtime do
        |> Path.absname()
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, Keyword.take(opts, [:name]))
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @type mod_fun_arg :: {atom(), atom(), list()}
@@ -42,11 +42,16 @@ defmodule NextLS.Runtime do
   @impl GenServer
   def init(opts) do
     sname = "nextls-runtime-#{System.system_time()}"
+    name = Keyword.fetch!(opts, :name)
     working_dir = Keyword.fetch!(opts, :working_dir)
+    uri = Keyword.fetch!(opts, :uri)
     parent = Keyword.fetch!(opts, :parent)
     logger = Keyword.fetch!(opts, :logger)
     task_supervisor = Keyword.fetch!(opts, :task_supervisor)
-    extension_registry = Keyword.fetch!(opts, :extension_registry)
+    registry = Keyword.fetch!(opts, :registry)
+    on_initialized = Keyword.fetch!(opts, :on_initialized)
+
+    Registry.register(registry, :runtimes, %{name: name, uri: uri})
 
     port =
       Port.open(
@@ -102,19 +107,23 @@ defmodule NextLS.Runtime do
 
         send(me, {:node, node})
       else
-        _ -> send(me, :cancel)
+        _ ->
+          on_initialized.(:error)
+          send(me, :cancel)
       end
     end)
 
     {:ok,
      %{
+       name: name,
        compiler_ref: nil,
        port: port,
        task_supervisor: task_supervisor,
        logger: logger,
        parent: parent,
        errors: nil,
-       extension_registry: extension_registry
+       registry: registry,
+       on_initialized: on_initialized
      }}
   end
 
@@ -141,7 +150,7 @@ defmodule NextLS.Runtime do
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
 
-        Registry.dispatch(state.extension_registry, :extension, fn entries ->
+        Registry.dispatch(state.registry, :extensions, fn entries ->
           for {pid, _} <- entries do
             send(pid, {:compiler, errors})
           end
@@ -169,6 +178,7 @@ defmodule NextLS.Runtime do
 
   def handle_info({:node, node}, state) do
     Node.monitor(node, true)
+    state.on_initialized.(:ready)
     {:noreply, Map.put(state, :node, node)}
   end
 

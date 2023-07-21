@@ -65,14 +65,14 @@ defmodule NextLS.LSPSupervisor do
         {GenLSP.Buffer, buffer_opts},
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
         {NextLS.SymbolTable, name: :symbol_table, path: hidden_folder},
-        {Registry, name: NextLS.ExtensionRegistry, keys: :duplicate},
+        {Registry, name: NextLS.Registry, keys: :duplicate},
         {NextLS,
          cache: :diagnostic_cache,
          symbol_table: :symbol_table,
          task_supervisor: NextLS.TaskSupervisor,
          runtime_task_supervisor: :runtime_task_supervisor,
          dynamic_supervisor: NextLS.DynamicSupervisor,
-         extension_registry: NextLS.ExtensionRegistry}
+         registry: NextLS.Registry}
       ]
 
       Supervisor.init(children, strategy: :one_for_one)
