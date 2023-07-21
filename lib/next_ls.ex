@@ -87,8 +87,6 @@ defmodule NextLS do
         },
         lsp
       ) do
-    dbg(workspace_folders)
-
     workspace_folders =
       if caps.workspace.workspace_folders do
         workspace_folders
@@ -285,8 +283,6 @@ defmodule NextLS do
       progress_start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
       parent = self()
 
-      dbg(name)
-
       {:ok, runtime} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
@@ -349,8 +345,6 @@ defmodule NextLS do
           {task.ref, {token, "Compiled!"}}
         end
       end)
-
-    dbg(refresh_refs)
 
     {:noreply,
      lsp
@@ -425,8 +419,6 @@ defmodule NextLS do
   def handle_info({:runtime_ready, name, runtime_pid}, lsp) do
     token = token()
     progress_start(lsp, token, "Compiling...")
-
-    dbg(name)
 
     task =
       Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
