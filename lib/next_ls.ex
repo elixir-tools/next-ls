@@ -28,10 +28,9 @@ defmodule NextLS do
   alias GenLSP.Structures.TextDocumentItem
   alias GenLSP.Structures.TextDocumentSyncOptions
   alias GenLSP.Structures.TextEdit
-  alias GenLSP.Structures.WorkDoneProgressBegin
-  alias GenLSP.Structures.WorkDoneProgressEnd
   alias NextLS.Definition
   alias NextLS.DiagnosticCache
+  alias NextLS.Progress
   alias NextLS.Runtime
   alias NextLS.SymbolTable
 
@@ -280,30 +279,32 @@ defmodule NextLS do
 
     for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
       token = token()
-      progress_start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
+      Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
       parent = self()
 
       {:ok, runtime} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
-          {NextLS.Runtime,
-           name: name,
-           task_supervisor: lsp.assigns.runtime_task_supervisor,
-           registry: lsp.assigns.registry,
-           working_dir: URI.parse(uri).path,
-           uri: uri,
-           parent: self(),
-           on_initialized: fn status ->
-             if status == :ready do
-               progress_end(lsp, token, "NextLS runtime for folder #{name} has initialized!")
-               GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
-               send(parent, {:runtime_ready, name, self()})
-             else
-               progress_end(lsp, token)
-               GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
-             end
-           end,
-           logger: lsp.assigns.logger}
+          {NextLS.RuntimeSupervisor,
+           runtime: [
+             name: name,
+             task_supervisor: lsp.assigns.runtime_task_supervisor,
+             registry: lsp.assigns.registry,
+             working_dir: URI.parse(uri).path,
+             uri: uri,
+             parent: parent,
+             on_initialized: fn status ->
+               if status == :ready do
+                 Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
+                 GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
+                 send(parent, {:runtime_ready, name, self()})
+               else
+                 Progress.stop(lsp, token)
+                 GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
+               end
+             end,
+             logger: lsp.assigns.logger
+           ]}
         )
 
       ref = Process.monitor(runtime)
@@ -335,7 +336,7 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         for {pid, %{name: name, uri: wuri}} <- entries, String.starts_with?(uri, wuri), into: %{} do
           token = token()
-          progress_start(lsp, token, "Compiling...")
+          Progress.start(lsp, token, "Compiling...")
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
@@ -418,7 +419,7 @@ defmodule NextLS do
 
   def handle_info({:runtime_ready, name, runtime_pid}, lsp) do
     token = token()
-    progress_start(lsp, token, "Compiling...")
+    Progress.start(lsp, token, "Compiling...")
 
     task =
       Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
@@ -434,7 +435,7 @@ defmodule NextLS do
     Process.demonitor(ref, [:flush])
     {{token, msg}, refs} = Map.pop(refs, ref)
 
-    progress_end(lsp, token, msg)
+    Progress.stop(lsp, token, msg)
 
     {:noreply, assign(lsp, refresh_refs: refs)}
   end
@@ -443,7 +444,7 @@ defmodule NextLS do
       when is_map_key(refs, ref) do
     {{token, _}, refs} = Map.pop(refs, ref)
 
-    progress_end(lsp, token)
+    Progress.stop(lsp, token)
 
     {:noreply, assign(lsp, refresh_refs: refs)}
   end
@@ -460,30 +461,6 @@ defmodule NextLS do
   def handle_info(message, lsp) do
     GenLSP.log(lsp, "[NextLS] Unhandled message: #{inspect(message)}")
     {:noreply, lsp}
-  end
-
-  defp progress_start(lsp, token, msg) do
-    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
-      params: %GenLSP.Structures.ProgressParams{
-        token: token,
-        value: %WorkDoneProgressBegin{
-          kind: "begin",
-          title: msg
-        }
-      }
-    })
-  end
-
-  defp progress_end(lsp, token, msg \\ nil) do
-    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
-      params: %GenLSP.Structures.ProgressParams{
-        token: token,
-        value: %WorkDoneProgressEnd{
-          kind: "end",
-          message: msg
-        }
-      }
-    })
   end
 
   defp token do
