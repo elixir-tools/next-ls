@@ -53,6 +53,18 @@ defmodule NextLS.Runtime do
 
     Registry.register(registry, :runtimes, %{name: name, uri: uri})
 
+    pid =
+      cond do
+        is_pid(parent) -> parent
+        is_atom(parent) -> Process.whereis(parent)
+      end
+
+    parent =
+      pid
+      |> :erlang.term_to_binary()
+      |> Base.encode64()
+      |> String.to_charlist()
+
     port =
       Port.open(
         {:spawn_executable, @exe},
@@ -64,7 +76,7 @@ defmodule NextLS.Runtime do
           cd: working_dir,
           env: [
             {~c"LSP", ~c"nextls"},
-            {~c"NEXTLS_PARENT_PID", parent |> :erlang.term_to_binary() |> Base.encode64() |> String.to_charlist()},
+            {~c"NEXTLS_PARENT_PID", parent},
             {~c"MIX_ENV", ~c"dev"},
             {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
           ],
@@ -84,6 +96,15 @@ defmodule NextLS.Runtime do
     Port.monitor(port)
 
     me = self()
+
+    Task.Supervisor.async_nolink(task_supervisor, fn ->
+      ref = Process.monitor(me)
+
+      receive do
+        {:DOWN, ^ref, :process, ^me, _reason} ->
+          NextLS.Logger.error(logger, "[NextLS] The runtime for #{name} has crashed")
+      end
+    end)
 
     Task.start_link(fn ->
       with {:ok, host} <- :inet.gethostname(),
