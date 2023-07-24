@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0](https://github.com/elixir-tools/next-ls/compare/v0.5.5...v0.6.0) (2023-07-24)
+
+
+### Features
+
+* adding/removing workspace folders ([#126](https://github.com/elixir-tools/next-ls/issues/126)) ([d26e29c](https://github.com/elixir-tools/next-ls/commit/d26e29c733ed040c7b7bc941956aa1ffef35726b))
+* workspace folders on startup ([#117](https://github.com/elixir-tools/next-ls/issues/117)) ([6b5ffaf](https://github.com/elixir-tools/next-ls/commit/6b5ffafda9c754f59548760384387dbe66cf8e3b))
+
+
+### Bug Fixes
+
+* clamp diagnostic line number to 0 ([#116](https://github.com/elixir-tools/next-ls/issues/116)) ([e2194c5](https://github.com/elixir-tools/next-ls/commit/e2194c5d78eb042b537f4c0df6f74d9cfa2d6017))
+* create the symbol table in the workspace path ([#125](https://github.com/elixir-tools/next-ls/issues/125)) ([1103d01](https://github.com/elixir-tools/next-ls/commit/1103d0105faeb60c9b8d90a95aa49f795c44d505))
+* start runtime under a supervisor ([#124](https://github.com/elixir-tools/next-ls/issues/124)) ([df331dc](https://github.com/elixir-tools/next-ls/commit/df331dcd3ceca943a513529481bc0acf75cd4acb))
+* use registry for runtime messaging ([#121](https://github.com/elixir-tools/next-ls/issues/121)) ([639493c](https://github.com/elixir-tools/next-ls/commit/639493c173f2b8f3cdc21ea81fb48290688d40b7))
+
 ## [0.5.5](https://github.com/elixir-tools/next-ls/compare/v0.5.4...v0.5.5) (2023-07-20)
 
 
