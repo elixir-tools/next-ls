@@ -51,24 +51,15 @@ defmodule NextLS.LSPSupervisor do
             raise OptionsError, invalid
         end
 
-      # FIXME: this directory should be inside the workspace, which will is not determined until
-      # the LSP has begun initialization
-      # The symbol table may need to started dynamically, like the extensions and the runtimes
-      hidden_folder = Path.expand(".elixir-tools")
-      File.mkdir_p!(hidden_folder)
-      File.write!(Path.join(hidden_folder, ".gitignore"), "*\n")
-
       children = [
         {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
         {Task.Supervisor, name: :runtime_task_supervisor},
         {GenLSP.Buffer, buffer_opts},
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
-        {NextLS.SymbolTable, name: :symbol_table, path: hidden_folder},
         {Registry, name: NextLS.Registry, keys: :duplicate},
         {NextLS,
          cache: :diagnostic_cache,
-         symbol_table: :symbol_table,
          task_supervisor: NextLS.TaskSupervisor,
          runtime_task_supervisor: :runtime_task_supervisor,
          dynamic_supervisor: NextLS.DynamicSupervisor,

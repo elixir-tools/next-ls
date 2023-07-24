@@ -17,7 +17,7 @@ defmodule NextLS.SymbolTable do
   end
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, Keyword.take(args, [:path]), Keyword.take(args, [:name]))
+    GenServer.start_link(__MODULE__, Keyword.take(args, [:path, :workspace, :registry]), Keyword.take(args, [:name]))
   end
 
   @spec put_symbols(pid() | atom(), list(tuple())) :: :ok
@@ -37,20 +37,22 @@ defmodule NextLS.SymbolTable do
 
   def init(args) do
     path = Keyword.fetch!(args, :path)
-    symbol_table_name = Keyword.get(args, :symbol_table_name, :symbol_table)
-    reference_table_name = Keyword.get(args, :reference_table_name, :reference_table)
+    name = Keyword.fetch!(args, :workspace)
+    registry = Keyword.fetch!(args, :registry)
 
     {:ok, name} =
-      :dets.open_file(symbol_table_name,
+      :dets.open_file(:"symbol-table-#{name}",
         file: path |> Path.join("symbol_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
 
     {:ok, ref_name} =
-      :dets.open_file(reference_table_name,
+      :dets.open_file(:"reference-table-#{name}",
         file: path |> Path.join("reference_table.dets") |> String.to_charlist(),
         type: :duplicate_bag
       )
+
+    Registry.register(registry, :symbol_tables, %{symbol_table: name, reference_table: ref_name})
 
     {:ok, %{table: name, reference_table: ref_name}}
   end

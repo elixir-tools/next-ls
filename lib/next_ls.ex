@@ -42,8 +42,7 @@ defmodule NextLS do
         :runtime_task_supervisor,
         :dynamic_supervisor,
         :extensions,
-        :registry,
-        :symbol_table
+        :registry
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -58,7 +57,6 @@ defmodule NextLS do
     registry = Keyword.fetch!(args, :registry)
     extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
     cache = Keyword.fetch!(args, :cache)
-    symbol_table = Keyword.fetch!(args, :symbol_table)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
     {:ok,
@@ -68,7 +66,6 @@ defmodule NextLS do
        refresh_refs: %{},
        cache: cache,
        logger: logger,
-       symbol_table: symbol_table,
        task_supervisor: task_supervisor,
        runtime_task_supervisor: runtime_task_supervisor,
        dynamic_supervisor: dynamic_supervisor,
@@ -118,35 +115,39 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     result =
-      case Definition.fetch(
-             URI.parse(uri).path,
-             {position.line + 1, position.character + 1},
-             :symbol_table,
-             :reference_table
-           ) do
-        nil ->
-          nil
+      dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
+        for {_, %{symbol_table: symbol_table, reference_table: ref_table}} <- entries do
+          case Definition.fetch(
+                 URI.parse(uri).path,
+                 {position.line + 1, position.character + 1},
+                 symbol_table,
+                 ref_table
+               ) do
+            nil ->
+              nil
 
-        [] ->
-          nil
+            [] ->
+              nil
 
-        [{file, line, column} | _] ->
-          %Location{
-            uri: "file://#{file}",
-            range: %Range{
-              start: %Position{
-                line: line - 1,
-                character: column - 1
-              },
-              end: %Position{
-                line: line - 1,
-                character: column - 1
+            [{file, line, column} | _] ->
+              %Location{
+                uri: "file://#{file}",
+                range: %Range{
+                  start: %Position{
+                    line: line - 1,
+                    character: column - 1
+                  },
+                  end: %Position{
+                    line: line - 1,
+                    character: column - 1
+                  }
+                }
               }
-            }
-          }
-      end
+          end
+        end
+      end)
 
-    {:reply, result, lsp}
+    {:reply, List.first(result), lsp}
   end
 
   def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
@@ -174,32 +175,34 @@ defmodule NextLS do
     end
 
     symbols =
-      for %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(lsp.assigns.symbol_table), filter.(symbol.name) do
-        name =
-          if symbol.type != :defstruct do
-            "#{symbol.type} #{symbol.name}"
-          else
-            "#{symbol.name}"
-          end
+      dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
+        for {pid, _} <- entries, %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(pid), filter.(symbol.name) do
+          name =
+            if symbol.type != :defstruct do
+              "#{symbol.type} #{symbol.name}"
+            else
+              "#{symbol.name}"
+            end
 
-        %SymbolInformation{
-          name: name,
-          kind: elixir_kind_to_lsp_kind(symbol.type),
-          location: %Location{
-            uri: "file://#{symbol.file}",
-            range: %Range{
-              start: %Position{
-                line: symbol.line - 1,
-                character: symbol.col - 1
-              },
-              end: %Position{
-                line: symbol.line - 1,
-                character: symbol.col - 1
+          %SymbolInformation{
+            name: name,
+            kind: elixir_kind_to_lsp_kind(symbol.type),
+            location: %Location{
+              uri: "file://#{symbol.file}",
+              range: %Range{
+                start: %Position{
+                  line: symbol.line - 1,
+                  character: symbol.col - 1
+                },
+                end: %Position{
+                  line: symbol.line - 1,
+                  character: symbol.col - 1
+                }
               }
             }
           }
-        }
-      end
+        end
+      end)
 
     {:reply, symbols, lsp}
   end
@@ -248,7 +251,9 @@ defmodule NextLS do
   end
 
   def handle_request(%Shutdown{}, lsp) do
-    SymbolTable.close(lsp.assigns.symbol_table)
+    dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
+      for {pid, _} <- entries, do: SymbolTable.close(pid)
+    end)
 
     {:reply, nil, assign(lsp, exit_code: 0)}
   end
@@ -281,18 +286,19 @@ defmodule NextLS do
       token = token()
       Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
       parent = self()
+      working_dir = URI.parse(uri).path
 
       {:ok, runtime} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
-          {NextLS.RuntimeSupervisor,
+          {NextLS.Runtime.Supervisor,
+           path: Path.join(working_dir, ".elixir-tools"),
+           name: name,
+           registry: lsp.assigns.registry,
            runtime: [
-             name: name,
              task_supervisor: lsp.assigns.runtime_task_supervisor,
-             registry: lsp.assigns.registry,
-             working_dir: URI.parse(uri).path,
+             working_dir: working_dir,
              uri: uri,
-             parent: parent,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -306,10 +312,6 @@ defmodule NextLS do
              logger: lsp.assigns.logger
            ]}
         )
-
-      ref = Process.monitor(runtime)
-
-      Process.put(ref, name)
 
       {name, %{uri: uri, runtime: runtime}}
     end
@@ -387,16 +389,6 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info({:tracer, payload}, lsp) do
-    SymbolTable.put_symbols(lsp.assigns.symbol_table, payload)
-    {:noreply, lsp}
-  end
-
-  def handle_info({{:tracer, :reference}, payload}, lsp) do
-    SymbolTable.put_reference(lsp.assigns.symbol_table, payload)
-    {:noreply, lsp}
-  end
-
   def handle_info(:publish, lsp) do
     GenLSP.log(lsp, "[NextLS] Compiled!")
 
@@ -447,15 +439,6 @@ defmodule NextLS do
     Progress.stop(lsp, token)
 
     {:noreply, assign(lsp, refresh_refs: refs)}
-  end
-
-  def handle_info({:DOWN, ref, :process, _runtime, _reason}, lsp) do
-    name = Process.get(ref)
-    Process.delete(ref)
-
-    GenLSP.error(lsp, "[NextLS] The runtime for #{name} has crashed")
-
-    {:noreply, lsp}
   end
 
   def handle_info(message, lsp) do

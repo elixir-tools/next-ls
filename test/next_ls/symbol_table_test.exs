@@ -5,11 +5,16 @@ defmodule NextLS.SymbolTableTest do
 
   @moduletag :tmp_dir
 
-  setup %{tmp_dir: dir} do
+  setup %{tmp_dir: dir} = cxt do
     File.mkdir_p!(dir)
 
+    start_supervised!({Registry, [keys: :duplicate, name: Registry.SymbolTableTest.Registry]})
     # this fails with `{:error, incompatible_arguments}` on CI a lot, and I have no idea why
-    pid = try_start_supervised({SymbolTable, [path: dir]}, 10)
+    pid =
+      try_start_supervised(
+        {SymbolTable, [path: dir, workspace: cxt.test, registry: Registry.SymbolTableTest.Registry]},
+        10
+      )
 
     Process.link(pid)
     [pid: pid, dir: dir]
@@ -27,9 +32,10 @@ defmodule NextLS.SymbolTableTest do
       try_start_supervised(spec, num - 1)
   end
 
-  test "creates a dets table", %{dir: dir, pid: pid} do
+  test "creates a dets table", %{dir: dir, pid: pid} = cxt do
     assert File.exists?(Path.join([dir, "symbol_table.dets"]))
-    assert :sys.get_state(pid).table == :symbol_table
+    assert File.exists?(Path.join([dir, "reference_table.dets"]))
+    assert :sys.get_state(pid).table == :"symbol-table-#{cxt.test}"
   end
 
   test "builds the symbol table", %{pid: pid} do
