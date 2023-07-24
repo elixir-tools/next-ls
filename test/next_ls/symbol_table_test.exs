@@ -11,7 +11,10 @@ defmodule NextLS.SymbolTableTest do
     start_supervised!({Registry, [keys: :duplicate, name: Registry.SymbolTableTest.Registry]})
     # this fails with `{:error, incompatible_arguments}` on CI a lot, and I have no idea why
     pid =
-      try_start_supervised({SymbolTable, [path: dir, workspace: cxt.test, registry: Registry.SymbolTableTest.Registry]}, 10)
+      try_start_supervised(
+        {SymbolTable, [path: dir, workspace: cxt.test, registry: Registry.SymbolTableTest.Registry]},
+        10
+      )
 
     Process.link(pid)
     [pid: pid, dir: dir]
