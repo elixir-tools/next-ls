@@ -101,8 +101,14 @@ defmodule NextLS.Runtime do
       ref = Process.monitor(me)
 
       receive do
-        {:DOWN, ^ref, :process, ^me, _reason} ->
-          NextLS.Logger.error(logger, "[NextLS] The runtime for #{name} has crashed")
+        {:DOWN, ^ref, :process, ^me, reason} ->
+          case reason do
+            :shutdown ->
+              NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
+
+            reason ->
+              NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
+          end
       end
     end)
 

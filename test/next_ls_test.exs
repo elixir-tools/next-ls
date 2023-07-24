@@ -6,15 +6,16 @@ defmodule NextLSTest do
 
   @moduletag :tmp_dir
 
-  setup %{tmp_dir: tmp_dir} do
-    File.mkdir_p!(Path.join(tmp_dir, "lib"))
-    File.write!(Path.join(tmp_dir, "mix.exs"), mix_exs())
-    [cwd: tmp_dir]
-  end
-
   describe "one" do
+    @describetag root_paths: ["my_proj"]
     setup %{tmp_dir: tmp_dir} do
-      File.write!(Path.join(tmp_dir, "lib/bar.ex"), """
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
+    setup %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, "my_proj/lib/bar.ex"), """
       defmodule Bar do
         defstruct [:foo]
 
@@ -23,7 +24,7 @@ defmodule NextLSTest do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "lib/code_action.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/code_action.ex"), """
       defmodule Foo.CodeAction do
         # some comment
 
@@ -35,12 +36,12 @@ defmodule NextLSTest do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "lib/foo.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/foo.ex"), """
       defmodule Foo do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "lib/project.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/project.ex"), """
       defmodule Project do
         def hello do
           :world
@@ -156,7 +157,7 @@ defmodule NextLSTest do
           to_string(%URI{
             host: "",
             scheme: "file",
-            path: Path.join([cwd, "lib", file])
+            path: Path.join([cwd, "my_proj/lib", file])
           })
 
         char = if Version.match?(System.version(), ">= 1.15.0"), do: 10, else: 0
@@ -192,7 +193,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://#{cwd}/lib/foo/bar.ex",
+            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
             languageId: "elixir",
             version: 1,
             text: """
@@ -214,7 +215,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://#{cwd}/lib/foo/bar.ex"
+            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -233,7 +234,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://#{cwd}/lib/foo/bar.ex"
+            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -271,7 +272,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://#{cwd}/lib/foo/bar.ex",
+            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
             languageId: "elixir",
             version: 1,
             text: """
@@ -294,7 +295,7 @@ defmodule NextLSTest do
         jsonrpc: "2.0",
         params: %{
           textDocument: %{
-            uri: "file://#{cwd}/lib/foo/bar.ex"
+            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
           },
           options: %{
             insertSpaces: true,
@@ -341,7 +342,7 @@ defmodule NextLSTest do
                      "character" => 0
                    }
                  },
-                 "uri" => "file://#{cwd}/lib/bar.ex"
+                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                },
                "name" => "def foo"
              } in symbols
@@ -359,7 +360,7 @@ defmodule NextLSTest do
                      "character" => 0
                    }
                  },
-                 "uri" => "file://#{cwd}/lib/bar.ex"
+                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                },
                "name" => "defmodule Bar"
              } in symbols
@@ -377,7 +378,7 @@ defmodule NextLSTest do
                      "character" => 0
                    }
                  },
-                 "uri" => "file://#{cwd}/lib/bar.ex"
+                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                },
                "name" => "%Bar{}"
              } in symbols
@@ -395,7 +396,7 @@ defmodule NextLSTest do
                      "character" => 0
                    }
                  },
-                 "uri" => "file://#{cwd}/lib/code_action.ex"
+                 "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
                },
                "name" => "defmodule Foo.CodeAction.NestedMod"
              } in symbols
@@ -437,7 +438,7 @@ defmodule NextLSTest do
                        "character" => 0
                      }
                    },
-                   "uri" => "file://#{cwd}/lib/bar.ex"
+                   "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                  },
                  "name" => "def foo"
                },
@@ -454,7 +455,7 @@ defmodule NextLSTest do
                        "character" => 0
                      }
                    },
-                   "uri" => "file://#{cwd}/lib/code_action.ex"
+                   "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
                  },
                  "name" => "def foo"
                }
@@ -463,8 +464,15 @@ defmodule NextLSTest do
   end
 
   describe "function go to definition" do
+    @describetag root_paths: ["my_proj"]
+    setup %{tmp_dir: tmp_dir} do
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
     setup %{cwd: cwd} do
-      remote = Path.join(cwd, "lib/remote.ex")
+      remote = Path.join(cwd, "my_proj/lib/remote.ex")
 
       File.write!(remote, """
       defmodule Remote do
@@ -474,7 +482,7 @@ defmodule NextLSTest do
       end
       """)
 
-      imported = Path.join(cwd, "lib/imported.ex")
+      imported = Path.join(cwd, "my_proj/lib/imported.ex")
 
       File.write!(imported, """
       defmodule Imported do
@@ -484,7 +492,7 @@ defmodule NextLSTest do
       end
       """)
 
-      bar = Path.join(cwd, "lib/bar.ex")
+      bar = Path.join(cwd, "my_proj/lib/bar.ex")
 
       File.write!(bar, """
       defmodule Foo do
@@ -626,8 +634,15 @@ defmodule NextLSTest do
   end
 
   describe "macro go to definition" do
+    @describetag root_paths: ["my_proj"]
+    setup %{tmp_dir: tmp_dir} do
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
     setup %{cwd: cwd} do
-      remote = Path.join(cwd, "lib/remote.ex")
+      remote = Path.join(cwd, "my_proj/lib/remote.ex")
 
       File.write!(remote, """
       defmodule Remote do
@@ -639,7 +654,7 @@ defmodule NextLSTest do
       end
       """)
 
-      imported = Path.join(cwd, "lib/imported.ex")
+      imported = Path.join(cwd, "my_proj/lib/imported.ex")
 
       File.write!(imported, """
       defmodule Imported do
@@ -651,7 +666,7 @@ defmodule NextLSTest do
       end
       """)
 
-      bar = Path.join(cwd, "lib/bar.ex")
+      bar = Path.join(cwd, "my_proj/lib/bar.ex")
 
       File.write!(bar, """
       defmodule Foo do
@@ -797,8 +812,15 @@ defmodule NextLSTest do
   end
 
   describe "module go to definition" do
+    @describetag root_paths: ["my_proj"]
+    setup %{tmp_dir: tmp_dir} do
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
     setup %{cwd: cwd} do
-      peace = Path.join(cwd, "lib/peace.ex")
+      peace = Path.join(cwd, "my_proj/lib/peace.ex")
 
       File.write!(peace, """
       defmodule MyApp.Peace do
@@ -808,7 +830,7 @@ defmodule NextLSTest do
       end
       """)
 
-      bar = Path.join(cwd, "lib/bar.ex")
+      bar = Path.join(cwd, "my_proj/lib/bar.ex")
 
       File.write!(bar, """
       defmodule Bar do
@@ -861,8 +883,96 @@ defmodule NextLSTest do
     end
   end
 
-  defp with_lsp(%{tmp_dir: tmp_dir}) do
-    root_path = Path.absname(tmp_dir)
+  describe "workspaces" do
+    setup %{tmp_dir: tmp_dir} do
+      [cwd: tmp_dir]
+    end
+
+    setup %{cwd: cwd} do
+      File.mkdir_p!(Path.join(cwd, "proj_one/lib"))
+      File.write!(Path.join(cwd, "proj_one/mix.exs"), mix_exs())
+      peace = Path.join(cwd, "proj_one/lib/peace.ex")
+
+      File.write!(peace, """
+      defmodule MyApp.Peace do
+        def and_love() do
+          "✌️"
+        end
+      end
+      """)
+
+      File.mkdir_p!(Path.join(cwd, "proj_two/lib"))
+      File.write!(Path.join(cwd, "proj_two/mix.exs"), mix_exs())
+      bar = Path.join(cwd, "proj_two/lib/bar.ex")
+
+      File.write!(bar, """
+      defmodule Bar do
+        def run() do
+          MyApp.Peace.and_love()
+        end
+      end
+      """)
+
+      [bar: bar, peace: peace]
+    end
+
+    setup :with_lsp
+
+    @tag root_paths: ["proj_one"]
+    test "starts a new runtime when you add a workspace folder", %{client: client, cwd: cwd} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      notify(client, %{
+        method: "workspace/didChangeWorkspaceFolders",
+        jsonrpc: "2.0",
+        params: %{
+          event: %{
+            added: [
+              %{name: "proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
+            ],
+            removed: []
+          }
+        }
+      })
+
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_two is ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    end
+
+    @tag root_paths: ["proj_one", "proj_two"]
+    test "stops the runtime when you remove a workspace folder", %{client: client, cwd: cwd} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_two is ready..."}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+      notify(client, %{
+        method: "workspace/didChangeWorkspaceFolders",
+        jsonrpc: "2.0",
+        params: %{
+          event: %{
+            added: [],
+            removed: [
+              %{name: "proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
+            ]
+          }
+        }
+      })
+
+      assert_notification "window/logMessage", %{
+        "message" => "[NextLS] The runtime for proj_two has successfully shutdown."
+      }
+    end
+  end
+
+  defp with_lsp(%{tmp_dir: tmp_dir} = context) do
+    root_paths =
+      for path <- context[:root_paths] || [""] do
+        Path.absname(Path.join(tmp_dir, path))
+      end
 
     tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
@@ -896,14 +1006,11 @@ defmodule NextLSTest do
                      workspaceFolders: true
                    }
                  },
-                 workspaceFolders: [
-                   %{uri: "file://#{root_path}", name: "my_proj"}
-                 ],
-                 rootUri: "file://#{root_path}"
+                 workspaceFolders: for(path <- root_paths, do: %{uri: "file://#{path}", name: Path.basename(path)})
                }
              })
 
-    [server: server, client: client, cwd: root_path]
+    [server: server, client: client]
   end
 
   defp uri(path) when is_binary(path) do
