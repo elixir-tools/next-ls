@@ -10,12 +10,14 @@ defmodule NextLS do
   alias GenLSP.Notifications.TextDocumentDidChange
   alias GenLSP.Notifications.TextDocumentDidOpen
   alias GenLSP.Notifications.TextDocumentDidSave
+  alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
   alias GenLSP.Requests.Shutdown
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.WorkspaceSymbol
+  alias GenLSP.Structures.DidChangeWorkspaceFoldersParams
   alias GenLSP.Structures.DidOpenTextDocumentParams
   alias GenLSP.Structures.InitializeParams
   alias GenLSP.Structures.InitializeResult
@@ -28,6 +30,7 @@ defmodule NextLS do
   alias GenLSP.Structures.TextDocumentItem
   alias GenLSP.Structures.TextDocumentSyncOptions
   alias GenLSP.Structures.TextEdit
+  alias GenLSP.Structures.WorkspaceFoldersChangeEvent
   alias NextLS.Definition
   alias NextLS.DiagnosticCache
   alias NextLS.Progress
@@ -288,7 +291,7 @@ defmodule NextLS do
       parent = self()
       working_dir = URI.parse(uri).path
 
-      {:ok, runtime} =
+      {:ok, _} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
           {NextLS.Runtime.Supervisor,
@@ -312,8 +315,6 @@ defmodule NextLS do
              logger: lsp.assigns.logger
            ]}
         )
-
-      {name, %{uri: uri, runtime: runtime}}
     end
 
     {:noreply, lsp}
@@ -377,6 +378,61 @@ defmodule NextLS do
         lsp
       ) do
     {:noreply, put_in(lsp.assigns.documents[uri], String.split(text, "\n"))}
+  end
+
+  def handle_notification(
+        %WorkspaceDidChangeWorkspaceFolders{
+          params: %DidChangeWorkspaceFoldersParams{event: %WorkspaceFoldersChangeEvent{added: added, removed: removed}}
+        },
+        lsp
+      ) do
+    dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
+      names = Enum.map(entries, fn {_, %{name: name}} -> name end)
+
+      for %{name: name, uri: uri} <- added, name not in names do
+        GenLSP.log(lsp, "[NextLS] Adding workspace folder #{name}")
+        token = token()
+        Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
+        parent = self()
+        working_dir = URI.parse(uri).path
+
+        # TODO: probably extract this to the Runtime module
+        {:ok, _} =
+          DynamicSupervisor.start_child(
+            lsp.assigns.dynamic_supervisor,
+            {NextLS.Runtime.Supervisor,
+             path: Path.join(working_dir, ".elixir-tools"),
+             name: name,
+             registry: lsp.assigns.registry,
+             runtime: [
+               task_supervisor: lsp.assigns.runtime_task_supervisor,
+               working_dir: working_dir,
+               uri: uri,
+               on_initialized: fn status ->
+                 if status == :ready do
+                   Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
+                   GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
+                   send(parent, {:runtime_ready, name, self()})
+                 else
+                   Progress.stop(lsp, token)
+                   GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
+                 end
+               end,
+               logger: lsp.assigns.logger
+             ]}
+          )
+      end
+
+      names = Enum.map(removed, & &1.name)
+
+      for {pid, %{name: name}} <- entries, name in names do
+        GenLSP.log(lsp, "[NextLS] Removing workspace folder #{name}")
+        # TODO: probably extract this to the Runtime module
+        DynamicSupervisor.terminate_child(lsp.assigns.dynamic_supervisor, pid)
+      end
+    end)
+
+    {:noreply, lsp}
   end
 
   def handle_notification(%Exit{}, lsp) do

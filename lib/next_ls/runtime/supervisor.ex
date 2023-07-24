@@ -18,6 +18,8 @@ defmodule NextLS.Runtime.Supervisor do
     symbol_table_name = :"symbol-table-#{name}"
     sidecar_name = :"sidecar-#{name}"
 
+    Registry.register(registry, :runtime_supervisors, %{name: name})
+
     children = [
       {NextLS.SymbolTable, workspace: name, path: hidden_folder, registry: registry, name: symbol_table_name},
       {NextLS.Runtime.Sidecar, name: sidecar_name, symbol_table: symbol_table_name},
