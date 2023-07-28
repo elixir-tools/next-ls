@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/elixir-tools/next-ls/compare/v0.6.0...v0.6.1) (2023-07-28)
+
+
+### Bug Fixes
+
+* correctly format files ([#128](https://github.com/elixir-tools/next-ls/issues/128)) ([3e20c00](https://github.com/elixir-tools/next-ls/commit/3e20c003daea1bdf551f0c87370f0e8a0319ae51))
+* reap symbols when file is deleted ([#127](https://github.com/elixir-tools/next-ls/issues/127)) ([9517615](https://github.com/elixir-tools/next-ls/commit/95176151bc368184b85355f3848f234859de8911))
+
 ## [0.6.0](https://github.com/elixir-tools/next-ls/compare/v0.5.5...v0.6.0) (2023-07-24)
 
 
