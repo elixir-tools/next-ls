@@ -157,14 +157,18 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
     symbols =
-      try do
-        lsp.assigns.documents[uri]
-        |> Enum.join("\n")
-        |> NextLS.DocumentSymbol.fetch()
-      rescue
-        e ->
-          GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
-          nil
+      if Path.extname(uri) in [".ex", ".exs"] do
+        try do
+          lsp.assigns.documents[uri]
+          |> Enum.join("\n")
+          |> NextLS.DocumentSymbol.fetch()
+        rescue
+          e ->
+            GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
+            nil
+        end
+      else
+        nil
       end
 
     {:reply, symbols, lsp}
@@ -219,7 +223,7 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
           with {:ok, {formatter, _}} <-
-                 Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [".formatter.exs"]}),
+                 Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
                {:ok, response} when is_binary(response) or is_list(response) <-
                  Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
             {:reply,
