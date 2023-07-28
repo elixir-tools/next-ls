@@ -129,7 +129,14 @@ defmodule :_next_ls_private_compiler do
     # --no-compile, so nothing was compiled, but the
     # task was not re-enabled it seems
     Mix.Task.rerun("deps.loadpaths")
-    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors", "--tracer", "NextLSPrivate.Tracer"])
+
+    Mix.Task.rerun("compile", [
+      "--ignore-module-conflict",
+      "--no-protocol-consolidation",
+      "--return-errors",
+      "--tracer",
+      "NextLSPrivate.Tracer"
+    ])
   rescue
     e -> {:error, e}
   end

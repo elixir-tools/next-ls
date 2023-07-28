@@ -10,6 +10,7 @@ defmodule NextLS do
   alias GenLSP.Notifications.TextDocumentDidChange
   alias GenLSP.Notifications.TextDocumentDidOpen
   alias GenLSP.Notifications.TextDocumentDidSave
+  alias GenLSP.Notifications.WorkspaceDidChangeWatchedFiles
   alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
   alias GenLSP.Requests.Shutdown
@@ -17,6 +18,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.WorkspaceSymbol
+  alias GenLSP.Structures.DidChangeWatchedFilesParams
   alias GenLSP.Structures.DidChangeWorkspaceFoldersParams
   alias GenLSP.Structures.DidOpenTextDocumentParams
   alias GenLSP.Structures.InitializeParams
@@ -283,6 +285,25 @@ defmodule NextLS do
         )
     end
 
+    nil =
+      GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
+        id: System.unique_integer([:positive]),
+        params: %GenLSP.Structures.RegistrationParams{
+          registrations: [
+            %GenLSP.Structures.Registration{
+              id: "file-watching",
+              method: "workspace/didChangeWatchedFiles",
+              register_options: %GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
+                watchers:
+                  for ext <- ~W|ex exs leex eex heex sface| do
+                    %GenLSP.Structures.FileSystemWatcher{kind: 7, glob_pattern: "**/*.#{ext}"}
+                  end
+              }
+            }
+          ]
+        }
+      })
+
     GenLSP.log(lsp, "[NextLS] Booting runtimes...")
 
     for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
@@ -431,6 +452,28 @@ defmodule NextLS do
         DynamicSupervisor.terminate_child(lsp.assigns.dynamic_supervisor, pid)
       end
     end)
+
+    {:noreply, lsp}
+  end
+
+  def handle_notification(%WorkspaceDidChangeWatchedFiles{params: %DidChangeWatchedFilesParams{changes: changes}}, lsp) do
+    type = GenLSP.Enumerations.FileChangeType.deleted()
+
+    # TODO
+    # ✅ delete from documents
+    # ✅ delete all references that occur in this file
+    # ✅ delete all symbols from that file
+    lsp =
+      for %{type: ^type, uri: uri} <- changes, reduce: lsp do
+        lsp ->
+          dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
+            for {pid, _} <- entries do
+              SymbolTable.remove(pid, uri)
+            end
+          end)
+
+          update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
+      end
 
     {:noreply, lsp}
   end

@@ -16,6 +16,8 @@ defmodule NextLS.SymbolTable do
           }
   end
 
+  @type uri :: String.t()
+
   def start_link(args) do
     GenServer.start_link(__MODULE__, Keyword.take(args, [:path, :workspace, :registry]), Keyword.take(args, [:name]))
   end
@@ -25,6 +27,9 @@ defmodule NextLS.SymbolTable do
 
   @spec put_reference(pid() | atom(), map()) :: :ok
   def put_reference(server, reference), do: GenServer.cast(server, {:put_reference, reference})
+
+  @spec remove(pid() | atom(), uri()) :: :ok
+  def remove(server, uri), do: GenServer.cast(server, {:remove, uri})
 
   @spec symbols(pid() | atom()) :: list(struct())
   def symbols(server), do: GenServer.call(server, :symbols)
@@ -167,6 +172,15 @@ defmodule NextLS.SymbolTable do
          }}
       )
     end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:remove, uri}, %{table: symbol_table, reference_table: reference_table} = state) do
+    file = URI.parse(uri).path
+
+    :dets.select_delete(symbol_table, [{{:_, %{file: :"$1"}}, [], [{:==, :"$1", file}]}])
+    :dets.select_delete(reference_table, [{{{:"$1", :_}, :_}, [], [{:==, :"$1", file}]}])
 
     {:noreply, state}
   end
