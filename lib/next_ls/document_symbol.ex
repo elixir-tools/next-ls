@@ -1,5 +1,6 @@
 defmodule NextLS.DocumentSymbol do
   @moduledoc false
+
   alias GenLSP.Structures.DocumentSymbol
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
