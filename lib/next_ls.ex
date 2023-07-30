@@ -2,6 +2,8 @@ defmodule NextLS do
   @moduledoc false
   use GenLSP
 
+  import NextLS.DB.Query
+
   alias GenLSP.Enumerations.ErrorCodes
   alias GenLSP.Enumerations.TextDocumentSyncKind
   alias GenLSP.ErrorResponse
@@ -33,11 +35,11 @@ defmodule NextLS do
   alias GenLSP.Structures.TextDocumentSyncOptions
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceFoldersChangeEvent
+  alias NextLS.DB
   alias NextLS.Definition
   alias NextLS.DiagnosticCache
   alias NextLS.Progress
   alias NextLS.Runtime
-  alias NextLS.SymbolTable
 
   def start_link(args) do
     {args, opts} =
@@ -120,21 +122,16 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     result =
-      dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
-        for {_, %{symbol_table: symbol_table, reference_table: ref_table}} <- entries do
-          case Definition.fetch(
-                 URI.parse(uri).path,
-                 {position.line + 1, position.character + 1},
-                 symbol_table,
-                 ref_table
-               ) do
+      dispatch(lsp.assigns.registry, :databases, fn entries ->
+        for {pid, _} <- entries do
+          case Definition.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid) do
             nil ->
               nil
 
             [] ->
               nil
 
-            [{file, line, column} | _] ->
+            [[_pk, _mod, file, _type, _name, line, column] | _] ->
               %Location{
                 uri: "file://#{file}",
                 range: %Range{
@@ -184,10 +181,10 @@ defmodule NextLS do
     end
 
     symbols =
-      dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
-        for {pid, _} <- entries, %SymbolTable.Symbol{} = symbol <- SymbolTable.symbols(pid), filter.(symbol.name) do
+      dispatch(lsp.assigns.registry, :databases, fn entries ->
+        for {pid, _} <- entries, symbol <- DB.symbols(pid), filter.(symbol.name) do
           name =
-            if symbol.type != :defstruct do
+            if symbol.type != "defstruct" do
               "#{symbol.type} #{symbol.name}"
             else
               "#{symbol.name}"
@@ -201,11 +198,11 @@ defmodule NextLS do
               range: %Range{
                 start: %Position{
                   line: symbol.line - 1,
-                  character: symbol.col - 1
+                  character: symbol.column - 1
                 },
                 end: %Position{
                   line: symbol.line - 1,
-                  character: symbol.col - 1
+                  character: symbol.column - 1
                 }
               }
             }
@@ -260,10 +257,6 @@ defmodule NextLS do
   end
 
   def handle_request(%Shutdown{}, lsp) do
-    dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
-      for {pid, _} <- entries, do: SymbolTable.close(pid)
-    end)
-
     {:reply, nil, assign(lsp, exit_code: 0)}
   end
 
@@ -323,6 +316,7 @@ defmodule NextLS do
            path: Path.join(working_dir, ".elixir-tools"),
            name: name,
            registry: lsp.assigns.registry,
+           logger: lsp.assigns.logger,
            runtime: [
              task_supervisor: lsp.assigns.runtime_task_supervisor,
              working_dir: working_dir,
@@ -463,16 +457,30 @@ defmodule NextLS do
   def handle_notification(%WorkspaceDidChangeWatchedFiles{params: %DidChangeWatchedFilesParams{changes: changes}}, lsp) do
     type = GenLSP.Enumerations.FileChangeType.deleted()
 
-    # TODO
-    # ✅ delete from documents
-    # ✅ delete all references that occur in this file
-    # ✅ delete all symbols from that file
     lsp =
       for %{type: ^type, uri: uri} <- changes, reduce: lsp do
         lsp ->
-          dispatch(lsp.assigns.registry, :symbol_tables, fn entries ->
+          dispatch(lsp.assigns.registry, :databases, fn entries ->
             for {pid, _} <- entries do
-              SymbolTable.remove(pid, uri)
+              file = URI.parse(uri).path
+
+              NextLS.DB.query(
+                pid,
+                ~Q"""
+                DELETE FROM symbols
+                WHERE symbols.file = ?;
+                """,
+                [file]
+              )
+
+              NextLS.DB.query(
+                pid,
+                ~Q"""
+                DELETE FROM 'references' AS refs
+                WHERE refs.file = ?;
+                """,
+                [file]
+              )
             end
           end)
 
@@ -563,10 +571,10 @@ defmodule NextLS do
     end
   end
 
-  defp elixir_kind_to_lsp_kind(:defmodule), do: GenLSP.Enumerations.SymbolKind.module()
-  defp elixir_kind_to_lsp_kind(:defstruct), do: GenLSP.Enumerations.SymbolKind.struct()
+  defp elixir_kind_to_lsp_kind("defmodule"), do: GenLSP.Enumerations.SymbolKind.module()
+  defp elixir_kind_to_lsp_kind("defstruct"), do: GenLSP.Enumerations.SymbolKind.struct()
 
-  defp elixir_kind_to_lsp_kind(kind) when kind in [:def, :defp, :defmacro, :defmacrop],
+  defp elixir_kind_to_lsp_kind(kind) when kind in ["def", "defp", "defmacro", "defmacrop"],
     do: GenLSP.Enumerations.SymbolKind.function()
 
   # NOTE: this is only possible because the registry is not partitioned

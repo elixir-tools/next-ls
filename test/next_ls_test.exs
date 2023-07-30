@@ -407,23 +407,6 @@ defmodule NextLSTest do
                  "location" => %{
                    "range" => %{
                      "start" => %{
-                       "line" => 3,
-                       "character" => 0
-                     },
-                     "end" => %{
-                       "line" => 3,
-                       "character" => 0
-                     }
-                   },
-                   "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
-                 },
-                 "name" => "def foo"
-               },
-               %{
-                 "kind" => 12,
-                 "location" => %{
-                   "range" => %{
-                     "start" => %{
                        "line" => 4,
                        "character" => 0
                      },
@@ -433,6 +416,23 @@ defmodule NextLSTest do
                      }
                    },
                    "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
+                 },
+                 "name" => "def foo"
+               },
+               %{
+                 "kind" => 12,
+                 "location" => %{
+                   "range" => %{
+                     "start" => %{
+                       "line" => 3,
+                       "character" => 0
+                     },
+                     "end" => %{
+                       "line" => 3,
+                       "character" => 0
+                     }
+                   },
+                   "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                  },
                  "name" => "def foo"
                }

@@ -35,6 +35,7 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:gen_lsp, "~> 0.5"},
+      {:esqlite, "~> 0.8.6"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
