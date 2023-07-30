@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/elixir-tools/next-ls/compare/v0.6.1...v0.6.2) (2023-07-30)
+
+
+### Bug Fixes
+
+* swap out dets for sqlite3 ([#131](https://github.com/elixir-tools/next-ls/issues/131)) ([422df17](https://github.com/elixir-tools/next-ls/commit/422df17c7512a82392cc1920976d224fb5a7bcb3))
+
 ## [0.6.1](https://github.com/elixir-tools/next-ls/compare/v0.6.0...v0.6.1) (2023-07-28)
 
 
