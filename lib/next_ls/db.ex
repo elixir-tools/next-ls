@@ -183,7 +183,7 @@ defmodule NextLS.DB do
 
   defp cast(arg) do
     cond do
-      is_atom(arg) and Macro.classify_atom(arg) == :alias ->
+      is_atom(arg) and String.starts_with?(to_string(arg), "Elixir.") ->
         Macro.to_string(arg)
 
       true ->
