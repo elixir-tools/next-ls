@@ -1,48 +1,53 @@
 defmodule NextLS.Definition do
   @moduledoc false
-  def fetch(file, {line, col}, dets_symbol_table, dets_ref_table) do
-    ref =
-      :dets.select(
-        dets_ref_table,
-        [
-          {{{:"$1", {{:"$2", :"$3"}, {:"$4", :"$5"}}}, :"$6"},
-           [
-             {:andalso,
-              {:andalso, {:andalso, {:andalso, {:==, :"$1", file}, {:"=<", :"$2", line}}, {:"=<", :"$3", col}},
-               {:"=<", line, :"$4"}}, {:"=<", col, :"$5"}}
-           ], [:"$6"]}
-        ]
+  import NextLS.DB.Query
+
+  alias NextLS.DB
+
+  def fetch(file, {line, col}, db) do
+    [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c]] =
+      DB.query(
+        db,
+        ~Q"""
+        SELECT
+            *
+        FROM
+            'references' AS refs
+        WHERE
+            refs.file = ?
+            AND refs.start_line <= ?
+            AND ? <= refs.end_line
+            AND refs.start_column <= ?
+            AND ? <= refs.end_column;
+        """,
+        [file, line, line, col, col]
       )
 
-    # :dets.traverse(dets_symbol_table, fn x -> {:continue, x} end) |> dbg
-    # :dets.traverse(dets_ref_table, fn x -> {:continue, x} end) |> dbg
-
-    # dbg(ref)
-
     query =
-      case ref do
-        [%{type: :alias} = ref] ->
-          [
-            {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
-             [
-               {:andalso, {:==, :"$1", ref.module}, {:==, :"$2", Macro.to_string(ref.module)}}
-             ], [{{:"$5", :"$3", :"$4"}}]}
-          ]
+      ~Q"""
+      SELECT
+          *
+      FROM
+          symbols
+      WHERE
+          symbols.module = ?
+          AND symbols.name = ?;
+      """
 
-        [%{type: :function} = ref] ->
-          [
-            {{:_, %{line: :"$3", name: :"$2", file: :"$5", module: :"$1", col: :"$4"}},
-             [
-               {:andalso, {:==, :"$1", ref.module}, {:==, :"$2", ref.identifier}}
-             ], [{{:"$5", :"$3", :"$4"}}]}
-          ]
+    args =
+      case type do
+        "alias" ->
+          [module, module]
+
+        "function" ->
+          [module, identifier]
 
         _ ->
           nil
       end
 
-    if query do
-      :dets.select(dets_symbol_table, query)
+    if args do
+      DB.query(db, query, args)
     else
       nil
     end

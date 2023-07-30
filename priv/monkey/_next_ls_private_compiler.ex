@@ -25,9 +25,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, module, func, arity}, env)
-      when type in [:remote_function, :remote_macro, :imported_macro] and
-             module not in [:elixir_def, :elixir_utils, Kernel, Enum] do
+  def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
     if type == :remote_macro && meta[:closing][:line] != meta[:line] do
