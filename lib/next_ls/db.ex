@@ -10,7 +10,7 @@ defmodule NextLS.DB do
     GenServer.start_link(__MODULE__, args, Keyword.take(args, [:name]))
   end
 
-  @spec query(pid(), query(), Keyword.t()) :: list()
+  @spec query(pid(), query(), list()) :: list()
   def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args})
 
   @spec symbols(pid()) :: list(map())
