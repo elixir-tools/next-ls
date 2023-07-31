@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/elixir-tools/next-ls/compare/v0.6.2...v0.6.3) (2023-07-31)
+
+
+### Bug Fixes
+
+* only fetch most recent reference for that position ([00fbfbf](https://github.com/elixir-tools/next-ls/commit/00fbfbfe9e553cec04f129024b1256030cd6651f))
+
 ## [0.6.2](https://github.com/elixir-tools/next-ls/compare/v0.6.1...v0.6.2) (2023-07-30)
 
 
