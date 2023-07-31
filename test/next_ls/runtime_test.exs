@@ -58,7 +58,7 @@ defmodule NextLs.RuntimeTest do
          uri: "file://#{cwd}",
          parent: self(),
          logger: logger,
-           db: :some_db,
+         db: :some_db,
          registry: RuntimeTest.Registry}
       )
 
@@ -84,7 +84,7 @@ defmodule NextLs.RuntimeTest do
          uri: "file://#{cwd}",
          parent: self(),
          logger: logger,
-           db: :some_db,
+         db: :some_db,
          registry: RuntimeTest.Registry}
       )
 
