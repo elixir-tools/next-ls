@@ -174,7 +174,7 @@ defmodule NextLS.DB do
   def __query__({conn, logger}, query, args) do
     args = Enum.map(args, &cast/1)
 
-    with {:error, _e} <- :esqlite3.q(conn, query, cast(args)) do
+    with {:error, _e} <- :esqlite3.q(conn, query, args) do
       error = :esqlite3.error_info(conn).errmsg
       NextLS.Logger.error(logger, error)
       {:error, error}

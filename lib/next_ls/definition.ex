@@ -18,7 +18,10 @@ defmodule NextLS.Definition do
             AND refs.start_line <= ?
             AND ? <= refs.end_line
             AND refs.start_column <= ?
-            AND ? <= refs.end_column;
+            AND ? <= refs.end_column
+        ORDER BY refs.id desc
+        LIMIT 1;
+
         """,
         [file, line, line, col, col]
       )
