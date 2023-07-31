@@ -50,8 +50,9 @@ defmodule NextLS.Runtime do
     task_supervisor = Keyword.fetch!(opts, :task_supervisor)
     registry = Keyword.fetch!(opts, :registry)
     on_initialized = Keyword.fetch!(opts, :on_initialized)
+    db = Keyword.fetch!(opts, :db)
 
-    Registry.register(registry, :runtimes, %{name: name, uri: uri})
+    Registry.register(registry, :runtimes, %{name: name, uri: uri, db: db})
 
     pid =
       cond do

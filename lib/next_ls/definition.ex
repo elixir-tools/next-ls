@@ -5,54 +5,57 @@ defmodule NextLS.Definition do
   alias NextLS.DB
 
   def fetch(file, {line, col}, db) do
-    [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c]] =
-      DB.query(
-        db,
+    with [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c]] <-
+           DB.query(
+             db,
+             ~Q"""
+             SELECT
+                 *
+             FROM
+                 'references' AS refs
+             WHERE
+                 refs.file = ?
+                 AND refs.start_line <= ?
+                 AND ? <= refs.end_line
+                 AND refs.start_column <= ?
+                 AND ? <= refs.end_column
+             ORDER BY refs.id desc
+             LIMIT 1;
+
+             """,
+             [file, line, line, col, col]
+           ) do
+      query =
         ~Q"""
         SELECT
             *
         FROM
-            'references' AS refs
+            symbols
         WHERE
-            refs.file = ?
-            AND refs.start_line <= ?
-            AND ? <= refs.end_line
-            AND refs.start_column <= ?
-            AND ? <= refs.end_column
-        ORDER BY refs.id desc
-        LIMIT 1;
+            symbols.module = ?
+            AND symbols.name = ?;
+        """
 
-        """,
-        [file, line, line, col, col]
-      )
+      args =
+        case type do
+          "alias" ->
+            [module, module]
 
-    query =
-      ~Q"""
-      SELECT
-          *
-      FROM
-          symbols
-      WHERE
-          symbols.module = ?
-          AND symbols.name = ?;
-      """
+          "function" ->
+            [module, identifier]
 
-    args =
-      case type do
-        "alias" ->
-          [module, module]
+          _ ->
+            nil
+        end
 
-        "function" ->
-          [module, identifier]
-
-        _ ->
-          nil
+      if args do
+        DB.query(db, query, args)
+      else
+        nil
       end
-
-    if args do
-      DB.query(db, query, args)
     else
-      nil
+      _ ->
+        nil
     end
   end
 end

@@ -25,7 +25,7 @@ defmodule NextLS.Runtime.Supervisor do
     children = [
       {NextLS.DB, logger: logger, file: ~c"#{hidden_folder}/nextls.db", registry: registry, name: db_name},
       {NextLS.Runtime.Sidecar, name: sidecar_name, db: db_name, symbol_table: symbol_table_name},
-      {NextLS.Runtime, init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name]}
+      {NextLS.Runtime, init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, db: db_name]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
