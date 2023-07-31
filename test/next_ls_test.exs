@@ -15,7 +15,7 @@ defmodule NextLSTest do
     end
 
     setup %{tmp_dir: tmp_dir} do
-      File.write!(Path.join(tmp_dir, "my_proj/lib/bar.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/bar.ex"), ~E"""
       defmodule Bar do
         defstruct [:foo]
 
@@ -24,7 +24,7 @@ defmodule NextLSTest do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "my_proj/lib/code_action.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/code_action.ex"), ~E"""
       defmodule Foo.CodeAction do
         # some comment
 
@@ -36,12 +36,12 @@ defmodule NextLSTest do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "my_proj/lib/foo.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/foo.ex"), ~E"""
       defmodule Foo do
       end
       """)
 
-      File.write!(Path.join(tmp_dir, "my_proj/lib/project.ex"), """
+      File.write!(Path.join(tmp_dir, "my_proj/lib/project.ex"), ~E"""
       defmodule Project do
         def hello do
           :world
@@ -175,7 +175,7 @@ defmodule NextLSTest do
         }
       }
 
-      new_text = """
+      new_text = ~E"""
       defmodule Foo.Bar do
         def run() do
           :ok

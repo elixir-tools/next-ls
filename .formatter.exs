@@ -9,7 +9,7 @@
   ],
   line_length: 120,
   import_deps: [:gen_lsp],
-  plugins: [Styler],
+  plugins: [NextLS.Test.Format, Styler],
   inputs: [
     ".formatter.exs",
     "{config,lib,}/**/*.{ex,exs}",

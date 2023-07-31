@@ -4,6 +4,10 @@ defmodule NextLS.Support.Utils do
   import ExUnit.Callbacks
   import GenLSP.Test
 
+  defmacro sigil_E({:<<>>, _, [bin]}, _) do
+    bin
+  end
+
   def mix_exs do
     """
     defmodule Project.MixProject do
