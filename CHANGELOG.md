@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/elixir-tools/next-ls/compare/v0.6.3...v0.6.4) (2023-07-31)
+
+
+### Bug Fixes
+
+* clear out references when saving a file ([#134](https://github.com/elixir-tools/next-ls/issues/134)) ([d0e0340](https://github.com/elixir-tools/next-ls/commit/d0e0340f0ccd88ec0ecd20f005748ef7f11cb586))
+
 ## [0.6.3](https://github.com/elixir-tools/next-ls/compare/v0.6.2...v0.6.3) (2023-07-31)
 
 
