@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/elixir-tools/next-ls/compare/v0.6.4...v0.6.5) (2023-08-01)
+
+
+### Bug Fixes
+
+* use first reference with go to definition ([#137](https://github.com/elixir-tools/next-ls/issues/137)) ([e3ed704](https://github.com/elixir-tools/next-ls/commit/e3ed704525ab78f3feba0d5d38ce832c952e2c77))
+
 ## [0.6.4](https://github.com/elixir-tools/next-ls/compare/v0.6.3...v0.6.4) (2023-07-31)
 
 
