@@ -145,23 +145,6 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      DELETE FROM 'references' AS refs
-      WHERE refs.file = ?
-          AND (? <= refs.start_line
-              AND refs.start_line <= ?
-              AND ? <= refs.start_column
-              AND refs.start_column <= ?)
-          OR (? <= refs.end_line
-              AND refs.end_line <= ?
-              AND ? <= refs.end_column
-              AND refs.end_column <= ?);
-      """,
-      [file, start_line, end_line, start_column, end_column, start_line, end_line, start_column, end_column]
-    )
-
-    __query__(
-      {conn, s.logger},
-      ~Q"""
       INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
       """,
