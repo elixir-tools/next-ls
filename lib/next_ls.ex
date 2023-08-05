@@ -173,6 +173,10 @@ defmodule NextLS do
     {:reply, symbols, lsp}
   end
 
+  # TODO extract to a separate module
+  # TODO make this work for modules and structs
+  # TODO how to handle aliases?
+  # TODO can we do this in a single DB query?
   def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}} = request, lsp) do
     import NextLS.DB.Query
 
