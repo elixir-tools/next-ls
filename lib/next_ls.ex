@@ -177,49 +177,113 @@ defmodule NextLS do
   # TODO make this work for modules and structs
   # TODO how to handle aliases?
   # TODO can we do this in a single DB query?
-  def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}} = request, lsp) do
+  def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
     import NextLS.DB.Query
 
     file = URI.parse(uri).path
     line = position.line + 1
     col = position.character + 1
 
-    result =
+    locations =
       dispatch(lsp.assigns.registry, :databases, fn databases ->
         for {database_pid, _} <- databases do
-          query = ~Q"""
+          reference_query = ~Q"""
           SELECT identifier, arity, type, module
-          FROM "references" as refs
+          FROM "references" refs
           WHERE refs.file = ?
             AND refs.start_line <= ? AND refs.end_line >= ?
             AND refs.start_column <= ? AND refs.end_column >= ?
           ORDER BY refs.id ASC
-          LIMIT 1;
+          LIMIT 1
           """
 
-          [[identifier, arity, type, module]] = DB.query(database_pid, query, [file, line, line, col, col])
+          symbol_query =
+            ~Q"""
+            SELECT module, type, name
+            FROM "symbols" sym
+            WHERE sym.file = ?
+              AND sym.line = ?
+            ORDER BY sym.id ASC
+            LIMIT 1
+            """
 
-          query = ~Q"""
-          SELECT file, start_line, end_line, start_column, end_column
-          FROM "references" as refs
-          WHERE refs.identifier = ?
-            AND refs.arity = ?
-            AND refs.type = ?
-            AND refs.module = ?
-          """
+          references =
+            case DB.query(database_pid, reference_query, [file, line, line, col, col]) do
+              # Function definition
+              [["store_definition", 3, "function", "elixir_def"]] ->
+                [[module, "def", function]] = DB.query(database_pid, symbol_query, [file, line])
 
-          for [file, start_line, end_line, start_col, end_col] <-
-                DB.query(database_pid, query, [identifier, arity, type, module]) do
+                DB.query(
+                  database_pid,
+                  ~Q"""
+                  SELECT file, start_line, end_line, start_column, end_column
+                  FROM "references" as refs
+                  WHERE refs.identifier = ?
+                    AND refs.type = ?
+                    AND refs.module = ?
+                  """,
+                  [function, "function", module]
+                )
+
+              # Function reference
+              [[function, arity, "function", module]] ->
+                DB.query(
+                  database_pid,
+                  ~Q"""
+                  SELECT file, start_line, end_line, start_column, end_column
+                  FROM "references" as refs
+                  WHERE refs.identifier = ?
+                    AND refs.arity = ?
+                    AND refs.type = ?
+                    AND refs.module = ?
+                  """,
+                  [function, arity, "function", module]
+                )
+
+              # Module reference
+              [[_alias, _, "alias", module]] ->
+                DB.query(
+                  database_pid,
+                  ~Q"""
+                  SELECT file, start_line, end_line, start_column, end_column
+                  FROM "references" as refs
+                  WHERE refs.module = ?
+                    and refs.type = ?
+                  """,
+                  [module, "alias"]
+                )
+
+              [] ->
+                case DB.query(database_pid, symbol_query, [file, line]) do
+                  # Module definition
+                  [[module, "defmodule", _]] ->
+                    DB.query(
+                      database_pid,
+                      ~Q"""
+                      SELECT file, start_line, end_line, start_column, end_column
+                      FROM "references" as refs
+                      WHERE refs.module = ?
+                        and refs.type = ?
+                      """,
+                      [module, "alias"]
+                    )
+
+                  _unknown ->
+                    []
+                end
+            end
+
+          for [file, start_line, end_line, start_column, end_column] <- references do
             %Location{
               uri: "file://#{file}",
               range: %Range{
                 start: %Position{
                   line: start_line - 1,
-                  character: start_col - 1
+                  character: start_column - 1
                 },
                 end: %Position{
                   line: end_line - 1,
-                  character: end_col - 1
+                  character: end_column - 1
                 }
               }
             }
@@ -227,10 +291,7 @@ defmodule NextLS do
         end
       end)
 
-    dbg(request)
-    dbg(result)
-
-    {:reply, List.flatten(result), lsp}
+    {:reply, List.flatten(locations), lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
