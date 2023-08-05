@@ -19,6 +19,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
+  alias GenLSP.Requests.TextDocumentReferences
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.DidChangeWatchedFilesParams
   alias GenLSP.Structures.DidChangeWorkspaceFoldersParams
@@ -108,6 +109,7 @@ defmodule NextLS do
          document_formatting_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
+         references_provider: true,
          definition_provider: true,
          workspace: %{
            workspace_folders: %GenLSP.Structures.WorkspaceFoldersServerCapabilities{
@@ -169,6 +171,62 @@ defmodule NextLS do
       end
 
     {:reply, symbols, lsp}
+  end
+
+  def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}} = request, lsp) do
+    import NextLS.DB.Query
+
+    file = URI.parse(uri).path
+    line = position.line + 1
+    col = position.character + 1
+
+    result =
+      dispatch(lsp.assigns.registry, :databases, fn databases ->
+        for {database_pid, _} <- databases do
+          query = ~Q"""
+          SELECT identifier, arity, type, module
+          FROM "references" as refs
+          WHERE refs.file = ?
+            AND refs.start_line <= ? AND refs.end_line >= ?
+            AND refs.start_column <= ? AND refs.end_column >= ?
+          ORDER BY refs.id ASC
+          LIMIT 1;
+          """
+
+          [[identifier, arity, type, module]] = DB.query(database_pid, query, [file, line, line, col, col])
+
+          query = ~Q"""
+          SELECT file, start_line, end_line, start_column, end_column
+          FROM "references" as refs
+          WHERE refs.identifier = ?
+            AND refs.arity = ?
+            AND refs.type = ?
+            AND refs.module = ?
+          """
+
+          for [file, start_line, end_line, start_col, end_col] <-
+                DB.query(database_pid, query, [identifier, arity, type, module]) do
+            %Location{
+              uri: "file://#{file}",
+              range: %Range{
+                start: %Position{
+                  line: start_line - 1,
+                  character: start_col - 1
+                },
+                end: %Position{
+                  line: end_line - 1,
+                  character: end_col - 1
+                }
+              }
+            }
+          end
+        end
+      end)
+
+    dbg(request)
+    dbg(result)
+
+    {:reply, List.flatten(result), lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
