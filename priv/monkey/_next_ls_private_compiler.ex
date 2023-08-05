@@ -62,6 +62,26 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
+  def trace({:alias, meta, alias, as, _opts} = term, env) do
+    parent = parent_pid()
+
+    Process.send(
+      parent,
+      {{:tracer, :reference, :alias},
+       %{
+         meta: meta,
+         identifier: as,
+         file: env.file,
+         type: :alias,
+         module: alias,
+         source: @source
+       }},
+      []
+    )
+
+    :ok
+  end
+
   def trace({:alias_reference, meta, module}, env) do
     parent = parent_pid()
 
@@ -105,7 +125,8 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
+  def trace({type, meta, module, func, arity} = it, env)
+      when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
     if type == :remote_macro && meta[:closing][:line] != meta[:line] do
@@ -183,6 +204,12 @@ defmodule NextLSPrivate.Tracer do
 
     :ok
   end
+
+  # def trace(it, env) do
+  #   parent = parent_pid()
+  #   Process.send(parent, {{:tracer, :dbg}, {it, env.aliases}}, [])
+  #   :ok
+  # end
 
   def trace(_event, _env) do
     :ok
