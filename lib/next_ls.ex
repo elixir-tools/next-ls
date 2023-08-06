@@ -173,48 +173,19 @@ defmodule NextLS do
     {:reply, symbols, lsp}
   end
 
-  # TODO extract to a separate module
-  # TODO make this work for modules and structs
-  # TODO how to handle aliases?
-  # TODO can we do this in a single DB query?
   def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
-    import NextLS.DB.Query
-
     file = URI.parse(uri).path
     line = position.line + 1
     col = position.character + 1
 
     locations =
       dispatch(lsp.assigns.registry, :databases, fn databases ->
-        for {database_pid, _} <- databases do
-          reference_query = ~Q"""
-          SELECT identifier, arity, type, module
-          FROM "references" refs
-          WHERE refs.file = ?
-            AND refs.start_line <= ? AND refs.end_line >= ?
-            AND refs.start_column <= ? AND refs.end_column >= ?
-          ORDER BY refs.id ASC
-          LIMIT 1
-          """
-
-          symbol_query =
-            ~Q"""
-            SELECT module, type, name
-            FROM "symbols" sym
-            WHERE sym.file = ?
-              AND sym.line = ?
-            ORDER BY sym.id ASC
-            LIMIT 1
-            """
-
+        for {database, _} <- databases do
           references =
-            case DB.query(database_pid, reference_query, [file, line, line, col, col]) do
-              # Function definition
-              [["store_definition", 3, "function", "elixir_def"]] ->
-                [[module, "def", function]] = DB.query(database_pid, symbol_query, [file, line])
-
+            case symbol_info(file, line, col, database) do
+              {:function, module, function} ->
                 DB.query(
-                  database_pid,
+                  database,
                   ~Q"""
                   SELECT file, start_line, end_line, start_column, end_column
                   FROM "references" as refs
@@ -225,25 +196,9 @@ defmodule NextLS do
                   [function, "function", module]
                 )
 
-              # Function reference
-              [[function, arity, "function", module]] ->
+              {:module, module} ->
                 DB.query(
-                  database_pid,
-                  ~Q"""
-                  SELECT file, start_line, end_line, start_column, end_column
-                  FROM "references" as refs
-                  WHERE refs.identifier = ?
-                    AND refs.arity = ?
-                    AND refs.type = ?
-                    AND refs.module = ?
-                  """,
-                  [function, arity, "function", module]
-                )
-
-              # Module reference
-              [[_alias, _, "alias", module]] ->
-                DB.query(
-                  database_pid,
+                  database,
                   ~Q"""
                   SELECT file, start_line, end_line, start_column, end_column
                   FROM "references" as refs
@@ -253,38 +208,16 @@ defmodule NextLS do
                   [module, "alias"]
                 )
 
-              [] ->
-                case DB.query(database_pid, symbol_query, [file, line]) do
-                  # Module definition
-                  [[module, "defmodule", _]] ->
-                    DB.query(
-                      database_pid,
-                      ~Q"""
-                      SELECT file, start_line, end_line, start_column, end_column
-                      FROM "references" as refs
-                      WHERE refs.module = ?
-                        and refs.type = ?
-                      """,
-                      [module, "alias"]
-                    )
-
-                  _unknown ->
-                    []
-                end
+              :unknown ->
+                []
             end
 
           for [file, start_line, end_line, start_column, end_column] <- references do
             %Location{
               uri: "file://#{file}",
               range: %Range{
-                start: %Position{
-                  line: start_line - 1,
-                  character: start_column - 1
-                },
-                end: %Position{
-                  line: end_line - 1,
-                  character: end_column - 1
-                }
+                start: %Position{line: start_line - 1, character: start_column - 1},
+                end: %Position{line: end_line - 1, character: end_column - 1}
               }
             }
           end
@@ -724,6 +657,54 @@ defmodule NextLS do
 
     receive do
       {^ref, result} -> result
+    end
+  end
+
+  defp symbol_info(file, line, col, database) do
+    definition_query =
+      ~Q"""
+      SELECT module, type, name
+      FROM "symbols" sym
+      WHERE sym.file = ?
+        AND sym.line = ?
+      ORDER BY sym.id ASC
+      LIMIT 1
+      """
+
+    reference_query = ~Q"""
+    SELECT identifier, type, module
+    FROM "references" refs
+    WHERE refs.file = ?
+      AND refs.start_line <= ? AND refs.end_line >= ?
+      AND refs.start_column <= ? AND refs.end_column >= ?
+    ORDER BY refs.id ASC
+    LIMIT 1
+    """
+
+    case DB.query(database, definition_query, [file, line]) do
+      [[module, "defmodule", _]] ->
+        {:module, module}
+
+      [[module, "defstruct", _]] ->
+        {:module, module}
+
+      [[module, "def", function]] ->
+        {:function, module, function}
+
+      [[module, "defp", function]] ->
+        {:function, module, function}
+
+      _unknown_definition ->
+        case DB.query(database, reference_query, [file, line, line, col, col]) do
+          [[function, "function", module]] ->
+            {:function, module, function}
+
+          [[_alias, "alias", module]] ->
+            {:module, module}
+
+          _unknown_reference ->
+            :unknown
+        end
     end
   end
 end
