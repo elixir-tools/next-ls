@@ -694,6 +694,9 @@ defmodule NextLS do
       [[module, "defp", function]] ->
         {:function, module, function}
 
+      [[module, "defmacro", function]] ->
+        {:function, module, function}
+
       _unknown_definition ->
         case DB.query(database, reference_query, [file, line, line, col, col]) do
           [[function, "function", module]] ->
