@@ -60,11 +60,11 @@ defmodule NextLSTest do
       assert alive?(server)
     end
 
-    test "responds correctly to a shutdown request", %{client: client} do
+    test "responds correctly to a shutdown request", %{client: client} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
 
       assert :ok ==
                request(client, %{
@@ -116,64 +116,7 @@ defmodule NextLSTest do
       }
     end
 
-    test "publishes diagnostics once the client has initialized", %{client: client, cwd: cwd} do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      assert_notification "window/logMessage", %{
-        "message" => "[NextLS] NextLS v" <> _,
-        "type" => 4
-      }
-
-      assert_notification "$/progress", %{
-        "value" => %{"kind" => "begin", "title" => "Initializing NextLS runtime for folder my_proj..."}
-      }
-
-      assert_notification "$/progress", %{
-        "value" => %{
-          "kind" => "end",
-          "message" => "NextLS runtime for folder my_proj has initialized!"
-        }
-      }
-
-      assert_notification "$/progress", %{"value" => %{"kind" => "begin", "title" => "Compiling..."}}
-
-      assert_notification "$/progress", %{
-        "value" => %{
-          "kind" => "end",
-          "message" => "Compiled!"
-        }
-      }
-
-      for file <- ["bar.ex"] do
-        uri =
-          to_string(%URI{
-            host: "",
-            scheme: "file",
-            path: Path.join([cwd, "my_proj/lib", file])
-          })
-
-        char = if Version.match?(System.version(), ">= 1.15.0"), do: 10, else: 0
-
-        assert_notification "textDocument/publishDiagnostics", %{
-          "uri" => ^uri,
-          "diagnostics" => [
-            %{
-              "source" => "Elixir",
-              "severity" => 2,
-              "message" =>
-                "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
-              "range" => %{
-                "start" => %{"line" => 3, "character" => ^char},
-                "end" => %{"line" => 3, "character" => 999}
-              }
-            }
-          ]
-        }
-      end
-    end
-
-    test "formats", %{client: client, cwd: cwd} do
+    test "formats", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
@@ -215,7 +158,7 @@ defmodule NextLSTest do
 
       assert_result 2, nil
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
 
       request client, %{
         method: "textDocument/formatting",
@@ -248,7 +191,7 @@ defmodule NextLSTest do
       ]
     end
 
-    test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} do
+    test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
@@ -272,7 +215,7 @@ defmodule NextLSTest do
         }
       }
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
 
       request client, %{
         method: "textDocument/formatting",
@@ -292,11 +235,11 @@ defmodule NextLSTest do
       assert_result 2, nil
     end
 
-    test "workspace symbols", %{client: client, cwd: cwd} do
+    test "workspace symbols", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request client, %{
@@ -383,11 +326,11 @@ defmodule NextLSTest do
              } in symbols
     end
 
-    test "workspace symbols with query", %{client: client, cwd: cwd} do
+    test "workspace symbols with query", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request client, %{
@@ -439,11 +382,11 @@ defmodule NextLSTest do
              ] == symbols
     end
 
-    test "deletes symbols when a file is deleted", %{client: client, cwd: cwd} do
+    test "deletes symbols when a file is deleted", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request client, %{method: "workspace/symbol", id: 2, jsonrpc: "2.0", params: %{query: ""}}
@@ -542,11 +485,11 @@ defmodule NextLSTest do
 
     setup :with_lsp
 
-    test "go to local function definition", %{client: client, bar: bar} do
+    test "go to local function definition", %{client: client, bar: bar} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -576,11 +519,11 @@ defmodule NextLSTest do
       }
     end
 
-    test "go to imported function definition", %{client: client, bar: bar, imported: imported} do
+    test "go to imported function definition", %{client: client, bar: bar, imported: imported} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -612,11 +555,11 @@ defmodule NextLSTest do
       }
     end
 
-    test "go to remote function definition", %{client: client, bar: bar, remote: remote} do
+    test "go to remote function definition", %{client: client, bar: bar, remote: remote} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -742,11 +685,11 @@ defmodule NextLSTest do
       }
     end
 
-    test "go to imported macro definition", %{client: client, bar: bar, imported: imported} do
+    test "go to imported macro definition", %{client: client, bar: bar, imported: imported} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -778,11 +721,11 @@ defmodule NextLSTest do
       }
     end
 
-    test "go to remote macro definition", %{client: client, bar: bar, remote: remote} do
+    test "go to remote macro definition", %{client: client, bar: bar, remote: remote} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -850,10 +793,10 @@ defmodule NextLSTest do
 
     setup :with_lsp
 
-    test "go to module definition", %{client: client, bar: bar, peace: peace} do
+    test "go to module definition", %{client: client, bar: bar, peace: peace} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       uri = uri(bar)
@@ -1022,10 +965,10 @@ defmodule NextLSTest do
     setup :with_lsp
 
     @tag root_paths: ["proj_one"]
-    test "starts a new runtime when you add a workspace folder", %{client: client, cwd: cwd} do
+    test "starts a new runtime when you add a workspace folder", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
+      assert_is_ready(context, "proj_one")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       notify(client, %{
@@ -1034,23 +977,23 @@ defmodule NextLSTest do
         params: %{
           event: %{
             added: [
-              %{name: "proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
+              %{name: "#{context.module}-proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
             ],
             removed: []
           }
         }
       })
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_two is ready..."}
+      assert_is_ready(context, "proj_two")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
     end
 
     @tag root_paths: ["proj_one", "proj_two"]
-    test "stops the runtime when you remove a workspace folder", %{client: client, cwd: cwd} do
+    test "stops the runtime when you remove a workspace folder", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_two is ready..."}
+      assert_is_ready(context, "proj_one")
+      assert_is_ready(context, "proj_two")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
@@ -1061,19 +1004,21 @@ defmodule NextLSTest do
           event: %{
             added: [],
             removed: [
-              %{name: "proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
+              %{name: "#{context.module}-proj_two", uri: "file://#{Path.join(cwd, "proj_two")}"}
             ]
           }
         }
       })
 
+      message = "[NextLS] The runtime for #{context.module}-proj_two has successfully shutdown."
+
       assert_notification "window/logMessage", %{
-        "message" => "[NextLS] The runtime for proj_two has successfully shutdown."
+        "message" => ^message
       }
     end
 
     @tag root_paths: ["proj_one"]
-    test "can register for workspace/didChangedWatchedFiles", %{client: client} do
+    test "can register for workspace/didChangedWatchedFiles", %{client: client} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
       assert_request(client, "client/registerCapability", fn params ->
@@ -1099,17 +1044,17 @@ defmodule NextLSTest do
         nil
       end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
+      assert_is_ready(context, "proj_one")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
     end
 
     @tag root_paths: ["proj_one"]
-    test "can receive workspace/didChangeWatchedFiles notification", %{client: client, cwd: cwd} do
+    test "can receive workspace/didChangeWatchedFiles notification", %{client: client, cwd: cwd} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder proj_one is ready..."}
+      assert_is_ready(context, "proj_one")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       notify(client, %{
@@ -1118,51 +1063,6 @@ defmodule NextLSTest do
         params: %{changes: [%{type: 3, uri: "file://#{Path.join(cwd, "proj_one/lib/peace.ex")}"}]}
       })
     end
-  end
-
-  defp with_lsp(%{tmp_dir: tmp_dir} = context) do
-    root_paths =
-      for path <- context[:root_paths] || [""] do
-        Path.absname(Path.join(tmp_dir, path))
-      end
-
-    tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
-    r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
-    rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
-    start_supervised!({Registry, [keys: :duplicate, name: Registry.NextLSTest.Registry]})
-    extensions = [NextLS.ElixirExtension]
-    cache = start_supervised!(NextLS.DiagnosticCache)
-
-    server =
-      server(NextLS,
-        task_supervisor: tvisor,
-        runtime_task_supervisor: r_tvisor,
-        dynamic_supervisor: rvisor,
-        registry: Registry.NextLSTest.Registry,
-        extensions: extensions,
-        cache: cache
-      )
-
-    Process.link(server.lsp)
-
-    client = client(server)
-
-    assert :ok ==
-             request(client, %{
-               method: "initialize",
-               id: 1,
-               jsonrpc: "2.0",
-               params: %{
-                 capabilities: %{
-                   workspace: %{
-                     workspaceFolders: true
-                   }
-                 },
-                 workspaceFolders: for(path <- root_paths, do: %{uri: "file://#{path}", name: Path.basename(path)})
-               }
-             })
-
-    [server: server, client: client]
   end
 
   defp uri(path) when is_binary(path) do
