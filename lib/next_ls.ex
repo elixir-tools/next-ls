@@ -173,6 +173,8 @@ defmodule NextLS do
     {:reply, symbols, lsp}
   end
 
+  # TODO handle `context: %{includeDeclaration: true}` to include the current symbol definition among
+  # the results.
   def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
     file = URI.parse(uri).path
     line = position.line + 1
