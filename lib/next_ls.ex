@@ -182,7 +182,7 @@ defmodule NextLS do
 
     locations =
       dispatch(lsp.assigns.registry, :databases, fn databases ->
-        for {database, _} <- databases do
+        Enum.flat_map(databases, fn {database, _} ->
           references =
             case symbol_info(file, line, col, database) do
               {:function, module, function} ->
@@ -223,10 +223,10 @@ defmodule NextLS do
               }
             }
           end
-        end
+        end)
       end)
 
-    {:reply, List.flatten(locations), lsp}
+    {:reply, locations, lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
