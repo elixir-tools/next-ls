@@ -951,8 +951,7 @@ defmodule NextLSTest do
                           "end" => %{"line" => 3, "character" => 18}
                         }
                       }
-                    ],
-                    500
+                    ]
     end
 
     test "list module references", %{client: client, bar: bar, peace: peace} do
@@ -983,8 +982,7 @@ defmodule NextLSTest do
                           "end" => %{"line" => 3, "character" => 9}
                         }
                       }
-                    ],
-                    500
+                    ]
     end
   end
 
