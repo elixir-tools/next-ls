@@ -1,5 +1,101 @@
 # Changelog
 
+## [0.7.1](https://github.com/elixir-tools/next-ls/compare/v0.7.0...v0.7.1) (2023-08-08)
+
+
+### Bug Fixes
+
+* revert 0.7 ([#142](https://github.com/elixir-tools/next-ls/issues/142)) ([5a1713c](https://github.com/elixir-tools/next-ls/commit/5a1713c5820c0770464da0e7a75f193280fd55cb))
+
+## [0.7.0](https://github.com/elixir-tools/next-ls/compare/v0.6.5...v0.7.0) (2023-08-08)
+
+
+### Features
+
+* find references ([#139](https://github.com/elixir-tools/next-ls/issues/139)) ([5a3b530](https://github.com/elixir-tools/next-ls/commit/5a3b530a7d283014f8fadcaf0feb0765dac68a1c)), closes [#43](https://github.com/elixir-tools/next-ls/issues/43)
+
+
+### Bug Fixes
+
+* **references:** clamp line and column numbers ([55ead79](https://github.com/elixir-tools/next-ls/commit/55ead79adbfdf62c8e59b8163beeb5c324c56126)), closes [#141](https://github.com/elixir-tools/next-ls/issues/141)
+* **references:** ignore references to elixir source code ([6ff4c17](https://github.com/elixir-tools/next-ls/commit/6ff4c17d631ad37be4903297873ca6ee7a70a38d))
+
+## [0.6.5](https://github.com/elixir-tools/next-ls/compare/v0.6.4...v0.6.5) (2023-08-01)
+
+
+### Bug Fixes
+
+* use first reference with go to definition ([#137](https://github.com/elixir-tools/next-ls/issues/137)) ([e3ed704](https://github.com/elixir-tools/next-ls/commit/e3ed704525ab78f3feba0d5d38ce832c952e2c77))
+
+## [0.6.4](https://github.com/elixir-tools/next-ls/compare/v0.6.3...v0.6.4) (2023-07-31)
+
+
+### Bug Fixes
+
+* clear out references when saving a file ([#134](https://github.com/elixir-tools/next-ls/issues/134)) ([d0e0340](https://github.com/elixir-tools/next-ls/commit/d0e0340f0ccd88ec0ecd20f005748ef7f11cb586))
+
+## [0.6.3](https://github.com/elixir-tools/next-ls/compare/v0.6.2...v0.6.3) (2023-07-31)
+
+
+### Bug Fixes
+
+* only fetch most recent reference for that position ([00fbfbf](https://github.com/elixir-tools/next-ls/commit/00fbfbfe9e553cec04f129024b1256030cd6651f))
+
+## [0.6.2](https://github.com/elixir-tools/next-ls/compare/v0.6.1...v0.6.2) (2023-07-30)
+
+
+### Bug Fixes
+
+* swap out dets for sqlite3 ([#131](https://github.com/elixir-tools/next-ls/issues/131)) ([422df17](https://github.com/elixir-tools/next-ls/commit/422df17c7512a82392cc1920976d224fb5a7bcb3))
+
+## [0.6.1](https://github.com/elixir-tools/next-ls/compare/v0.6.0...v0.6.1) (2023-07-28)
+
+
+### Bug Fixes
+
+* correctly format files ([#128](https://github.com/elixir-tools/next-ls/issues/128)) ([3e20c00](https://github.com/elixir-tools/next-ls/commit/3e20c003daea1bdf551f0c87370f0e8a0319ae51))
+* reap symbols when file is deleted ([#127](https://github.com/elixir-tools/next-ls/issues/127)) ([9517615](https://github.com/elixir-tools/next-ls/commit/95176151bc368184b85355f3848f234859de8911))
+
+## [0.6.0](https://github.com/elixir-tools/next-ls/compare/v0.5.5...v0.6.0) (2023-07-24)
+
+
+### Features
+
+* adding/removing workspace folders ([#126](https://github.com/elixir-tools/next-ls/issues/126)) ([d26e29c](https://github.com/elixir-tools/next-ls/commit/d26e29c733ed040c7b7bc941956aa1ffef35726b))
+* workspace folders on startup ([#117](https://github.com/elixir-tools/next-ls/issues/117)) ([6b5ffaf](https://github.com/elixir-tools/next-ls/commit/6b5ffafda9c754f59548760384387dbe66cf8e3b))
+
+
+### Bug Fixes
+
+* clamp diagnostic line number to 0 ([#116](https://github.com/elixir-tools/next-ls/issues/116)) ([e2194c5](https://github.com/elixir-tools/next-ls/commit/e2194c5d78eb042b537f4c0df6f74d9cfa2d6017))
+* create the symbol table in the workspace path ([#125](https://github.com/elixir-tools/next-ls/issues/125)) ([1103d01](https://github.com/elixir-tools/next-ls/commit/1103d0105faeb60c9b8d90a95aa49f795c44d505))
+* start runtime under a supervisor ([#124](https://github.com/elixir-tools/next-ls/issues/124)) ([df331dc](https://github.com/elixir-tools/next-ls/commit/df331dcd3ceca943a513529481bc0acf75cd4acb))
+* use registry for runtime messaging ([#121](https://github.com/elixir-tools/next-ls/issues/121)) ([639493c](https://github.com/elixir-tools/next-ls/commit/639493c173f2b8f3cdc21ea81fb48290688d40b7))
+
+## [0.5.5](https://github.com/elixir-tools/next-ls/compare/v0.5.4...v0.5.5) (2023-07-20)
+
+
+### Bug Fixes
+
+* add .gitignore file to .elixir-tools directory ([#113](https://github.com/elixir-tools/next-ls/issues/113)) ([24d9915](https://github.com/elixir-tools/next-ls/commit/24d99158cd616b3d9426e2d21ecfcfcb9d90ec8b))
+
+## [0.5.4](https://github.com/elixir-tools/next-ls/compare/v0.5.3...v0.5.4) (2023-07-13)
+
+
+### Bug Fixes
+
+* typo ([2623172](https://github.com/elixir-tools/next-ls/commit/26231720c5d542ce3c21662617d3f1f6d23c7e38))
+
+## [0.5.3](https://github.com/elixir-tools/next-ls/compare/v0.5.2...v0.5.3) (2023-07-12)
+
+
+### Bug Fixes
+
+* add `:crypto` to extra_applications ([480aa01](https://github.com/elixir-tools/next-ls/commit/480aa01d9498c1370dce5d2ed3a3a1c14d7f2a63)), closes [#100](https://github.com/elixir-tools/next-ls/issues/100)
+* better error message when passing invalid flags ([#107](https://github.com/elixir-tools/next-ls/issues/107)) ([5e2f55f](https://github.com/elixir-tools/next-ls/commit/5e2f55f56c7278c1bb37a9e96056190b92fa2bfc)), closes [#103](https://github.com/elixir-tools/next-ls/issues/103)
+* properly decode requests with `none` parameters ([#106](https://github.com/elixir-tools/next-ls/issues/106)) ([b8ccf12](https://github.com/elixir-tools/next-ls/commit/b8ccf12aba542b3494cc5fc3010c678617c29a84))
+* use loadpaths instead of run ([#108](https://github.com/elixir-tools/next-ls/issues/108)) ([97a8fe5](https://github.com/elixir-tools/next-ls/commit/97a8fe5377a4382513a9e60e2ed4da6ac847834a))
+
 ## [0.5.2](https://github.com/elixir-tools/next-ls/compare/v0.5.1...v0.5.2) (2023-07-07)
 
 

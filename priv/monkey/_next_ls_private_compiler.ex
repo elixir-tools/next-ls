@@ -1,4 +1,5 @@
 defmodule NextLSPrivate.Tracer do
+  @moduledoc false
   def trace(:start, _env) do
     :ok
   end
@@ -24,9 +25,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, module, func, arity}, env)
-      when type in [:remote_function, :remote_macro, :imported_macro] and
-             module not in [:elixir_def, :elixir_utils, Kernel, Enum] do
+  def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
     if type == :remote_macro && meta[:closing][:line] != meta[:line] do
@@ -106,7 +105,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  defp parent_pid() do
+  defp parent_pid do
     "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
   end
 end
@@ -114,7 +113,7 @@ end
 defmodule :_next_ls_private_compiler do
   @moduledoc false
 
-  def compile() do
+  def compile do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
 
@@ -128,7 +127,14 @@ defmodule :_next_ls_private_compiler do
     # --no-compile, so nothing was compiled, but the
     # task was not re-enabled it seems
     Mix.Task.rerun("deps.loadpaths")
-    Mix.Task.rerun("compile", ["--no-protocol-consolidation", "--return-errors", "--tracer", "NextLSPrivate.Tracer"])
+
+    Mix.Task.rerun("compile", [
+      "--ignore-module-conflict",
+      "--no-protocol-consolidation",
+      "--return-errors",
+      "--tracer",
+      "NextLSPrivate.Tracer"
+    ])
   rescue
     e -> {:error, e}
   end

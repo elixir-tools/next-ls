@@ -13,6 +13,8 @@ Still in heavy development, currently supporting the following features:
 - Workspace Symbols
 - Document Symbols
 - Go To Definition
+- Workspace Folders
+- Find References
 
 ## Editor Support
 
@@ -60,12 +62,10 @@ language-server = { command = "path/to/next-ls", args = ["--stdio=true"] }
 
 ## Installation
 
-The preferred way to use NextLS is through one of the supported editor extensions.
+The preferred way to use Next LS is through one of the supported editor extensions.
 
-If you need to install NextLS on it's own, you can download the executable hosted by the GitHub release. The executable is an Elixir script that utilizes `Mix.install/2`.
+If you need to install Next LS on it's own, you can download the executable hosted by the GitHub release. The executable is an Elixir script that utilizes `Mix.install/2`.
 
 ### Note
 
-NextLS creates an `.elixir-tools` hidden directory in your project.
-
-This should be added to your project's `.gitignore`.
+Next LS creates an `.elixir-tools` hidden directory in your project, but it will be automatically ignored by `git`.

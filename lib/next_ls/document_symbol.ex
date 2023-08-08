@@ -1,9 +1,9 @@
 defmodule NextLS.DocumentSymbol do
-  alias GenLSP.Structures.{
-    Position,
-    Range,
-    DocumentSymbol
-  }
+  @moduledoc false
+
+  alias GenLSP.Structures.DocumentSymbol
+  alias GenLSP.Structures.Position
+  alias GenLSP.Structures.Range
 
   # we set the literal encoder so that we can know when atoms and strings start and end
   # this makes it useful for knowing the exact locations of struct field definitions
@@ -55,7 +55,7 @@ defmodule NextLS.DocumentSymbol do
   end
 
   defp walker({:describe, meta, [name | children]}, mod) do
-    name = ("describe " <> Macro.to_string(unliteral(name))) |> String.replace("\n", "")
+    name = String.replace("describe " <> Macro.to_string(unliteral(name)), "\n", "")
 
     %DocumentSymbol{
       name: name,
@@ -158,7 +158,7 @@ defmodule NextLS.DocumentSymbol do
 
   defp walker({type, meta, [name | _children]}, _) when type in [:test, :feature, :property] do
     %DocumentSymbol{
-      name: "#{type} #{Macro.to_string(unliteral(name))}" |> String.replace("\n", ""),
+      name: String.replace("#{type} #{Macro.to_string(unliteral(name))}", "\n", ""),
       children: [],
       kind: GenLSP.Enumerations.SymbolKind.constructor(),
       range: %Range{
@@ -180,7 +180,7 @@ defmodule NextLS.DocumentSymbol do
 
   defp walker({type, meta, [name | _children]}, _) when type in [:def, :defp, :defmacro, :defmacro] do
     %DocumentSymbol{
-      name: "#{type} #{name |> unliteral() |> Macro.to_string()}" |> String.replace("\n", ""),
+      name: String.replace("#{type} #{name |> unliteral() |> Macro.to_string()}", "\n", ""),
       children: [],
       kind: elixir_kind_to_lsp_kind(type),
       range: %Range{

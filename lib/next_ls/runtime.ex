@@ -2,12 +2,13 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
-  @exe :code.priv_dir(:next_ls)
+  @exe :next_ls
+       |> :code.priv_dir()
        |> Path.join("cmd")
        |> Path.absname()
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, Keyword.take(opts, [:name]))
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @type mod_fun_arg :: {atom(), atom(), list()}
@@ -41,11 +42,29 @@ defmodule NextLS.Runtime do
   @impl GenServer
   def init(opts) do
     sname = "nextls-runtime-#{System.system_time()}"
+    name = Keyword.fetch!(opts, :name)
     working_dir = Keyword.fetch!(opts, :working_dir)
+    uri = Keyword.fetch!(opts, :uri)
     parent = Keyword.fetch!(opts, :parent)
     logger = Keyword.fetch!(opts, :logger)
     task_supervisor = Keyword.fetch!(opts, :task_supervisor)
-    extension_registry = Keyword.fetch!(opts, :extension_registry)
+    registry = Keyword.fetch!(opts, :registry)
+    on_initialized = Keyword.fetch!(opts, :on_initialized)
+    db = Keyword.fetch!(opts, :db)
+
+    Registry.register(registry, :runtimes, %{name: name, uri: uri, db: db})
+
+    pid =
+      cond do
+        is_pid(parent) -> parent
+        is_atom(parent) -> Process.whereis(parent)
+      end
+
+    parent =
+      pid
+      |> :erlang.term_to_binary()
+      |> Base.encode64()
+      |> String.to_charlist()
 
     port =
       Port.open(
@@ -58,20 +77,19 @@ defmodule NextLS.Runtime do
           cd: working_dir,
           env: [
             {~c"LSP", ~c"nextls"},
-            {~c"NEXTLS_PARENT_PID", :erlang.term_to_binary(parent) |> Base.encode64() |> String.to_charlist()},
+            {~c"NEXTLS_PARENT_PID", parent},
             {~c"MIX_ENV", ~c"dev"},
             {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
           ],
           args: [
             System.find_executable("elixir"),
+            "--no-halt",
             "--sname",
             sname,
             "-S",
             "mix",
-            "run",
-            "--no-halt",
-            "--no-compile",
-            "--no-start"
+            "loadpaths",
+            "--no-compile"
           ]
         ]
       )
@@ -79,6 +97,21 @@ defmodule NextLS.Runtime do
     Port.monitor(port)
 
     me = self()
+
+    Task.Supervisor.async_nolink(task_supervisor, fn ->
+      ref = Process.monitor(me)
+
+      receive do
+        {:DOWN, ^ref, :process, ^me, reason} ->
+          case reason do
+            :shutdown ->
+              NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
+
+            reason ->
+              NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
+          end
+      end
+    end)
 
     Task.start_link(fn ->
       with {:ok, host} <- :inet.gethostname(),
@@ -102,19 +135,23 @@ defmodule NextLS.Runtime do
 
         send(me, {:node, node})
       else
-        _ -> send(me, :cancel)
+        _ ->
+          on_initialized.(:error)
+          send(me, :cancel)
       end
     end)
 
     {:ok,
      %{
+       name: name,
        compiler_ref: nil,
        port: port,
        task_supervisor: task_supervisor,
        logger: logger,
        parent: parent,
        errors: nil,
-       extension_registry: extension_registry
+       registry: registry,
+       on_initialized: on_initialized
      }}
   end
 
@@ -141,7 +178,7 @@ defmodule NextLS.Runtime do
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
 
-        Registry.dispatch(state.extension_registry, :extension, fn entries ->
+        Registry.dispatch(state.registry, :extensions, fn entries ->
           for {pid, _} <- entries do
             send(pid, {:compiler, errors})
           end
@@ -169,6 +206,7 @@ defmodule NextLS.Runtime do
 
   def handle_info({:node, node}, state) do
     Node.monitor(node, true)
+    state.on_initialized.(:ready)
     {:noreply, Map.put(state, :node, node)}
   end
 

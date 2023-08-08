@@ -5,7 +5,7 @@ defmodule NextLS.MixProject do
     [
       app: :next_ls,
       description: "The language server for Elixir that just works",
-      version: "0.5.2",
+      version: "0.7.1",
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -23,7 +23,7 @@ defmodule NextLS.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :crypto],
       mod: {NextLS.Application, []}
     ]
   end
@@ -34,13 +34,15 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:gen_lsp, "~> 0.3"},
+      {:gen_lsp, "~> 0.5"},
+      {:esqlite, "~> 0.8.6"},
+      {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end
 
-  defp package() do
+  defp package do
     [
       maintainers: ["Mitchell Hanberg"],
       licenses: ["MIT"],
