@@ -24,3 +24,4 @@ next_ls-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+burrito_out

@@ -9,6 +9,7 @@ defmodule NextLS.MixProject do
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      releases: releases(),
       package: package(),
       deps: deps(),
       docs: [
@@ -28,6 +29,19 @@ defmodule NextLS.MixProject do
     ]
   end
 
+  def releases do
+  [
+    next_ls: [
+      steps: [:assemble, &Burrito.wrap/1],
+      burrito: [
+        targets: [
+          macos: [os: :darwin, cpu: :aarch64]
+        ]
+      ]
+    ]
+  ]
+end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -38,6 +52,7 @@ defmodule NextLS.MixProject do
       {:esqlite, "~> 0.8.6"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
+      {:burrito, github: "burrito-elixir/burrito"},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end

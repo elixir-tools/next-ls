@@ -66,6 +66,12 @@ defmodule NextLS.Runtime do
       |> Base.encode64()
       |> String.to_charlist()
 
+    dbg System.get_env(), limit: :infinity
+
+    bindir = System.get_env("BINDIR")
+    path = System.get_env("PATH")
+    new_path = String.replace(path, bindir <> ":", "")
+
     port =
       Port.open(
         {:spawn_executable, @exe},
@@ -79,7 +85,12 @@ defmodule NextLS.Runtime do
             {~c"LSP", ~c"nextls"},
             {~c"NEXTLS_PARENT_PID", parent},
             {~c"MIX_ENV", ~c"dev"},
-            {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"}
+            {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+            {~c"ROOTDIR", false},
+            {~c"BINDIR", false},
+            {~c"RELEASE_ROOT", false},
+            {~c"RELEASE_SYS_CONFIG", false},
+            {~c"PATH", String.to_charlist(new_path)},
           ],
           args: [
             System.find_executable("elixir"),
