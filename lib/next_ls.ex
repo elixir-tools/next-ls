@@ -194,6 +194,7 @@ defmodule NextLS do
                   WHERE refs.identifier = ?
                     AND refs.type = ?
                     AND refs.module = ?
+                    AND NOT like('/home/runner/work/elixir/%', refs.file)
                   """,
                   [function, "function", module]
                 )
@@ -206,6 +207,7 @@ defmodule NextLS do
                   FROM "references" as refs
                   WHERE refs.module = ?
                     and refs.type = ?
+                    AND NOT like('/home/runner/work/elixir/%', refs.file)
                   """,
                   [module, "alias"]
                 )
@@ -712,5 +714,6 @@ defmodule NextLS do
         end
     end
   end
+
   defp clamp(line), do: max(line, 0)
 end
