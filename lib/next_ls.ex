@@ -19,7 +19,6 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
-  alias GenLSP.Requests.TextDocumentReferences
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.DidChangeWatchedFilesParams
   alias GenLSP.Structures.DidChangeWorkspaceFoldersParams
@@ -109,7 +108,6 @@ defmodule NextLS do
          document_formatting_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
-         references_provider: true,
          definition_provider: true,
          workspace: %{
            workspace_folders: %GenLSP.Structures.WorkspaceFoldersServerCapabilities{
@@ -171,64 +169,6 @@ defmodule NextLS do
       end
 
     {:reply, symbols, lsp}
-  end
-
-  # TODO handle `context: %{includeDeclaration: true}` to include the current symbol definition among
-  # the results.
-  def handle_request(%TextDocumentReferences{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
-    file = URI.parse(uri).path
-    line = position.line + 1
-    col = position.character + 1
-
-    locations =
-      dispatch(lsp.assigns.registry, :databases, fn databases ->
-        Enum.flat_map(databases, fn {database, _} ->
-          references =
-            case symbol_info(file, line, col, database) do
-              {:function, module, function} ->
-                DB.query(
-                  database,
-                  ~Q"""
-                  SELECT file, start_line, end_line, start_column, end_column
-                  FROM "references" as refs
-                  WHERE refs.identifier = ?
-                    AND refs.type = ?
-                    AND refs.module = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
-                  """,
-                  [function, "function", module]
-                )
-
-              {:module, module} ->
-                DB.query(
-                  database,
-                  ~Q"""
-                  SELECT file, start_line, end_line, start_column, end_column
-                  FROM "references" as refs
-                  WHERE refs.module = ?
-                    AND refs.type = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
-                  """,
-                  [module, "alias"]
-                )
-
-              :unknown ->
-                []
-            end
-
-          for [file, start_line, end_line, start_column, end_column] <- references do
-            %Location{
-              uri: "file://#{file}",
-              range: %Range{
-                start: %Position{line: clamp(start_line - 1), character: clamp(start_column - 1)},
-                end: %Position{line: clamp(end_line - 1), character: clamp(end_column - 1)}
-              }
-            }
-          end
-        end)
-      end)
-
-    {:reply, locations, lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
@@ -663,57 +603,4 @@ defmodule NextLS do
       {^ref, result} -> result
     end
   end
-
-  defp symbol_info(file, line, col, database) do
-    definition_query =
-      ~Q"""
-      SELECT module, type, name
-      FROM "symbols" sym
-      WHERE sym.file = ?
-        AND sym.line = ?
-      ORDER BY sym.id ASC
-      LIMIT 1
-      """
-
-    reference_query = ~Q"""
-    SELECT identifier, type, module
-    FROM "references" refs
-    WHERE refs.file = ?
-      AND refs.start_line <= ? AND refs.end_line >= ?
-      AND refs.start_column <= ? AND refs.end_column >= ?
-    ORDER BY refs.id ASC
-    LIMIT 1
-    """
-
-    case DB.query(database, definition_query, [file, line]) do
-      [[module, "defmodule", _]] ->
-        {:module, module}
-
-      [[module, "defstruct", _]] ->
-        {:module, module}
-
-      [[module, "def", function]] ->
-        {:function, module, function}
-
-      [[module, "defp", function]] ->
-        {:function, module, function}
-
-      [[module, "defmacro", function]] ->
-        {:function, module, function}
-
-      _unknown_definition ->
-        case DB.query(database, reference_query, [file, line, line, col, col]) do
-          [[function, "function", module]] ->
-            {:function, module, function}
-
-          [[_alias, "alias", module]] ->
-            {:module, module}
-
-          _unknown_reference ->
-            :unknown
-        end
-    end
-  end
-
-  defp clamp(line), do: max(line, 0)
 end
