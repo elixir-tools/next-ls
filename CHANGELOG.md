@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/elixir-tools/next-ls/compare/v0.6.5...v0.7.0) (2023-08-08)
+
+
+### Features
+
+* find references ([#139](https://github.com/elixir-tools/next-ls/issues/139)) ([5a3b530](https://github.com/elixir-tools/next-ls/commit/5a3b530a7d283014f8fadcaf0feb0765dac68a1c)), closes [#43](https://github.com/elixir-tools/next-ls/issues/43)
+
+
+### Bug Fixes
+
+* **references:** clamp line and column numbers ([55ead79](https://github.com/elixir-tools/next-ls/commit/55ead79adbfdf62c8e59b8163beeb5c324c56126)), closes [#141](https://github.com/elixir-tools/next-ls/issues/141)
+* **references:** ignore references to elixir source code ([6ff4c17](https://github.com/elixir-tools/next-ls/commit/6ff4c17d631ad37be4903297873ca6ee7a70a38d))
+
 ## [0.6.5](https://github.com/elixir-tools/next-ls/compare/v0.6.4...v0.6.5) (2023-08-01)
 
 
