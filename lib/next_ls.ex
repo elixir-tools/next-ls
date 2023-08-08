@@ -206,7 +206,7 @@ defmodule NextLS do
                   SELECT file, start_line, end_line, start_column, end_column
                   FROM "references" as refs
                   WHERE refs.module = ?
-                    AND refs.type = ?
+                    and refs.type = ?
                     AND NOT like('/home/runner/work/elixir/%', refs.file)
                   """,
                   [module, "alias"]
