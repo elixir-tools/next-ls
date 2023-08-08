@@ -7,6 +7,8 @@ defmodule NextLS.Application do
 
   @impl true
   def start(_type, _args) do
+    Node.start(:"next-ls-#{System.system_time()}", :shortnames)
+
     children = [NextLS.LSPSupervisor]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

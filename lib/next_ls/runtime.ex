@@ -66,8 +66,6 @@ defmodule NextLS.Runtime do
       |> Base.encode64()
       |> String.to_charlist()
 
-    dbg System.get_env(), limit: :infinity
-
     bindir = System.get_env("BINDIR")
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
@@ -90,13 +88,15 @@ defmodule NextLS.Runtime do
             {~c"BINDIR", false},
             {~c"RELEASE_ROOT", false},
             {~c"RELEASE_SYS_CONFIG", false},
-            {~c"PATH", String.to_charlist(new_path)},
+            {~c"PATH", String.to_charlist(new_path)}
           ],
           args: [
             System.find_executable("elixir"),
             "--no-halt",
             "--sname",
             sname,
+            "--cookie",
+            Node.get_cookie(),
             "-S",
             "mix",
             "loadpaths",
