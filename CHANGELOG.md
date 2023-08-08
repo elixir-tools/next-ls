@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/elixir-tools/next-ls/compare/v0.7.0...v0.7.1) (2023-08-08)
+
+
+### Bug Fixes
+
+* revert 0.7 ([#142](https://github.com/elixir-tools/next-ls/issues/142)) ([5a1713c](https://github.com/elixir-tools/next-ls/commit/5a1713c5820c0770464da0e7a75f193280fd55cb))
+
 ## [0.7.0](https://github.com/elixir-tools/next-ls/compare/v0.6.5...v0.7.0) (2023-08-08)
 
 
