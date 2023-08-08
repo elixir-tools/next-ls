@@ -218,8 +218,8 @@ defmodule NextLS do
             %Location{
               uri: "file://#{file}",
               range: %Range{
-                start: %Position{line: clamp(start_line - 1), character: clamp(start_column - 1)},
-                end: %Position{line: clamp(end_line - 1), character: clamp(end_column - 1)}
+                start: %Position{line: start_line - 1, character: start_column - 1},
+                end: %Position{line: end_line - 1, character: end_column - 1}
               }
             }
           end
@@ -712,5 +712,4 @@ defmodule NextLS do
         end
     end
   end
-  defp clamp(line), do: max(line, 0)
 end
