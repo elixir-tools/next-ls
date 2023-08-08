@@ -14,6 +14,7 @@ Still in heavy development, currently supporting the following features:
 - Document Symbols
 - Go To Definition
 - Workspace Folders
+- Find References
 
 ## Editor Support
 
