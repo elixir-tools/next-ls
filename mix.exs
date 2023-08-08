@@ -1,6 +1,8 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
+  @version "0.7.1" # x-release-please-version
+
   def project do
     [
       app: :next_ls,
@@ -30,17 +32,18 @@ defmodule NextLS.MixProject do
   end
 
   def releases do
-  [
-    next_ls: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [
-          macos: [os: :darwin, cpu: :aarch64]
+    [
+      next_ls: [
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          targets: [
+            "#{@version}-darwin_arm64": [os: :darwin, cpu: :aarch64],
+            "#{@version}-darwin_amd64": [os: :darwin, cpu: :x86_64]
+          ]
         ]
       ]
     ]
-  ]
-end
+  end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
