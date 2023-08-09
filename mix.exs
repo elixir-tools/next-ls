@@ -1,6 +1,7 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
+  @version "0.7.1" # x-release-please-version
   def project do
     [
       app: :next_ls,
@@ -9,6 +10,7 @@ defmodule NextLS.MixProject do
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      releases: releases(),
       package: package(),
       deps: deps(),
       docs: [
@@ -28,6 +30,25 @@ defmodule NextLS.MixProject do
     ]
   end
 
+  def releases do
+    [
+      next_ls: [
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          targets: [
+            "#{@version}-darwin_arm64": [os: :darwin, cpu: :aarch64],
+            "#{@version}-darwin_amd64": [os: :darwin, cpu: :x86_64],
+            "#{@version}-linux_arm64": [os: :linux, cpu: :aarch64, libc: :gnu],
+            "#{@version}-linux_amd64": [os: :linux, cpu: :x86_64, libc: :gnu],
+            "#{@version}-linux_arm64_musl": [os: :linux, cpu: :aarch64, libc: :musl],
+            "#{@version}-linux_amd64_musl": [os: :linux, cpu: :x86_64, libc: :musl],
+            "#{@version}-windows_amd64": [os: :windows, cpu: :x86_64]
+          ]
+        ]
+      ]
+    ]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -38,6 +59,7 @@ defmodule NextLS.MixProject do
       {:esqlite, "~> 0.8.6"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
+      {:burrito, github: "burrito-elixir/burrito"},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end

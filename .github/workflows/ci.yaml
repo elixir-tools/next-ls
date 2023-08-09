@@ -11,11 +11,8 @@ jobs:
 
     strategy:
       matrix:
-        otp: [24.x, 25.x, 26.x]
-        elixir: [1.13.x, 1.14.x, 1.15.x]
-        exclude:
-          - otp: 26.x
-            elixir: 1.13.x
+        otp: [26.0.2]
+        elixir: [1.15.4]
 
     steps:
       - uses: actions/checkout@v2
@@ -51,15 +48,15 @@ jobs:
 
   formatter:
     runs-on: ubuntu-latest
-    name: Formatter (1.15.x/26.x)
+    name: Formatter
 
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
         id: beam
         with:
-          otp-version: 26.x
-          elixir-version: 1.15.x
+          otp-version: 26.0.2
+          elixir-version: 1.15.4
       - uses: actions/cache@v3
         with:
           path: |
@@ -83,8 +80,8 @@ jobs:
         id: beam
         uses: erlef/setup-beam@v1
         with:
-          otp-version: 26.x
-          elixir-version: 1.15.x
+          otp-version: 26.0.2
+          elixir-version: 1.15.4
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)

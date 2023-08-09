@@ -14,51 +14,55 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: [25.3]
-        elixir: [1.14.x]
+        otp: [26.0.2]
+        elixir: [1.15.4]
     steps:
       - uses: google-github-actions/release-please-action@v3
         id: release
         with:
           release-type: elixir
           package-name: next_ls
-          extra-files: |
-            bin/nextls
 
-      - uses: actions/checkout@v3
-        if: ${{ steps.release.outputs.release_created }}
+      # - uses: actions/checkout@v3
+      #   if: ${{ steps.release.outputs.release_created }}
 
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-        if: ${{ steps.release.outputs.release_created }}
+      # - uses: erlef/setup-beam@v1
+      #   with:
+      #     otp-version: ${{matrix.otp}}
+      #     elixir-version: ${{matrix.elixir}}
+      #   if: ${{ steps.release.outputs.release_created }}
 
-      - uses: actions/cache@v3
-        id: cache
-        if: ${{ steps.release.outputs.release_created }}
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
+      # - uses: actions/cache@v3
+      #   id: cache
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   with:
+      #     path: |
+      #       deps
+      #       _build
+      #     key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
 
-      - name: Install Dependencies
-        if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
-        run: mix deps.get
+      # - name: Install Dependencies
+      #   if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
+      #   run: mix deps.get
 
-      - name: publish to hex
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          HEX_API_KEY: ${{secrets.HEX_API_KEY}}
-        run: |
-          mix hex.publish --yes
+      # we can't publish to hex anymore because burrito is a git dependency
 
-      - name: Upload Release Artifact
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run:
-          gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls
+      # - name: publish to hex
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   env:
+      #     HEX_API_KEY: ${{secrets.HEX_API_KEY}}
+      #   run: |
+      #     mix hex.publish --yes
+
+      # figure out how to get an apple silicon runner
+      # to be able to build the burritos on CI
+      # I will manually build them and upload for now
+
+      # - name: Upload Release Artifact
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run:
+      #     gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls

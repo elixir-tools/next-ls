@@ -34,7 +34,7 @@ defmodule NextLS.LSPSupervisor do
       :ignore
     else
       {opts, _, invalid} =
-        OptionParser.parse(System.argv(),
+        OptionParser.parse(Burrito.Util.Args.get_arguments(),
           strict: [stdio: :boolean, port: :integer]
         )
 
