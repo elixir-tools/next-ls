@@ -117,6 +117,12 @@ defmodule :_next_ls_private_compiler do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
 
+    tracers = Code.get_compiler_option(:tracers)
+
+    tracers = Enum.uniq([NextLSPrivate.Tracer | tracers])
+
+    Code.put_compiler_option(:tracers, tracers)
+
     Mix.Task.clear()
 
     # load the paths for deps and compile them
@@ -131,9 +137,7 @@ defmodule :_next_ls_private_compiler do
     Mix.Task.rerun("compile", [
       "--ignore-module-conflict",
       "--no-protocol-consolidation",
-      "--return-errors",
-      "--tracer",
-      "NextLSPrivate.Tracer"
+      "--return-errors"
     ])
   rescue
     e -> {:error, e}
