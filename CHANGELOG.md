@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/elixir-tools/next-ls/compare/v0.7.1...v0.8.0) (2023-08-09)
+
+
+### Features
+
+* burrito (aka binary executable) ([#144](https://github.com/elixir-tools/next-ls/issues/144)) ([094fd74](https://github.com/elixir-tools/next-ls/commit/094fd74744dc1c995473bbb8a36c900e8f7b0540))
+
+
+### Bug Fixes
+
+* version in mix.exs ([c6459ec](https://github.com/elixir-tools/next-ls/commit/c6459ec9f4e2a347f68868cb55544cfdbbde5048))
+
 ## [0.7.1](https://github.com/elixir-tools/next-ls/compare/v0.7.0...v0.7.1) (2023-08-08)
 
 
