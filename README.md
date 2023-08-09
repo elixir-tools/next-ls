@@ -86,7 +86,7 @@ Then you can configure your editor to connect to NextLS using that port.
 
 </details>
 
-<details><summary>If you use VSCode</summary>
+<details><summary>Visual Studio Code</summary>
 
     "elixir-tools.nextls.adapter": "tcp",
     "elixir-tools.nextls.port": 9000,
