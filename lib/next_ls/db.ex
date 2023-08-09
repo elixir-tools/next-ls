@@ -27,7 +27,7 @@ defmodule NextLS.DB do
     registry = Keyword.fetch!(args, :registry)
     logger = Keyword.fetch!(args, :logger)
     Registry.register(registry, :databases, %{})
-    {:ok, conn} = :esqlite3.open(file)
+    {:ok, conn} = Exqlite.Basic.open(file)
 
     NextLS.DB.Schema.init({conn, logger})
 
@@ -157,10 +157,19 @@ defmodule NextLS.DB do
   def __query__({conn, logger}, query, args) do
     args = Enum.map(args, &cast/1)
 
-    with {:error, _e} <- :esqlite3.q(conn, query, args) do
-      error = :esqlite3.error_info(conn).errmsg
-      NextLS.Logger.error(logger, error)
-      {:error, error}
+    case Exqlite.Basic.exec(conn, query, args) do
+      {:error, %{message: message, statement: statement}, _} ->
+        NextLS.Logger.error(logger, """
+        sqlite3 error: #{message}
+
+        statement: #{statement}
+        """)
+
+        {:error, message}
+
+      result ->
+        {:ok, rows, _} = Exqlite.Basic.rows(result)
+        rows
     end
   end
 

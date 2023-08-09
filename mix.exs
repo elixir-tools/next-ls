@@ -57,7 +57,7 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:gen_lsp, "~> 0.5"},
-      {:esqlite, "~> 0.8.6"},
+      {:exqlite, "~> 0.13.14"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:burrito, github: "burrito-elixir/burrito"},
