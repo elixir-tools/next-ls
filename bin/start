@@ -2,10 +2,24 @@
 
 # used for local development
 
+
 set -e
 
 cd "$(dirname "$0")"/.. || exit 1
 
-MIX_ENV=dev mix release --overwrite
+function main() {
+  local machine
+  local arch
+  local target
+  machine="$(uname)"
+  arch="$(uname -m)"
+  target="${machine,,}_${arch,,}"
 
-./burrito_out/next_ls_macos "$@"
+  local
+
+  BURRITO_TARGET="$target" MIX_ENV=dev mix release --overwrite
+
+  exec "./burrito_out/next_ls_$target" "$@"
+}
+
+main "$@"
