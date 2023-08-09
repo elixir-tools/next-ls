@@ -75,23 +75,20 @@ already).
 
 Then you can configure your editor to connect to NextLS using that port.
 
-<details>
-<summary>
-
 [elixir-tools.nvim](https://github.com/elixir-tools/elixir-tools.nvim)
 
-</summary>
+```lua
+{
+  nextls = {enable = true, port = 9000}
+}
 
-    nextls = {enable = true, port = 9000}
+Visual Studio Code
 
-</details>
-
-<details><summary>Visual Studio Code</summary>
-
+```json
+{
     "elixir-tools.nextls.adapter": "tcp",
     "elixir-tools.nextls.port": 9000,
-
-</details>
+}
 
 ### Note
 
