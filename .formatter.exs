@@ -11,7 +11,7 @@
   import_deps: [:gen_lsp],
   plugins: [Styler],
   inputs: [
-    "{mix,.formatter}.exs",
+    ".formatter.exs",
     "{config,lib,}/**/*.{ex,exs}",
     "test/next_ls_test.exs",
     "test/test_helper.exs",

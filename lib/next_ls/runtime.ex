@@ -2,11 +2,6 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
-  @exe :next_ls
-       |> :code.priv_dir()
-       |> Path.join("cmd")
-       |> Path.absname()
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
@@ -72,7 +67,7 @@ defmodule NextLS.Runtime do
 
     port =
       Port.open(
-        {:spawn_executable, @exe},
+        {:spawn_executable, exe()},
         [
           :use_stdio,
           :stderr_to_stdout,
@@ -242,5 +237,12 @@ defmodule NextLS.Runtime do
     else
       true
     end
+  end
+
+  defp exe do
+    :next_ls
+    |> :code.priv_dir()
+    |> Path.join("cmd")
+    |> Path.absname()
   end
 end
