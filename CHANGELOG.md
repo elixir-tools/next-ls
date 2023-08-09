@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/elixir-tools/next-ls/compare/v0.8.0...v0.9.0) (2023-08-09)
+
+
+### Features
+
+* find references, reverts "fix: revert 0.7 ([#142](https://github.com/elixir-tools/next-ls/issues/142))" ([#150](https://github.com/elixir-tools/next-ls/issues/150)) ([1b8f72b](https://github.com/elixir-tools/next-ls/commit/1b8f72b8a1f6efcfa130643e9006d27319bbd738))
+
+
+### Bug Fixes
+
+* remove version from targets ([#148](https://github.com/elixir-tools/next-ls/issues/148)) ([06704bc](https://github.com/elixir-tools/next-ls/commit/06704bcedd34cf7627ea78ab3a9f6a16449270a0))
+
 ## [0.8.0](https://github.com/elixir-tools/next-ls/compare/v0.7.1...v0.8.0) (2023-08-09)
 
 
