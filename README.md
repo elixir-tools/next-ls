@@ -75,7 +75,12 @@ already).
 
 Then you can configure your editor to connect to NextLS using that port.
 
-<details><summary>If you use NeoVim</summary>
+<details>
+<summary>
+
+[elixir-tools.nvim](https://github.com/elixir-tools/elixir-tools.nvim)
+
+</summary>
 
     nextls = {enable = true, port = 9000}
 
