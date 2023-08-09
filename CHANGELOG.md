@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/elixir-tools/next-ls/compare/v0.9.0...v0.9.1) (2023-08-09)
+
+
+### Bug Fixes
+
+* use different sqlite package ([#156](https://github.com/elixir-tools/next-ls/issues/156)) ([721c9cd](https://github.com/elixir-tools/next-ls/commit/721c9cd29a402b35852bf454dec0d9ed45d3869a))
+
 ## [0.9.0](https://github.com/elixir-tools/next-ls/compare/v0.8.0...v0.9.0) (2023-08-09)
 
 
