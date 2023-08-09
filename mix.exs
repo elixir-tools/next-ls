@@ -37,13 +37,13 @@ defmodule NextLS.MixProject do
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
           targets: [
-            "#{@version}-darwin_arm64": [os: :darwin, cpu: :aarch64],
-            "#{@version}-darwin_amd64": [os: :darwin, cpu: :x86_64],
-            "#{@version}-linux_arm64": [os: :linux, cpu: :aarch64, libc: :gnu],
-            "#{@version}-linux_amd64": [os: :linux, cpu: :x86_64, libc: :gnu],
-            "#{@version}-linux_arm64_musl": [os: :linux, cpu: :aarch64, libc: :musl],
-            "#{@version}-linux_amd64_musl": [os: :linux, cpu: :x86_64, libc: :musl],
-            "#{@version}-windows_amd64": [os: :windows, cpu: :x86_64]
+            darwin_arm64: [os: :darwin, cpu: :aarch64],
+            darwin_amd64: [os: :darwin, cpu: :x86_64],
+            linux_arm64: [os: :linux, cpu: :aarch64, libc: :gnu],
+            linux_amd64: [os: :linux, cpu: :x86_64, libc: :gnu],
+            linux_arm64_musl: [os: :linux, cpu: :aarch64, libc: :musl],
+            linux_amd64_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+            windows_amd64: [os: :windows, cpu: :x86_64]
           ]
         ]
       ]
