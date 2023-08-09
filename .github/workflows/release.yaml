@@ -14,16 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: [25.3]
-        elixir: [1.14.x]
+        otp: [26.0.2]
+        elixir: [1.15.4]
     steps:
       - uses: google-github-actions/release-please-action@v3
         id: release
         with:
           release-type: elixir
           package-name: next_ls
-          extra-files: |
-            bin/nextls
 
       - uses: actions/checkout@v3
         if: ${{ steps.release.outputs.release_created }}
@@ -49,6 +47,8 @@ jobs:
         if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
         run: mix deps.get
 
+      # we'll still publish to hex even tho no one will really download it from there
+
       - name: publish to hex
         if: ${{ steps.release.outputs.release_created }}
         env:
@@ -56,9 +56,13 @@ jobs:
         run: |
           mix hex.publish --yes
 
-      - name: Upload Release Artifact
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run:
-          gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls
+      # figure out how to get an apple silicon runner
+      # to be able to build the burritos on CI
+      # I will manually build them and upload for now
+
+      # - name: Upload Release Artifact
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run:
+      #     gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls
