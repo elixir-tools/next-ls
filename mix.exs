@@ -2,11 +2,12 @@ defmodule NextLS.MixProject do
   use Mix.Project
 
   @version "0.7.1" # x-release-please-version
+
   def project do
     [
       app: :next_ls,
       description: "The language server for Elixir that just works",
-      version: "0.7.1",
+      version: @version,
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
