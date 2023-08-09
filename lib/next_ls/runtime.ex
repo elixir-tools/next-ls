@@ -65,100 +65,110 @@ defmodule NextLS.Runtime do
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
 
-    port =
-      Port.open(
-        {:spawn_executable, exe()},
-        [
-          :use_stdio,
-          :stderr_to_stdout,
-          :binary,
-          :stream,
-          cd: working_dir,
-          env: [
-            {~c"LSP", ~c"nextls"},
-            {~c"NEXTLS_PARENT_PID", parent},
-            {~c"MIX_ENV", ~c"dev"},
-            {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
-            {~c"ROOTDIR", false},
-            {~c"BINDIR", false},
-            {~c"RELEASE_ROOT", false},
-            {~c"RELEASE_SYS_CONFIG", false},
-            {~c"PATH", String.to_charlist(new_path)}
-          ],
-          args: [
-            System.find_executable("elixir"),
-            "--no-halt",
-            "--sname",
-            sname,
-            "--cookie",
-            Node.get_cookie(),
-            "-S",
-            "mix",
-            "loadpaths",
-            "--no-compile"
+    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
+      exe =
+        dir
+        |> Path.join("cmd")
+        |> Path.absname()
+
+      port =
+        Port.open(
+          {:spawn_executable, exe},
+          [
+            :use_stdio,
+            :stderr_to_stdout,
+            :binary,
+            :stream,
+            cd: working_dir,
+            env: [
+              {~c"LSP", ~c"nextls"},
+              {~c"NEXTLS_PARENT_PID", parent},
+              {~c"MIX_ENV", ~c"dev"},
+              {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+              {~c"ROOTDIR", false},
+              {~c"BINDIR", false},
+              {~c"RELEASE_ROOT", false},
+              {~c"RELEASE_SYS_CONFIG", false},
+              {~c"PATH", String.to_charlist(new_path)}
+            ],
+            args: [
+              System.find_executable("elixir"),
+              "--no-halt",
+              "--sname",
+              sname,
+              "--cookie",
+              Node.get_cookie(),
+              "-S",
+              "mix",
+              "loadpaths",
+              "--no-compile"
+            ]
           ]
-        ]
-      )
+        )
 
-    Port.monitor(port)
+      Port.monitor(port)
 
-    me = self()
+      me = self()
 
-    Task.Supervisor.async_nolink(task_supervisor, fn ->
-      ref = Process.monitor(me)
+      Task.Supervisor.async_nolink(task_supervisor, fn ->
+        ref = Process.monitor(me)
 
-      receive do
-        {:DOWN, ^ref, :process, ^me, reason} ->
-          case reason do
-            :shutdown ->
-              NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
+        receive do
+          {:DOWN, ^ref, :process, ^me, reason} ->
+            case reason do
+              :shutdown ->
+                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
 
-            reason ->
-              NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
-          end
-      end
-    end)
+              reason ->
+                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
+            end
+        end
+      end)
 
-    Task.start_link(fn ->
-      with {:ok, host} <- :inet.gethostname(),
-           node <- :"#{sname}@#{host}",
-           true <- connect(node, port, 120) do
-        NextLS.Logger.log(logger, "Connected to node #{node}")
+      Task.start_link(fn ->
+        with {:ok, host} <- :inet.gethostname(),
+             node <- :"#{sname}@#{host}",
+             true <- connect(node, port, 120) do
+          NextLS.Logger.log(logger, "Connected to node #{node}")
 
-        :next_ls
-        |> :code.priv_dir()
-        |> Path.join("monkey/_next_ls_private_compiler.ex")
-        |> then(&:rpc.call(node, Code, :compile_file, [&1]))
-        |> tap(fn
-          {:badrpc, :EXIT, {error, _}} ->
-            NextLS.Logger.error(logger, error)
+          :next_ls
+          |> :code.priv_dir()
+          |> Path.join("monkey/_next_ls_private_compiler.ex")
+          |> then(&:rpc.call(node, Code, :compile_file, [&1]))
+          |> tap(fn
+            {:badrpc, :EXIT, {error, _}} ->
+              NextLS.Logger.error(logger, error)
 
+            _ ->
+              :ok
+          end)
+
+          :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
+
+          send(me, {:node, node})
+        else
           _ ->
-            :ok
-        end)
+            on_initialized.(:error)
+            send(me, :cancel)
+        end
+      end)
 
-        :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
-
-        send(me, {:node, node})
-      else
-        _ ->
-          on_initialized.(:error)
-          send(me, :cancel)
-      end
-    end)
-
-    {:ok,
-     %{
-       name: name,
-       compiler_ref: nil,
-       port: port,
-       task_supervisor: task_supervisor,
-       logger: logger,
-       parent: parent,
-       errors: nil,
-       registry: registry,
-       on_initialized: on_initialized
-     }}
+      {:ok,
+       %{
+         name: name,
+         compiler_ref: nil,
+         port: port,
+         task_supervisor: task_supervisor,
+         logger: logger,
+         parent: parent,
+         errors: nil,
+         registry: registry,
+         on_initialized: on_initialized
+       }}
+    else
+      _ ->
+        {:stop, :failed_to_boot}
+    end
   end
 
   @impl GenServer
@@ -227,7 +237,7 @@ defmodule NextLS.Runtime do
   end
 
   defp connect(_node, _port, 0) do
-    raise "failed to connect"
+    false
   end
 
   defp connect(node, port, attempts) do
@@ -237,12 +247,5 @@ defmodule NextLS.Runtime do
     else
       true
     end
-  end
-
-  defp exe do
-    :next_ls
-    |> :code.priv_dir()
-    |> Path.join("cmd")
-    |> Path.absname()
   end
 end
