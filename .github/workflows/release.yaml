@@ -23,38 +23,38 @@ jobs:
           release-type: elixir
           package-name: next_ls
 
-      - uses: actions/checkout@v3
-        if: ${{ steps.release.outputs.release_created }}
+      # - uses: actions/checkout@v3
+      #   if: ${{ steps.release.outputs.release_created }}
 
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-        if: ${{ steps.release.outputs.release_created }}
+      # - uses: erlef/setup-beam@v1
+      #   with:
+      #     otp-version: ${{matrix.otp}}
+      #     elixir-version: ${{matrix.elixir}}
+      #   if: ${{ steps.release.outputs.release_created }}
 
-      - uses: actions/cache@v3
-        id: cache
-        if: ${{ steps.release.outputs.release_created }}
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
+      # - uses: actions/cache@v3
+      #   id: cache
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   with:
+      #     path: |
+      #       deps
+      #       _build
+      #     key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
 
-      - name: Install Dependencies
-        if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
-        run: mix deps.get
+      # - name: Install Dependencies
+      #   if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
+      #   run: mix deps.get
 
-      # we'll still publish to hex even tho no one will really download it from there
+      # we can't publish to hex anymore because burrito is a git dependency
 
-      - name: publish to hex
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          HEX_API_KEY: ${{secrets.HEX_API_KEY}}
-        run: |
-          mix hex.publish --yes
+      # - name: publish to hex
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   env:
+      #     HEX_API_KEY: ${{secrets.HEX_API_KEY}}
+      #   run: |
+      #     mix hex.publish --yes
 
       # figure out how to get an apple silicon runner
       # to be able to build the burritos on CI
