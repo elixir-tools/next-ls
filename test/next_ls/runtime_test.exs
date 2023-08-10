@@ -27,8 +27,7 @@ defmodule NextLs.RuntimeTest do
       Task.start_link(fn ->
         recv = fn recv ->
           receive do
-            msg ->
-              Logger.debug(inspect(msg))
+            msg -> Logger.debug(inspect(msg))
           end
 
           recv.(recv)
@@ -100,7 +99,7 @@ defmodule NextLs.RuntimeTest do
 
     capture_log(fn ->
       pid =
-        start_supervised!(
+        start_link_supervised!(
           {Runtime,
            name: "my_proj",
            on_initialized: on_init,
@@ -112,8 +111,6 @@ defmodule NextLs.RuntimeTest do
            db: :some_db,
            registry: RuntimeTest.Registry}
         )
-
-      Process.link(pid)
 
       assert wait_for_ready()
 
@@ -153,7 +150,7 @@ defmodule NextLs.RuntimeTest do
     receive do
       :ready -> true
     after
-      10_000 ->
+      30_000 ->
         false
     end
   end

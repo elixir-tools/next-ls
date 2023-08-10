@@ -56,7 +56,7 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:gen_lsp, "~> 0.5"},
+      {:gen_lsp, "~> 0.6"},
       {:exqlite, "~> 0.13.14"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
