@@ -59,16 +59,18 @@ defmodule NextLS.ReferencesTest do
 
     uri = uri(bar)
 
-    assert_result2 4,
-                  [
-                    %{
-                      "uri" => uri,
-                      "range" => %{
-                        "start" => %{"line" => 3, "character" => 10},
-                        "end" => %{"line" => 3, "character" => 18}
-                      }
-                    }
-                  ]
+    assert_result2(
+      4,
+      [
+        %{
+          "uri" => uri,
+          "range" => %{
+            "start" => %{"line" => 3, "character" => 10},
+            "end" => %{"line" => 3, "character" => 18}
+          }
+        }
+      ]
+    )
   end
 
   test "list module references", %{client: client, bar: bar, peace: peace} = context do
