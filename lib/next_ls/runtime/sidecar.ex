@@ -16,12 +16,14 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({:tracer, payload}, state) do
+    dbg(Process.info(self(), :message_queue_len))
     DB.insert_symbol(state.db, payload)
 
     {:noreply, state}
   end
 
   def handle_info({{:tracer, :reference}, payload}, state) do
+    dbg(Process.info(self(), :message_queue_len))
     DB.insert_reference(state.db, payload)
 
     {:noreply, state}

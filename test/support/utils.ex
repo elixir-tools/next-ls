@@ -90,4 +90,29 @@ defmodule NextLS.Support.Utils do
       assert_notification "window/logMessage", %{"message" => ^message}
     end
   end
+
+  def uri(path) when is_binary(path) do
+    URI.to_string(%URI{
+      scheme: "file",
+      host: "",
+      path: path
+    })
+  end
+
+  defmacro assert_result2(
+             id,
+             pattern,
+             timeout \\ Application.get_env(:ex_unit, :assert_receive_timeout)
+           ) do
+    quote do
+      assert_receive %{
+                       "jsonrpc" => "2.0",
+                       "id" => unquote(id),
+                       "result" => result
+                     },
+                     unquote(timeout)
+
+      assert result == unquote(pattern)
+    end
+  end
 end
