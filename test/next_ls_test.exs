@@ -866,10 +866,10 @@ defmodule NextLSTest do
 
     setup :with_lsp
 
-    test "list function references", %{client: client, bar: bar, peace: peace} do
+    test "list function references", %{client: client, bar: bar, peace: peace} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request(client, %{
@@ -897,10 +897,10 @@ defmodule NextLSTest do
                     ]
     end
 
-    test "list module references", %{client: client, bar: bar, peace: peace} do
+    test "list module references", %{client: client, bar: bar, peace: peace} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
       assert_request(client, "client/registerCapability", fn _params -> nil end)
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Runtime for folder my_proj is ready..."}
+      assert_is_ready(context, "my_proj")
       assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
 
       request(client, %{
