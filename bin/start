@@ -1,25 +1,19 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 # used for local development
-
 
 set -e
 
 cd "$(dirname "$0")"/.. || exit 1
 
-function main() {
-  local machine
-  local arch
-  local target
-  machine="$(uname)"
-  arch="$(uname -m)"
-  target="${machine,,}_${arch,,}"
+main() {
+	machine="$(uname)"
+	arch="$(uname -m)"
+	target="$(echo $machine | tr 'A-Z' 'a-z')_$(echo $arch | tr 'A-Z' 'a-z')"
 
-  local
+	BURRITO_TARGET="$target" MIX_ENV=dev mix release --overwrite
 
-  BURRITO_TARGET="$target" MIX_ENV=dev mix release --overwrite
-
-  exec "./burrito_out/next_ls_$target" "$@"
+	exec "./burrito_out/next_ls_$target" "$@"
 }
 
 main "$@"
