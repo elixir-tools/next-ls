@@ -7,4 +7,3 @@ defmodule :_next_ls_private_credo do
     |> Credo.Execution.get_issues()
   end
 end
-
