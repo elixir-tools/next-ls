@@ -63,7 +63,8 @@ defmodule NextLS do
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
 
     registry = Keyword.fetch!(args, :registry)
-    extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension])
+
+    extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension, NextLS.CredoExtension])
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
@@ -363,7 +364,11 @@ defmodule NextLS do
       {:ok, _} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
-          {extension, cache: lsp.assigns.cache, registry: lsp.assigns.registry, publisher: self()}
+          {extension,
+           cache: lsp.assigns.cache,
+           registry: lsp.assigns.registry,
+           publisher: self(),
+           task_supervisor: lsp.assigns.runtime_task_supervisor}
         )
     end
 
@@ -411,7 +416,14 @@ defmodule NextLS do
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
                  GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
-                 send(parent, {:runtime_ready, name, self()})
+
+                 msg = {:runtime_ready, name, self()}
+
+                 dispatch(lsp.assigns.registry, :extensions, fn entries ->
+                   for {pid, _} <- entries, do: send(pid, msg)
+                 end)
+
+                 send(parent, msg)
                else
                  Progress.stop(lsp, token)
                  GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
@@ -526,7 +538,13 @@ defmodule NextLS do
                  if status == :ready do
                    Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
                    GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
-                   send(parent, {:runtime_ready, name, self()})
+                   msg = {:runtime_ready, name, self()}
+
+                   dispatch(lsp.assigns.registry, :extensions, fn entries ->
+                     for {pid, _} <- entries, do: send(pid, msg)
+                   end)
+
+                   send(parent, msg)
                  else
                    Progress.stop(lsp, token)
                    GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
