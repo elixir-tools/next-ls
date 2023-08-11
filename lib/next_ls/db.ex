@@ -159,10 +159,11 @@ defmodule NextLS.DB do
 
     case Exqlite.Basic.exec(conn, query, args) do
       {:error, %{message: message, statement: statement}, _} ->
-        NextLS.Logger.error(logger, """
+        NextLS.Logger.warn(logger, """
         sqlite3 error: #{message}
 
         statement: #{statement}
+        arguments: #{inspect(args)}
         """)
 
         {:error, message}
