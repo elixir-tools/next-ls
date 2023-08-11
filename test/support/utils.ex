@@ -83,11 +83,15 @@ defmodule NextLS.Support.Utils do
     [server: server, client: client]
   end
 
-  defmacro assert_is_ready(context, name) do
+  defmacro assert_is_ready(
+             context,
+             name,
+             timeout \\ Application.get_env(:ex_unit, :assert_receive_timeout)
+           ) do
     quote do
       message = "[NextLS] Runtime for folder #{unquote(context).module}-#{unquote(name)} is ready..."
 
-      assert_notification "window/logMessage", %{"message" => ^message}
+      assert_notification "window/logMessage", %{"message" => ^message}, unquote(timeout)
     end
   end
 

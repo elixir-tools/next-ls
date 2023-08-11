@@ -128,7 +128,7 @@ defmodule NextLS.Runtime do
                 NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
 
               reason ->
-                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}.")
+                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
             end
         end
       end)
@@ -144,20 +144,16 @@ defmodule NextLS.Runtime do
           |> Path.join("monkey/_next_ls_private_compiler.ex")
           |> then(&:rpc.call(node, Code, :compile_file, [&1]))
           |> tap(fn
-            {:badrpc, error} ->
-              NextLS.Logger.error(logger, {:badrpc, error})
-
-            _ ->
-              :ok
+            {:badrpc, error} -> NextLS.Logger.error(logger, "Bad RPC call: #{inspect(error)}")
+            _ -> :ok
           end)
 
           :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
 
           send(me, {:node, node})
         else
-          _ ->
-            on_initialized.(:error)
-            send(me, :cancel)
+          error ->
+            send(me, {:cancel, error})
         end
       end)
 
@@ -202,7 +198,7 @@ defmodule NextLS.Runtime do
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
           {:badrpc, error} ->
-            NextLS.Logger.error(state.logger, {:badrpc, error})
+            NextLS.Logger.error(state.logger, "Bad RPC call: #{inspect(error)}")
             []
 
           {_, diagnostics} when is_list(diagnostics) ->
@@ -233,6 +229,17 @@ defmodule NextLS.Runtime do
   def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_ref: compiler_ref} = state)
       when is_map_key(compiler_ref, ref) do
     {:noreply, %{state | compiler_ref: nil}}
+  end
+
+  def handle_info({:DOWN, _, :port, port, reason}, %{port: port} = state) do
+    error = {:port_down, reason}
+    state.on_initialized.({:error, error})
+    {:stop, {:shutdown, error}, state}
+  end
+
+  def handle_info({:cancel, error}, state) do
+    state.on_initialized.({:error, error})
+    {:stop, error, state}
   end
 
   def handle_info({:node, node}, state) do
