@@ -1,25 +1,5 @@
 #!/usr/bin/env bash
 
-# used for local development
-
-
-set -e
-
 cd "$(dirname "$0")"/.. || exit 1
 
-function main() {
-  local machine
-  local arch
-  local target
-  machine="$(uname)"
-  arch="$(uname -m)"
-  target="${machine,,}_${arch,,}"
-
-  local
-
-  BURRITO_TARGET="$target" MIX_ENV=dev mix release --overwrite
-
-  exec "./burrito_out/next_ls_$target" "$@"
-}
-
-main "$@"
+elixir -S mix run --no-halt -e "Application.ensure_all_started(:next_ls)" -- "$@"

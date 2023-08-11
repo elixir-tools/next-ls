@@ -33,10 +33,10 @@ defmodule NextLS.LSPSupervisor do
     if @env == :test do
       :ignore
     else
+      argv = if @env == :prod, do: Burrito.Util.Args.get_arguments(), else: System.argv()
+
       {opts, _, invalid} =
-        OptionParser.parse(Burrito.Util.Args.get_arguments(),
-          strict: [stdio: :boolean, port: :integer]
-        )
+        OptionParser.parse(argv, strict: [stdio: :boolean, port: :integer])
 
       buffer_opts =
         cond do
