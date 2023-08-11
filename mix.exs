@@ -60,7 +60,7 @@ defmodule NextLS.MixProject do
       {:exqlite, "~> 0.13.14"},
       {:styler, "~> 0.8", only: :dev},
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:burrito, github: "burrito-elixir/burrito"},
+      {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end
