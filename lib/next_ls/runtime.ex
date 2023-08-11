@@ -128,7 +128,7 @@ defmodule NextLS.Runtime do
                 NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
 
               reason ->
-                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
+                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}.")
             end
         end
       end)
@@ -144,8 +144,8 @@ defmodule NextLS.Runtime do
           |> Path.join("monkey/_next_ls_private_compiler.ex")
           |> then(&:rpc.call(node, Code, :compile_file, [&1]))
           |> tap(fn
-            {:badrpc, :EXIT, {error, _}} ->
-              NextLS.Logger.error(logger, error)
+            {:badrpc, error} ->
+              NextLS.Logger.error(logger, {:badrpc, error})
 
             _ ->
               :ok
@@ -200,15 +200,22 @@ defmodule NextLS.Runtime do
   def handle_call(:compile, from, %{node: node} = state) do
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-        {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
+        case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
+          {:badrpc, error} ->
+            NextLS.Logger.error(state.logger, {:badrpc, error})
+            []
 
-        Registry.dispatch(state.registry, :extensions, fn entries ->
-          for {pid, _} <- entries do
-            send(pid, {:compiler, errors})
-          end
-        end)
+          {_, diagnostics} when is_list(diagnostics) ->
+            Registry.dispatch(state.registry, :extensions, fn entries ->
+              for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
+            end)
 
-        errors
+            diagnostics
+
+          unknown ->
+            NextLS.Logger.warning(state.logger, "Unexpected compiler response: #{inspect(unknown)}")
+            []
+        end
       end)
 
     {:noreply, %{state | compiler_ref: %{task.ref => from}}}
