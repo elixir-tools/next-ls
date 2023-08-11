@@ -11,10 +11,10 @@ defmodule NextLS.DB do
   end
 
   @spec query(pid(), query(), list()) :: list()
-  def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args})
+  def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args}, :infinity)
 
   @spec symbols(pid()) :: list(map())
-  def symbols(server), do: GenServer.call(server, :symbols)
+  def symbols(server), do: GenServer.call(server, :symbols, :infinity)
 
   @spec insert_symbol(pid(), map()) :: :ok
   def insert_symbol(server, payload), do: GenServer.cast(server, {:insert_symbol, payload})
