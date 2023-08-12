@@ -255,10 +255,6 @@ defmodule NextLS.Runtime do
   end
 
   def handle_info({:nodedown, node}, %{node: node} = state) do
-    unless is_ready(state) do
-      state.on_initialized.({:error, :nodedown})
-    end
-
     {:stop, {:shutdown, :nodedown}, state}
   end
 
