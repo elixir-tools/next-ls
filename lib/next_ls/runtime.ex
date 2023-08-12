@@ -3,6 +3,7 @@ defmodule NextLS.Runtime do
   use GenServer
 
   @env Mix.env()
+  defguardp is_ready(state) when is_map_key(state, :node)
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -179,7 +180,7 @@ defmodule NextLS.Runtime do
   end
 
   @impl GenServer
-  def handle_call(:ready?, _from, %{node: _node} = state) do
+  def handle_call(:ready?, _from, state) when is_ready(state) do
     {:reply, true, state}
   end
 
@@ -187,13 +188,13 @@ defmodule NextLS.Runtime do
     {:reply, false, state}
   end
 
+  def handle_call(_, _from, state) when not is_ready(state) do
+    {:reply, {:error, :not_ready}, state}
+  end
+
   def handle_call({:call, {m, f, a}}, _from, %{node: node} = state) do
     reply = :rpc.call(node, m, f, a)
     {:reply, {:ok, reply}, state}
-  end
-
-  def handle_call({:call, _}, _from, state) do
-    {:reply, {:error, :not_ready}, state}
   end
 
   def handle_call(:compile, from, %{node: node} = state) do
@@ -220,12 +221,9 @@ defmodule NextLS.Runtime do
     {:noreply, %{state | compiler_ref: %{task.ref => from}}}
   end
 
-  def handle_call(:compile, _from, state) do
-    {:reply, {:error, :not_ready}, state}
-  end
-
   @impl GenServer
-  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
+  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state)
+      when is_map_key(compiler_ref, ref) do
     Process.demonitor(ref, [:flush])
 
     GenServer.reply(compiler_ref[ref], errors)
@@ -241,7 +239,7 @@ defmodule NextLS.Runtime do
   def handle_info({:DOWN, _, :port, port, reason}, %{port: port} = state) do
     error = {:port_down, reason}
 
-    unless is_map_key(state, :node) do
+    unless is_ready(state) do
       state.on_initialized.({:error, error})
     end
 
