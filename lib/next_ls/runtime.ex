@@ -144,8 +144,11 @@ defmodule NextLS.Runtime do
           |> Path.join("monkey/_next_ls_private_compiler.ex")
           |> then(&:rpc.call(node, Code, :compile_file, [&1]))
           |> tap(fn
-            {:badrpc, error} -> NextLS.Logger.error(logger, "Bad RPC call: #{inspect(error)}")
-            _ -> :ok
+            {:badrpc, error} ->
+              NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+
+            _ ->
+              :ok
           end)
 
           :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
@@ -198,7 +201,7 @@ defmodule NextLS.Runtime do
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
           {:badrpc, error} ->
-            NextLS.Logger.error(state.logger, "Bad RPC call: #{inspect(error)}")
+            NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
             []
 
           {_, diagnostics} when is_list(diagnostics) ->
@@ -217,6 +220,10 @@ defmodule NextLS.Runtime do
     {:noreply, %{state | compiler_ref: %{task.ref => from}}}
   end
 
+  def handle_call(:compile, _from, state) do
+    {:reply, {:error, :not_ready}, state}
+  end
+
   @impl GenServer
   def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
     Process.demonitor(ref, [:flush])
@@ -233,7 +240,11 @@ defmodule NextLS.Runtime do
 
   def handle_info({:DOWN, _, :port, port, reason}, %{port: port} = state) do
     error = {:port_down, reason}
-    state.on_initialized.({:error, error})
+
+    unless is_map_key(state, :node) do
+      state.on_initialized.({:error, error})
+    end
+
     {:stop, {:shutdown, error}, state}
   end
 
