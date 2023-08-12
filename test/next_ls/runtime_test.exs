@@ -42,8 +42,75 @@ defmodule NextLs.RuntimeTest do
     [logger: logger, cwd: Path.absname(tmp_dir), on_init: on_init]
   end
 
+  describe "errors" do
+    test "emitted on crash during initialization",
+         %{tmp_dir: tmp_dir, logger: logger, cwd: cwd, on_init: on_init} do
+      # obvious syntax error
+      bad_mix_exs = String.replace(mix_exs(), "defmodule", "")
+      File.write!(Path.join(tmp_dir, "mix.exs"), bad_mix_exs)
+
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      start_supervised!(
+        {Runtime,
+         task_supervisor: tvisor,
+         name: "my_proj",
+         on_initialized: on_init,
+         working_dir: cwd,
+         uri: "file://#{cwd}",
+         parent: self(),
+         logger: logger,
+         db: :some_db,
+         registry: RuntimeTest.Registry},
+        restart: :temporary
+      )
+
+      assert_receive {:error, {:port_down, :normal}}
+
+      assert_receive {:log, :log, log_msg}
+      assert log_msg =~ "syntax error"
+
+      assert_receive {:log, :error, error_msg}
+      assert error_msg =~ "{:shutdown, {:port_down, :normal}}"
+    end
+
+    test "emitted on crash after initialization",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      pid =
+        start_supervised!(
+          {Runtime,
+           task_supervisor: tvisor,
+           name: "my_proj",
+           on_initialized: on_init,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           registry: RuntimeTest.Registry},
+          restart: :temporary
+        )
+
+      assert_receive :ready
+
+      assert {:ok, {:badrpc, :nodedown}} = Runtime.call(pid, {System, :halt, [1]})
+
+      assert_receive {:log, :warning, warning_msg}
+      assert warning_msg =~ ~r"Connected node [^ ]+ is down. Exiting my_proj runtime."
+
+      assert_receive {:log, :log, "The runtime for my_proj has successfully shut down."}
+    end
+  end
+
   describe "call/2" do
-    test "responds with an ok tuple", %{logger: logger, cwd: cwd, on_init: on_init} do
+    test "responds with an ok tuple if the runtime has initialized",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
       start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
       tvisor = start_supervised!(Task.Supervisor)
 
@@ -68,7 +135,7 @@ defmodule NextLs.RuntimeTest do
       assert {:ok, "\"hi\""} = Runtime.call(pid, {Kernel, :inspect, ["hi"]})
     end
 
-    test "responds with an error when the runtime isn't ready",
+    test "responds with an error when the runtime hasn't initialized",
          %{logger: logger, cwd: cwd, on_init: on_init} do
       start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
 
@@ -146,39 +213,6 @@ defmodule NextLs.RuntimeTest do
       """)
 
       assert [] == Runtime.compile(pid)
-    end
-
-    test "emits errors when runtime compilation fails",
-         %{tmp_dir: tmp_dir, logger: logger, cwd: cwd, on_init: on_init} do
-      # obvious syntax error
-      bad_mix_exs = String.replace(mix_exs(), "defmodule", "")
-      File.write!(Path.join(tmp_dir, "mix.exs"), bad_mix_exs)
-
-      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
-
-      tvisor = start_supervised!(Task.Supervisor)
-
-      start_supervised!(
-        {Runtime,
-         task_supervisor: tvisor,
-         name: "my_proj",
-         on_initialized: on_init,
-         working_dir: cwd,
-         uri: "file://#{cwd}",
-         parent: self(),
-         logger: logger,
-         db: :some_db,
-         registry: RuntimeTest.Registry},
-        restart: :temporary
-      )
-
-      assert_receive {:error, {:port_down, :normal}}
-
-      assert_receive {:log, :log, log_msg}
-      assert log_msg =~ "syntax error"
-
-      assert_receive {:log, :error, error_msg}
-      assert error_msg =~ "{:shutdown, {:port_down, :normal}}"
     end
 
     test "responds with an error when the runtime isn't ready",

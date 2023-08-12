@@ -126,7 +126,7 @@ defmodule NextLS.Runtime do
           {:DOWN, ^ref, :process, ^me, reason} ->
             case reason do
               :shutdown ->
-                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
+                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shut down.")
 
               reason ->
                 NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
@@ -222,8 +222,7 @@ defmodule NextLS.Runtime do
   end
 
   @impl GenServer
-  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state)
-      when is_map_key(compiler_ref, ref) do
+  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
     Process.demonitor(ref, [:flush])
 
     GenServer.reply(compiler_ref[ref], errors)
@@ -255,6 +254,11 @@ defmodule NextLS.Runtime do
     Node.monitor(node, true)
     state.on_initialized.(:ready)
     {:noreply, Map.put(state, :node, node)}
+  end
+
+  def handle_info({:nodedown, node}, %{node: node} = state) do
+    NextLS.Logger.warning(state.logger, "Connected node #{node} is down. Exiting #{state.name} runtime.")
+    {:stop, :shutdown, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do
