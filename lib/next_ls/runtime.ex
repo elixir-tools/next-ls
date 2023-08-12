@@ -235,14 +235,12 @@ defmodule NextLS.Runtime do
     {:noreply, %{state | compiler_ref: nil}}
   end
 
-  def handle_info({:DOWN, _, :port, port, reason}, %{port: port} = state) do
-    error = {:port_down, reason}
-
+  def handle_info({:DOWN, _, :port, port, _}, %{port: port} = state) do
     unless is_ready(state) do
-      state.on_initialized.({:error, error})
+      state.on_initialized.({:error, :portdown})
     end
 
-    {:stop, {:shutdown, error}, state}
+    {:stop, {:shutdown, :portdown}, state}
   end
 
   def handle_info({:cancel, error}, state) do
@@ -257,8 +255,11 @@ defmodule NextLS.Runtime do
   end
 
   def handle_info({:nodedown, node}, %{node: node} = state) do
-    NextLS.Logger.warning(state.logger, "Connected node #{node} is down. Exiting #{state.name} runtime.")
-    {:stop, :shutdown, state}
+    unless is_ready(state) do
+      state.on_initialized.({:error, :nodedown})
+    end
+
+    {:stop, {:shutdown, :nodedown}, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do

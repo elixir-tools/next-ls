@@ -67,13 +67,13 @@ defmodule NextLs.RuntimeTest do
         restart: :temporary
       )
 
-      assert_receive {:error, {:port_down, :normal}}
+      assert_receive {:error, :portdown}
 
       assert_receive {:log, :log, log_msg}
       assert log_msg =~ "syntax error"
 
       assert_receive {:log, :error, error_msg}
-      assert error_msg =~ "{:shutdown, {:port_down, :normal}}"
+      assert error_msg =~ "{:shutdown, :portdown}"
     end
 
     test "emitted on crash after initialization",
@@ -101,10 +101,8 @@ defmodule NextLs.RuntimeTest do
 
       assert {:ok, {:badrpc, :nodedown}} = Runtime.call(pid, {System, :halt, [1]})
 
-      assert_receive {:log, :warning, warning_msg}
-      assert warning_msg =~ ~r"Connected node [^ ]+ is down. Exiting my_proj runtime."
-
-      assert_receive {:log, :log, "The runtime for my_proj has successfully shut down."}
+      assert_receive {:log, :error, error_msg}
+      assert error_msg =~ "{:shutdown, :nodedown}"
     end
   end
 
