@@ -39,6 +39,8 @@ defmodule NextLs.RuntimeTest do
 
     on_init = fn msg -> send(me, msg) end
 
+    on_exit(&flush_messages/0)
+
     [logger: logger, cwd: Path.absname(tmp_dir), on_init: on_init]
   end
 
@@ -236,6 +238,14 @@ defmodule NextLs.RuntimeTest do
       Process.link(pid)
 
       assert {:error, :not_ready} = Runtime.compile(pid)
+    end
+  end
+
+  defp flush_messages do
+    receive do
+      _ -> flush_messages()
+    after
+      0 -> :ok
     end
   end
 end
