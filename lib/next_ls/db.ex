@@ -65,7 +65,7 @@ defmodule NextLS.DB do
       )
 
     symbols =
-      for [_pk, module, file, type, name, line, column] <- rows do
+      for [_pk, module, file, type, name, line, column | _] <- rows do
         %{
           module: module,
           file: file,

@@ -5,7 +5,7 @@ defmodule NextLS.Definition do
   alias NextLS.DB
 
   def fetch(file, {line, col}, db) do
-    with [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c]] <-
+    with [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c | _]] <-
            DB.query(
              db,
              ~Q"""

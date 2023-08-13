@@ -133,7 +133,7 @@ defmodule NextLS do
             [] ->
               nil
 
-            [[_pk, _mod, file, _type, _name, line, column] | _] ->
+            [[_pk, _mod, file, _type, _name, line, column | _] | _] ->
               %Location{
                 uri: "file://#{file}",
                 range: %Range{
@@ -236,6 +236,7 @@ defmodule NextLS do
       if query == "" do
         true
       else
+        # TODO: sqlite has a regexp feature, this can be done in sql most likely
         to_string(sym) =~ query
       end
     end

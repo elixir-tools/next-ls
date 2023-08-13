@@ -55,10 +55,6 @@ defmodule NextLSTest do
 
   setup :with_lsp
 
-  test "can start the LSP server", %{server: server} do
-    assert alive?(server)
-  end
-
   test "responds correctly to a shutdown request", %{client: client} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
     assert_request(client, "client/registerCapability", fn _params -> nil end)
@@ -193,8 +189,6 @@ defmodule NextLSTest do
   test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
     assert_request(client, "client/registerCapability", fn _params -> nil end)
-    assert_is_ready(context, "my_proj")
-    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     notify client, %{
       method: "textDocument/didOpen",
@@ -217,6 +211,7 @@ defmodule NextLSTest do
     }
 
     assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     request client, %{
       method: "textDocument/formatting",
@@ -241,7 +236,7 @@ defmodule NextLSTest do
     assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     request client, %{
       method: "workspace/symbol",
@@ -325,62 +320,6 @@ defmodule NextLSTest do
              },
              "name" => "defmodule Foo.CodeAction.NestedMod"
            } in symbols
-  end
-
-  test "workspace symbols with query", %{client: client, cwd: cwd} = context do
-    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-    assert_is_ready(context, "my_proj")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
-
-    request client, %{
-      method: "workspace/symbol",
-      id: 2,
-      jsonrpc: "2.0",
-      params: %{
-        query: "fo"
-      }
-    }
-
-    assert_result 2, symbols
-
-    assert [
-             %{
-               "kind" => 12,
-               "location" => %{
-                 "range" => %{
-                   "start" => %{
-                     "line" => 4,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 4,
-                     "character" => 0
-                   }
-                 },
-                 "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
-               },
-               "name" => "def foo"
-             },
-             %{
-               "kind" => 12,
-               "location" => %{
-                 "range" => %{
-                   "start" => %{
-                     "line" => 3,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 3,
-                     "character" => 0
-                   }
-                 },
-                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
-               },
-               "name" => "def foo"
-             }
-           ] == symbols
   end
 
   test "workspace symbols with query", %{client: client, cwd: cwd} = context do

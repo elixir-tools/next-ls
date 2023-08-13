@@ -29,6 +29,8 @@ defmodule NextLS.DB.Schema do
     # FIXME: this is odd tech debt. not a big deal but is confusing
     {_, logger} = conn
 
+    NextLS.Logger.log(logger, "Beginning DB migration...")
+
     DB.__query__(
       conn,
       ~Q"""
@@ -41,63 +43,67 @@ defmodule NextLS.DB.Schema do
       []
     )
 
-    case DB.__query__(conn, ~Q"SELECT MAX(version) FROM schema;", []) do
-      [[version]] when version == @version ->
-        NextLS.Logger.info(logger, "Database is on the latest version: #{@version}")
-        {:ok, :noop}
+    result =
+      case DB.__query__(conn, ~Q"SELECT MAX(version) FROM schema;", []) do
+        [[version]] when version == @version ->
+          NextLS.Logger.info(logger, "Database is on the latest version: #{@version}")
+          {:ok, :noop}
 
-      result ->
-        version = with([[version]] <- result, do: version) || 0
+        result ->
+          version = with([[version]] <- result, do: version) || 0
 
-        NextLS.Logger.info(logger, """
-        Database is being upgraded from version #{version} to #{@version}.
+          NextLS.Logger.info(logger, """
+          Database is being upgraded from version #{version} to #{@version}.
 
-        This will trigger a full recompilation in order to re-index your codebase.
-        """)
+          This will trigger a full recompilation in order to re-index your codebase.
+          """)
 
-        DB.__query__(conn, ~Q"INSERT INTO schema (version) VALUES (?);", [@version])
+          DB.__query__(conn, ~Q"INSERT INTO schema (version) VALUES (?);", [@version])
 
-        DB.__query__(conn, ~Q"DROP TABLE IF EXISTS symbols;", [])
-        DB.__query__(conn, ~Q"DROP TABLE IF EXISTS 'references';", [])
+          DB.__query__(conn, ~Q"DROP TABLE IF EXISTS symbols;", [])
+          DB.__query__(conn, ~Q"DROP TABLE IF EXISTS 'references';", [])
 
-        DB.__query__(
-          conn,
-          ~Q"""
-          CREATE TABLE IF NOT EXISTS symbols (
-              id integer PRIMARY KEY,
-              module text NOT NULL,
-              file text NOT NULL,
-              type text NOT NULL,
-              name text NOT NULL,
-              line integer NOT NULL,
-              column integer NOT NULL,
-              inserted_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
-          );
-          """,
-          []
-        )
-
-        DB.__query__(
-          conn,
-          ~Q"""
-          CREATE TABLE IF NOT EXISTS 'references' (
-              id integer PRIMARY KEY,
-              identifier text NOT NULL,
-              arity integer,
-              file text NOT NULL,
-              type text NOT NULL,
-              module text NOT NULL,
-              start_line integer NOT NULL,
-              start_column integer NOT NULL,
-              end_line integer NOT NULL,
-              end_column integer NOT NULL,
-              inserted_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
+          DB.__query__(
+            conn,
+            ~Q"""
+            CREATE TABLE IF NOT EXISTS symbols (
+                id integer PRIMARY KEY,
+                module text NOT NULL,
+                file text NOT NULL,
+                type text NOT NULL,
+                name text NOT NULL,
+                line integer NOT NULL,
+                column integer NOT NULL,
+                inserted_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            []
           )
-          """,
-          []
-        )
 
-        {:ok, :reindex}
-    end
+          DB.__query__(
+            conn,
+            ~Q"""
+            CREATE TABLE IF NOT EXISTS 'references' (
+                id integer PRIMARY KEY,
+                identifier text NOT NULL,
+                arity integer,
+                file text NOT NULL,
+                type text NOT NULL,
+                module text NOT NULL,
+                start_line integer NOT NULL,
+                start_column integer NOT NULL,
+                end_line integer NOT NULL,
+                end_column integer NOT NULL,
+                inserted_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            []
+          )
+
+          {:ok, :reindex}
+      end
+
+    NextLS.Logger.log(logger, "Finished DB migration...")
+    result
   end
 end
