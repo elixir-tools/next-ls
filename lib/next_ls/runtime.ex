@@ -2,6 +2,8 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
+  @env Mix.env()
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
@@ -91,18 +93,24 @@ defmodule NextLS.Runtime do
               {~c"RELEASE_SYS_CONFIG", false},
               {~c"PATH", String.to_charlist(new_path)}
             ],
-            args: [
-              System.find_executable("elixir"),
-              "--no-halt",
-              "--sname",
-              sname,
-              "--cookie",
-              Node.get_cookie(),
-              "-S",
-              "mix",
-              "loadpaths",
-              "--no-compile"
-            ]
+            args:
+              [System.find_executable("elixir")] ++
+                if @env == :test do
+                  ["--erl", "-kernel prevent_overlapping_partitions false"]
+                else
+                  []
+                end ++
+                [
+                  "--no-halt",
+                  "--sname",
+                  sname,
+                  "--cookie",
+                  Node.get_cookie(),
+                  "-S",
+                  "mix",
+                  "loadpaths",
+                  "--no-compile"
+                ]
           ]
         )
 

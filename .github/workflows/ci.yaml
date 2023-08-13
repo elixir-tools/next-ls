@@ -44,7 +44,7 @@ jobs:
         run: rm -rf tmp
 
       - name: Run Tests
-        run: mix test
+        run: elixir --erl '-kernel prevent_overlapping_partitions false' -S mix test
 
   formatter:
     runs-on: ubuntu-latest
