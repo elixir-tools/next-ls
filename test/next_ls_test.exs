@@ -240,7 +240,7 @@ defmodule NextLSTest do
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       request client, %{
         method: "workspace/symbol",
@@ -331,7 +331,7 @@ defmodule NextLSTest do
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       request client, %{
         method: "workspace/symbol",
@@ -387,7 +387,7 @@ defmodule NextLSTest do
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
-      assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       request client, %{method: "workspace/symbol", id: 2, jsonrpc: "2.0", params: %{query: ""}}
 

@@ -1,5 +1,5 @@
 defmodule NextLS.DB do
-  @moduledoc false
+  @moduledoc nil
   use GenServer
 
   import __MODULE__.Query
@@ -26,6 +26,7 @@ defmodule NextLS.DB do
     file = Keyword.fetch!(args, :file)
     registry = Keyword.fetch!(args, :registry)
     logger = Keyword.fetch!(args, :logger)
+    activity = Keyword.fetch!(args, :activity)
     Registry.register(registry, :databases, %{})
     {:ok, conn} = Exqlite.Basic.open(file)
 
@@ -35,11 +36,14 @@ defmodule NextLS.DB do
      %{
        conn: conn,
        file: file,
-       logger: logger
+       logger: logger,
+       activity: activity
      }}
   end
 
   def handle_call({:query, query, args}, _from, %{conn: conn} = s) do
+    {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+    NextLS.DB.Activity.update(s.activity, count)
     rows = __query__({conn, s.logger}, query, args)
 
     {:reply, rows, s}
@@ -74,6 +78,9 @@ defmodule NextLS.DB do
   end
 
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do
+    {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+    NextLS.DB.Activity.update(s.activity, count)
+
     %{
       module: mod,
       module_line: module_line,
@@ -128,6 +135,9 @@ defmodule NextLS.DB do
   end
 
   def handle_cast({:insert_reference, reference}, %{conn: conn} = s) do
+    {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+    NextLS.DB.Activity.update(s.activity, count)
+
     %{
       meta: meta,
       identifier: identifier,

@@ -375,6 +375,7 @@ defmodule NextLS do
           {NextLS.Runtime.Supervisor,
            path: Path.join(working_dir, ".elixir-tools"),
            name: name,
+           lsp: lsp,
            registry: lsp.assigns.registry,
            logger: lsp.assigns.logger,
            runtime: [
