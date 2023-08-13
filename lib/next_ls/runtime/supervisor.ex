@@ -25,7 +25,8 @@ defmodule NextLS.Runtime.Supervisor do
 
     children = [
       {NextLS.Runtime.Sidecar, name: sidecar_name, db: db_name},
-      {NextLS.DB.Activity, logger: logger, name: db_activity, lsp: lsp, timeout: Application.get_env(:next_ls, :indexing_timeout)},
+      {NextLS.DB.Activity,
+       logger: logger, name: db_activity, lsp: lsp, timeout: Application.get_env(:next_ls, :indexing_timeout)},
       {NextLS.DB,
        logger: logger, file: "#{hidden_folder}/nextls.db", registry: registry, name: db_name, activity: db_activity},
       {NextLS.Runtime, init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, db: db_name]}
