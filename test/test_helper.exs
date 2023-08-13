@@ -2,6 +2,7 @@ Logger.configure(level: :warning)
 
 timeout =
   if System.get_env("CI", "false") == "true" do
+    Application.put_env(:next_ls, :indexing_timeout, 500)
     60_000
   else
     30_000
