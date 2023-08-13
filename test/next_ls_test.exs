@@ -460,10 +460,6 @@ defmodule NextLSTest do
             "line" => 3,
             "character" => 0
           }
-          "end" => %{
-            "line" => 3,
-            "character" => 0
-          }
         },
         "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
       },
