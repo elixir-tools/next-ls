@@ -147,12 +147,11 @@ defmodule NextLS.Runtime do
           |> tap(fn
             {:badrpc, error} ->
               NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+              send(me, {:cancel, error})
 
             _ ->
               :ok
           end)
-
-          :rpc.call(node, Code, :put_compiler_option, [:parser_options, [columns: true, token_metadata: true]])
 
           send(me, {:node, node})
         else

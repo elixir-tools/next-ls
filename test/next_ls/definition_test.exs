@@ -132,6 +132,7 @@ defmodule NextLS.DefinitionTest do
       assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
+      assert_compiled(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       uri = uri(bar)

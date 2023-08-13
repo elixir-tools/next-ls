@@ -78,14 +78,7 @@ defmodule NextLS.DiagnosticsTest do
       }
     }
 
-    assert_notification "$/progress", %{"value" => %{"kind" => "begin", "title" => "Compiling..."}}
-
-    assert_notification "$/progress", %{
-      "value" => %{
-        "kind" => "end",
-        "message" => "Compiled!"
-      }
-    }
+    assert_compiled(context, "my_proj")
 
     for file <- ["bar.ex"] do
       uri =

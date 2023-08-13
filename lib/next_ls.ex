@@ -420,7 +420,7 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         for {pid, %{name: name, uri: wuri, db: db}} <- entries, String.starts_with?(uri, wuri), into: %{} do
           token = Progress.token()
-          Progress.start(lsp, token, "Compiling...")
+          Progress.start(lsp, token, "Compiling #{name}...")
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
@@ -436,7 +436,7 @@ defmodule NextLS do
               {name, Runtime.compile(pid)}
             end)
 
-          {task.ref, {token, "Compiled!"}}
+          {task.ref, {token, "Compiled #{name}!"}}
         end
       end)
 
@@ -593,7 +593,7 @@ defmodule NextLS do
 
   def handle_info({:runtime_ready, name, runtime_pid}, lsp) do
     token = Progress.token()
-    Progress.start(lsp, token, "Compiling...")
+    Progress.start(lsp, token, "Compiling #{name}...")
 
     task =
       Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
@@ -605,7 +605,7 @@ defmodule NextLS do
         {name, Runtime.compile(runtime_pid, force: mode == :reindex)}
       end)
 
-    refresh_refs = Map.put(lsp.assigns.refresh_refs, task.ref, {token, "Compiled!"})
+    refresh_refs = Map.put(lsp.assigns.refresh_refs, task.ref, {token, "Compiled #{name}!"})
 
     {:noreply, assign(lsp, ready: true, refresh_refs: refresh_refs)}
   end
