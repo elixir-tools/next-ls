@@ -27,10 +27,12 @@ defmodule NextLS.DB do
     registry = Keyword.fetch!(args, :registry)
     logger = Keyword.fetch!(args, :logger)
     activity = Keyword.fetch!(args, :activity)
-    Registry.register(registry, :databases, %{})
-    {:ok, conn} = Exqlite.Basic.open(file)
+    runtime = Keyword.fetch!(args, :runtime)
 
-    NextLS.DB.Schema.init({conn, logger})
+    {:ok, conn} = Exqlite.Basic.open(file)
+    {:ok, mode} = NextLS.DB.Schema.init({conn, logger})
+
+    Registry.register(registry, :databases, %{mode: mode, runtime: runtime})
 
     {:ok,
      %{
