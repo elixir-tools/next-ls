@@ -23,4 +23,11 @@ defmodule NextLS.Progress do
       }
     })
   end
+
+  def token do
+    8
+    |> :crypto.strong_rand_bytes()
+    |> Base.url_encode64(padding: false)
+    |> binary_part(0, 8)
+  end
 end
