@@ -672,8 +672,8 @@ defmodule NextLS do
     SELECT identifier, type, module
     FROM "references" refs
     WHERE refs.file = ?
-      AND refs.start_line <= ? AND refs.end_line >= ?
-      AND refs.start_column <= ? AND refs.end_column >= ?
+      AND ? BETWEEN refs.start_line AND refs.end_line
+      AND ? BETWEEN refs.start_column AND refs.end_column
     ORDER BY refs.id ASC
     LIMIT 1
     """
@@ -695,7 +695,7 @@ defmodule NextLS do
         {:function, module, function}
 
       _unknown_definition ->
-        case DB.query(database, reference_query, [file, line, line, col, col]) do
+        case DB.query(database, reference_query, [file, line, col]) do
           [[function, "function", module]] ->
             {:function, module, function}
 
