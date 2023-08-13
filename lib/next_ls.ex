@@ -364,7 +364,7 @@ defmodule NextLS do
     GenLSP.log(lsp, "[NextLS] Booting runtimes...")
 
     for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
-      token = token()
+      token = Progress.token()
       Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
       parent = self()
       working_dir = URI.parse(uri).path
@@ -417,7 +417,7 @@ defmodule NextLS do
     refresh_refs =
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         for {pid, %{name: name, uri: wuri, db: db}} <- entries, String.starts_with?(uri, wuri), into: %{} do
-          token = token()
+          token = Progress.token()
           Progress.start(lsp, token, "Compiling...")
 
           task =
@@ -479,7 +479,7 @@ defmodule NextLS do
 
       for %{name: name, uri: uri} <- added, name not in names do
         GenLSP.log(lsp, "[NextLS] Adding workspace folder #{name}")
-        token = token()
+        token = Progress.token()
         Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
         parent = self()
         working_dir = URI.parse(uri).path
@@ -590,7 +590,7 @@ defmodule NextLS do
   end
 
   def handle_info({:runtime_ready, name, runtime_pid}, lsp) do
-    token = token()
+    token = Progress.token()
     Progress.start(lsp, token, "Compiling...")
 
     task =
@@ -624,13 +624,6 @@ defmodule NextLS do
   def handle_info(message, lsp) do
     GenLSP.log(lsp, "[NextLS] Unhandled message: #{inspect(message)}")
     {:noreply, lsp}
-  end
-
-  defp token do
-    8
-    |> :crypto.strong_rand_bytes()
-    |> Base.url_encode64(padding: false)
-    |> binary_part(0, 8)
   end
 
   defp version do
