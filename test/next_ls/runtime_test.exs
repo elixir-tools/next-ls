@@ -135,8 +135,7 @@ defmodule NextLs.RuntimeTest do
       assert {:ok, "\"hi\""} = Runtime.call(pid, {Kernel, :inspect, ["hi"]})
     end
 
-    test "responds with an error when the runtime hasn't initialized",
-         %{logger: logger, cwd: cwd, on_init: on_init} do
+    test "responds with an error when the runtime hasn't initialized", %{logger: logger, cwd: cwd, on_init: on_init} do
       start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
 
       tvisor = start_supervised!(Task.Supervisor)
@@ -215,8 +214,7 @@ defmodule NextLs.RuntimeTest do
       assert [] == Runtime.compile(pid)
     end
 
-    test "responds with an error when the runtime isn't ready",
-         %{logger: logger, cwd: cwd, on_init: on_init} do
+    test "responds with an error when the runtime isn't ready", %{logger: logger, cwd: cwd, on_init: on_init} do
       start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
 
       tvisor = start_supervised!(Task.Supervisor)
