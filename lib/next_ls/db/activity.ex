@@ -22,12 +22,13 @@ defmodule NextLS.DB.Activity do
   def init(args) do
     logger = Keyword.fetch!(args, :logger)
     lsp = Keyword.fetch!(args, :lsp)
+    timeout = Keyword.fetch!(args, :timeout)
 
-    {:ok, :waiting, %{count: 0, logger: logger, lsp: lsp, token: nil}}
+    {:ok, :waiting, %{count: 0, logger: logger, lsp: lsp, timeout: timeout, token: nil}}
   end
 
   def active(:cast, 0, data) do
-    {:keep_state, %{data | count: 0}, [{:state_timeout, 100, :waiting}]}
+    {:keep_state, %{data | count: 0}, [{:state_timeout, data.timeout, :waiting}]}
   end
 
   def active(:cast, mailbox_count, %{count: 0} = data) do
