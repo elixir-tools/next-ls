@@ -133,7 +133,7 @@ defmodule NextLS do
             [] ->
               nil
 
-            [[_pk, _mod, file, _type, _name, line, column] | _] ->
+            [[_pk, _mod, file, _type, _name, line, column | _] | _] ->
               %Location{
                 uri: "file://#{file}",
                 range: %Range{
@@ -236,6 +236,7 @@ defmodule NextLS do
       if query == "" do
         true
       else
+        # TODO: sqlite has a regexp feature, this can be done in sql most likely
         to_string(sym) =~ query
       end
     end
@@ -596,7 +597,12 @@ defmodule NextLS do
 
     task =
       Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-        {name, Runtime.compile(runtime_pid)}
+        {_, %{mode: mode}} =
+          dispatch(lsp.assigns.registry, :databases, fn entries ->
+            Enum.find(entries, fn {_, %{runtime: runtime}} -> runtime == name end)
+          end)
+
+        {name, Runtime.compile(runtime_pid, force: mode == :reindex)}
       end)
 
     refresh_refs = Map.put(lsp.assigns.refresh_refs, task.ref, {token, "Compiled!"})

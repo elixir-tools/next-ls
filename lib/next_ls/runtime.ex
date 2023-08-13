@@ -33,8 +33,8 @@ defmodule NextLS.Runtime do
     end
   end
 
-  def compile(server) do
-    GenServer.call(server, :compile, :infinity)
+  def compile(server, opts \\ []) do
+    GenServer.call(server, {:compile, opts}, :infinity)
   end
 
   @impl GenServer
@@ -164,6 +164,7 @@ defmodule NextLS.Runtime do
       {:ok,
        %{
          name: name,
+         working_dir: working_dir,
          compiler_ref: nil,
          port: port,
          task_supervisor: task_supervisor,
@@ -197,9 +198,13 @@ defmodule NextLS.Runtime do
     {:reply, {:ok, reply}, state}
   end
 
-  def handle_call(:compile, from, %{node: node} = state) do
+  def handle_call({:compile, opts}, from, %{node: node} = state) do
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
+        if opts[:force] do
+          File.rm_rf!(Path.join(state.working_dir, ".elixir-tools/_build"))
+        end
+
         case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
           {:badrpc, error} ->
             NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")

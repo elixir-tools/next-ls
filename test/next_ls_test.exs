@@ -6,254 +6,359 @@ defmodule NextLSTest do
 
   @moduletag :tmp_dir
 
-  describe "one" do
-    @describetag root_paths: ["my_proj"]
-    setup %{tmp_dir: tmp_dir} do
-      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
-      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
-      [cwd: tmp_dir]
-    end
+  @moduletag root_paths: ["my_proj"]
+  setup %{tmp_dir: tmp_dir} do
+    File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+    File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+    [cwd: tmp_dir]
+  end
 
-    setup %{tmp_dir: tmp_dir} do
-      File.write!(Path.join(tmp_dir, "my_proj/lib/bar.ex"), """
-      defmodule Bar do
-        defstruct [:foo]
+  setup %{tmp_dir: tmp_dir} do
+    File.write!(Path.join(tmp_dir, "my_proj/lib/bar.ex"), """
+    defmodule Bar do
+      defstruct [:foo]
 
-        def foo(arg1) do
-        end
+      def foo(arg1) do
       end
-      """)
-
-      File.write!(Path.join(tmp_dir, "my_proj/lib/code_action.ex"), """
-      defmodule Foo.CodeAction do
-        # some comment
-
-        defmodule NestedMod do
-          def foo do
-            :ok
-          end
-        end
-      end
-      """)
-
-      File.write!(Path.join(tmp_dir, "my_proj/lib/foo.ex"), """
-      defmodule Foo do
-      end
-      """)
-
-      File.write!(Path.join(tmp_dir, "my_proj/lib/project.ex"), """
-      defmodule Project do
-        def hello do
-          :world
-        end
-      end
-      """)
-
-      File.rm_rf!(Path.join(tmp_dir, ".elixir-tools"))
-
-      :ok
     end
+    """)
 
-    setup :with_lsp
+    File.write!(Path.join(tmp_dir, "my_proj/lib/code_action.ex"), """
+    defmodule Foo.CodeAction do
+      # some comment
 
-    test "can start the LSP server", %{server: server} do
-      assert alive?(server)
-    end
-
-    test "responds correctly to a shutdown request", %{client: client} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      assert_is_ready(context, "my_proj")
-
-      assert :ok ==
-               request(client, %{
-                 method: "shutdown",
-                 id: 2,
-                 jsonrpc: "2.0"
-               })
-
-      assert_result 2, nil
-    end
-
-    test "returns method not found for unimplemented requests", %{client: client} do
-      id = System.unique_integer([:positive])
-
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      assert :ok ==
-               request(client, %{
-                 method: "textDocument/signatureHelp",
-                 id: id,
-                 jsonrpc: "2.0",
-                 params: %{position: %{line: 0, character: 0}, textDocument: %{uri: ""}}
-               })
-
-      assert_notification "window/logMessage", %{
-        "message" => "[NextLS] Method Not Found: textDocument/signatureHelp",
-        "type" => 2
-      }
-
-      assert_error ^id, %{
-        "code" => -32_601,
-        "message" => "Method Not Found: textDocument/signatureHelp"
-      }
-    end
-
-    test "can initialize the server" do
-      assert_result 1, %{
-        "capabilities" => %{
-          "textDocumentSync" => %{
-            "openClose" => true,
-            "save" => %{
-              "includeText" => true
-            },
-            "change" => 1
-          }
-        },
-        "serverInfo" => %{"name" => "Next LS"}
-      }
-    end
-
-    test "formats", %{client: client, cwd: cwd} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      notify client, %{
-        method: "textDocument/didOpen",
-        jsonrpc: "2.0",
-        params: %{
-          textDocument: %{
-            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
-            languageId: "elixir",
-            version: 1,
-            text: """
-            defmodule Foo.Bar do
-              def run() do
-
-
-                :ok
-              end
-            end
-            """
-          }
-        }
-      }
-
-      request client, %{
-        method: "textDocument/formatting",
-        id: 2,
-        jsonrpc: "2.0",
-        params: %{
-          textDocument: %{
-            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
-          },
-          options: %{
-            insertSpaces: true,
-            tabSize: 2
-          }
-        }
-      }
-
-      assert_result 2, nil
-
-      assert_is_ready(context, "my_proj")
-
-      request client, %{
-        method: "textDocument/formatting",
-        id: 3,
-        jsonrpc: "2.0",
-        params: %{
-          textDocument: %{
-            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
-          },
-          options: %{
-            insertSpaces: true,
-            tabSize: 2
-          }
-        }
-      }
-
-      new_text = """
-      defmodule Foo.Bar do
-        def run() do
+      defmodule NestedMod do
+        def foo do
           :ok
         end
       end
-      """
-
-      assert_result 3, [
-        %{
-          "newText" => ^new_text,
-          "range" => %{"start" => %{"character" => 0, "line" => 0}, "end" => %{"character" => 0, "line" => 8}}
-        }
-      ]
     end
+    """)
 
-    test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+    File.write!(Path.join(tmp_dir, "my_proj/lib/foo.ex"), """
+    defmodule Foo do
+    end
+    """)
 
-      notify client, %{
-        method: "textDocument/didOpen",
-        jsonrpc: "2.0",
-        params: %{
-          textDocument: %{
-            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
-            languageId: "elixir",
-            version: 1,
-            text: """
-            defmodule Foo.Bar do
-              def run() do
+    File.write!(Path.join(tmp_dir, "my_proj/lib/project.ex"), """
+    defmodule Project do
+      def hello do
+        :world
+      end
+    end
+    """)
 
+    File.rm_rf!(Path.join(tmp_dir, ".elixir-tools"))
 
-                :ok
-            end
-            """
-          }
-        }
-      }
+    :ok
+  end
 
-      assert_is_ready(context, "my_proj")
+  setup :with_lsp
 
-      request client, %{
-        method: "textDocument/formatting",
-        id: 2,
-        jsonrpc: "2.0",
-        params: %{
-          textDocument: %{
-            uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
+  test "responds correctly to a shutdown request", %{client: client} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert_is_ready(context, "my_proj")
+
+    assert :ok ==
+             request(client, %{
+               method: "shutdown",
+               id: 2,
+               jsonrpc: "2.0"
+             })
+
+    assert_result 2, nil
+  end
+
+  test "returns method not found for unimplemented requests", %{client: client} do
+    id = System.unique_integer([:positive])
+
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert :ok ==
+             request(client, %{
+               method: "textDocument/signatureHelp",
+               id: id,
+               jsonrpc: "2.0",
+               params: %{position: %{line: 0, character: 0}, textDocument: %{uri: ""}}
+             })
+
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] Method Not Found: textDocument/signatureHelp",
+      "type" => 2
+    }
+
+    assert_error ^id, %{
+      "code" => -32_601,
+      "message" => "Method Not Found: textDocument/signatureHelp"
+    }
+  end
+
+  test "can initialize the server" do
+    assert_result 1, %{
+      "capabilities" => %{
+        "textDocumentSync" => %{
+          "openClose" => true,
+          "save" => %{
+            "includeText" => true
           },
-          options: %{
-            insertSpaces: true,
-            tabSize: 2
-          }
+          "change" => 1
+        }
+      },
+      "serverInfo" => %{"name" => "Next LS"}
+    }
+  end
+
+  test "formats", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    notify client, %{
+      method: "textDocument/didOpen",
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
+          languageId: "elixir",
+          version: 1,
+          text: """
+          defmodule Foo.Bar do
+            def run() do
+
+
+              :ok
+            end
+          end
+          """
         }
       }
+    }
 
-      assert_result 2, nil
+    request client, %{
+      method: "textDocument/formatting",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
+    assert_result 2, nil
+
+    assert_is_ready(context, "my_proj")
+
+    request client, %{
+      method: "textDocument/formatting",
+      id: 3,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
+    new_text = """
+    defmodule Foo.Bar do
+      def run() do
+        :ok
+      end
     end
+    """
 
-    test "workspace symbols", %{client: client, cwd: cwd} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+    assert_result 3, [
+      %{
+        "newText" => ^new_text,
+        "range" => %{"start" => %{"character" => 0, "line" => 0}, "end" => %{"character" => 0, "line" => 8}}
+      }
+    ]
+  end
 
-      assert_is_ready(context, "my_proj")
-      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+  test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      request client, %{
-        method: "workspace/symbol",
-        id: 2,
-        jsonrpc: "2.0",
-        params: %{
-          query: ""
+    notify client, %{
+      method: "textDocument/didOpen",
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
+          languageId: "elixir",
+          version: 1,
+          text: """
+          defmodule Foo.Bar do
+            def run() do
+
+
+              :ok
+          end
+          """
         }
       }
+    }
 
-      assert_result 2, symbols
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
-      assert %{
+    request client, %{
+      method: "textDocument/formatting",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
+        },
+        options: %{
+          insertSpaces: true,
+          tabSize: 2
+        }
+      }
+    }
+
+    assert_result 2, nil
+  end
+
+  test "workspace symbols", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: ""
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert %{
+             "kind" => 12,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 3,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 3,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
+             },
+             "name" => "def foo"
+           } in symbols
+
+    assert %{
+             "kind" => 2,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 0,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 0,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
+             },
+             "name" => "defmodule Bar"
+           } in symbols
+
+    assert %{
+             "kind" => 23,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 1,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 1,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
+             },
+             "name" => "%Bar{}"
+           } in symbols
+
+    assert %{
+             "kind" => 2,
+             "location" => %{
+               "range" => %{
+                 "start" => %{
+                   "line" => 3,
+                   "character" => 0
+                 },
+                 "end" => %{
+                   "line" => 3,
+                   "character" => 0
+                 }
+               },
+               "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
+             },
+             "name" => "defmodule Foo.CodeAction.NestedMod"
+           } in symbols
+  end
+
+  test "workspace symbols with query", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: "fo"
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert [
+             %{
+               "kind" => 12,
+               "location" => %{
+                 "range" => %{
+                   "start" => %{
+                     "line" => 4,
+                     "character" => 0
+                   },
+                   "end" => %{
+                     "line" => 4,
+                     "character" => 0
+                   }
+                 },
+                 "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
+               },
+               "name" => "def foo"
+             },
+             %{
                "kind" => 12,
                "location" => %{
                  "range" => %{
@@ -269,168 +374,58 @@ defmodule NextLSTest do
                  "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
                },
                "name" => "def foo"
-             } in symbols
+             }
+           ] == symbols
+  end
 
-      assert %{
-               "kind" => 2,
-               "location" => %{
-                 "range" => %{
-                   "start" => %{
-                     "line" => 0,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 0,
-                     "character" => 0
-                   }
-                 },
-                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
-               },
-               "name" => "defmodule Bar"
-             } in symbols
+  test "deletes symbols when a file is deleted", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
-      assert %{
-               "kind" => 23,
-               "location" => %{
-                 "range" => %{
-                   "start" => %{
-                     "line" => 1,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 1,
-                     "character" => 0
-                   }
-                 },
-                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
-               },
-               "name" => "%Bar{}"
-             } in symbols
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
-      assert %{
-               "kind" => 2,
-               "location" => %{
-                 "range" => %{
-                   "start" => %{
-                     "line" => 3,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 3,
-                     "character" => 0
-                   }
-                 },
-                 "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
-               },
-               "name" => "defmodule Foo.CodeAction.NestedMod"
-             } in symbols
-    end
+    request client, %{method: "workspace/symbol", id: 2, jsonrpc: "2.0", params: %{query: ""}}
 
-    test "workspace symbols with query", %{client: client, cwd: cwd} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      assert_is_ready(context, "my_proj")
-      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
-
-      request client, %{
-        method: "workspace/symbol",
-        id: 2,
-        jsonrpc: "2.0",
-        params: %{
-          query: "fo"
-        }
-      }
-
-      assert_result 2, symbols
-
-      assert [
-               %{
-                 "kind" => 12,
-                 "location" => %{
-                   "range" => %{
-                     "start" => %{
-                       "line" => 4,
-                       "character" => 0
-                     },
-                     "end" => %{
-                       "line" => 4,
-                       "character" => 0
-                     }
-                   },
-                   "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
-                 },
-                 "name" => "def foo"
-               },
-               %{
-                 "kind" => 12,
-                 "location" => %{
-                   "range" => %{
-                     "start" => %{
-                       "line" => 3,
-                       "character" => 0
-                     },
-                     "end" => %{
-                       "line" => 3,
-                       "character" => 0
-                     }
-                   },
-                   "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
-                 },
-                 "name" => "def foo"
-               }
-             ] == symbols
-    end
-
-    test "deletes symbols when a file is deleted", %{client: client, cwd: cwd} = context do
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
-
-      assert_is_ready(context, "my_proj")
-      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
-
-      request client, %{method: "workspace/symbol", id: 2, jsonrpc: "2.0", params: %{query: ""}}
-
-      symbol = %{
-        "kind" => 2,
-        "location" => %{
-          "range" => %{
-            "start" => %{
-              "line" => 3,
-              "character" => 0
-            },
-            "end" => %{
-              "line" => 3,
-              "character" => 0
-            }
+    symbol = %{
+      "kind" => 2,
+      "location" => %{
+        "range" => %{
+          "start" => %{
+            "line" => 3,
+            "character" => 0
           },
-          "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
+          "end" => %{
+            "line" => 3,
+            "character" => 0
+          }
         },
-        "name" => "defmodule Foo.CodeAction.NestedMod"
+        "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
+      },
+      "name" => "defmodule Foo.CodeAction.NestedMod"
+    }
+
+    assert_result 2, symbols
+
+    assert symbol in symbols
+
+    notify(client, %{
+      method: "workspace/didChangeWatchedFiles",
+      jsonrpc: "2.0",
+      params: %{
+        changes: [
+          %{
+            type: GenLSP.Enumerations.FileChangeType.deleted(),
+            uri: "file://#{Path.join(cwd, "my_proj/lib/code_action.ex")}"
+          }
+        ]
       }
+    })
 
-      assert_result 2, symbols
+    request client, %{method: "workspace/symbol", id: 3, jsonrpc: "2.0", params: %{query: ""}}
 
-      assert symbol in symbols
+    assert_result 3, symbols
 
-      notify(client, %{
-        method: "workspace/didChangeWatchedFiles",
-        jsonrpc: "2.0",
-        params: %{
-          changes: [
-            %{
-              type: GenLSP.Enumerations.FileChangeType.deleted(),
-              uri: "file://#{Path.join(cwd, "my_proj/lib/code_action.ex")}"
-            }
-          ]
-        }
-      })
-
-      request client, %{method: "workspace/symbol", id: 3, jsonrpc: "2.0", params: %{query: ""}}
-
-      assert_result 3, symbols
-
-      assert symbol not in symbols
-    end
+    assert symbol not in symbols
   end
 end
