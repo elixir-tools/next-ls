@@ -48,7 +48,7 @@ defmodule NextLS.WorkspacesTest do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
     assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "proj_one")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "proj_one")
 
     notify(client, %{
       method: "workspace/didChangeWorkspaceFolders",
@@ -64,7 +64,7 @@ defmodule NextLS.WorkspacesTest do
     })
 
     assert_is_ready(context, "proj_two")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "proj_two")
   end
 
   @tag root_paths: ["proj_one", "proj_two"]
@@ -73,8 +73,9 @@ defmodule NextLS.WorkspacesTest do
     assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "proj_one")
     assert_is_ready(context, "proj_two")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+
+    assert_compiled(context, "proj_one")
+    assert_compiled(context, "proj_two")
 
     notify(client, %{
       method: "workspace/didChangeWorkspaceFolders",

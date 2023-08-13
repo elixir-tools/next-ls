@@ -95,6 +95,25 @@ defmodule NextLS.Support.Utils do
     end
   end
 
+  defmacro assert_compiled(
+             context,
+             name,
+             timeout \\ Application.get_env(:ex_unit, :assert_receive_timeout)
+           ) do
+    quote do
+      message = "Compiled #{unquote(context).module}-#{unquote(name)}!"
+
+      assert_notification "$/progress",
+                          %{
+                            "value" => %{
+                              "kind" => "end",
+                              "message" => ^message
+                            }
+                          },
+                          unquote(timeout)
+    end
+  end
+
   def uri(path) when is_binary(path) do
     URI.to_string(%URI{
       scheme: "file",
