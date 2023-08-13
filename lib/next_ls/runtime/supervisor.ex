@@ -10,21 +10,24 @@ defmodule NextLS.Runtime.Supervisor do
   @impl true
   def init(init_arg) do
     name = init_arg[:name]
+    lsp = init_arg[:lsp]
     registry = init_arg[:registry]
     logger = init_arg[:logger]
     hidden_folder = init_arg[:path]
     File.mkdir_p!(hidden_folder)
     File.write!(Path.join(hidden_folder, ".gitignore"), "*\n")
 
-    symbol_table_name = :"symbol-table-#{name}"
     db_name = :"db-#{name}"
     sidecar_name = :"sidecar-#{name}"
+    db_activity = :"db-activity-#{name}"
 
     Registry.register(registry, :runtime_supervisors, %{name: name})
 
     children = [
-      {NextLS.DB, logger: logger, file: "#{hidden_folder}/nextls.db", registry: registry, name: db_name},
-      {NextLS.Runtime.Sidecar, name: sidecar_name, db: db_name, symbol_table: symbol_table_name},
+      {NextLS.Runtime.Sidecar, name: sidecar_name, db: db_name},
+      {NextLS.DB.Activity, logger: logger, name: db_activity, lsp: lsp},
+      {NextLS.DB,
+       logger: logger, file: "#{hidden_folder}/nextls.db", registry: registry, name: db_name, activity: db_activity},
       {NextLS.Runtime, init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, db: db_name]}
     ]
 
