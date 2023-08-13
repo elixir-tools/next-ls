@@ -15,14 +15,12 @@ defmodule NextLS.Definition do
                  'references' AS refs
              WHERE
                  refs.file = ?
-                 AND refs.start_line <= ?
-                 AND ? <= refs.end_line
-                 AND refs.start_column <= ?
-                 AND ? <= refs.end_column
+                 AND ? BETWEEN refs.start_line AND refs.end_line
+                 AND ? BETWEEN refs.start_column AND refs.end_column
              ORDER BY refs.id asc
              LIMIT 1;
              """,
-             [file, line, line, col, col]
+             [file, line, col]
            ) do
       query =
         ~Q"""
