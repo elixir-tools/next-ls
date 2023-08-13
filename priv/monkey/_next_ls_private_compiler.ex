@@ -116,6 +116,7 @@ defmodule :_next_ls_private_compiler do
   def compile do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
+    Code.put_compiler_option(:parser_options, columns: true, token_metadata: true)
 
     Mix.Task.clear()
 
