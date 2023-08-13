@@ -1,7 +1,6 @@
 defmodule NextLs.RuntimeTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureLog
   import NextLS.Support.Utils
 
   alias NextLS.Runtime
@@ -23,11 +22,13 @@ defmodule NextLs.RuntimeTest do
     end
     """)
 
+    me = self()
+
     {:ok, logger} =
       Task.start_link(fn ->
         recv = fn recv ->
           receive do
-            msg -> Logger.debug(inspect(msg))
+            {:"$gen_cast", msg} -> send(me, msg)
           end
 
           recv.(recv)
@@ -36,44 +37,24 @@ defmodule NextLs.RuntimeTest do
         recv.(recv)
       end)
 
-    me = self()
+    on_init = fn msg -> send(me, msg) end
 
-    on_init = fn _ -> send(me, :ready) end
+    on_exit(&flush_messages/0)
 
     [logger: logger, cwd: Path.absname(tmp_dir), on_init: on_init]
   end
 
-  test "returns the response in an ok tuple", %{logger: logger, cwd: cwd, on_init: on_init} do
-    start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
-    tvisor = start_supervised!(Task.Supervisor)
+  describe "errors" do
+    test "emitted on crash during initialization",
+         %{tmp_dir: tmp_dir, logger: logger, cwd: cwd, on_init: on_init} do
+      # obvious syntax error
+      bad_mix_exs = String.replace(mix_exs(), "defmodule", "")
+      File.write!(Path.join(tmp_dir, "mix.exs"), bad_mix_exs)
 
-    pid =
-      start_supervised!(
-        {Runtime,
-         name: "my_proj",
-         on_initialized: on_init,
-         task_supervisor: tvisor,
-         working_dir: cwd,
-         uri: "file://#{cwd}",
-         parent: self(),
-         logger: logger,
-         db: :some_db,
-         registry: RuntimeTest.Registry}
-      )
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
 
-    Process.link(pid)
+      tvisor = start_supervised!(Task.Supervisor)
 
-    assert wait_for_ready()
-
-    assert {:ok, "\"hi\""} = Runtime.call(pid, {Kernel, :inspect, ["hi"]})
-  end
-
-  test "call returns an error when the runtime is node ready", %{logger: logger, cwd: cwd, on_init: on_init} do
-    start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
-
-    tvisor = start_supervised!(Task.Supervisor)
-
-    pid =
       start_supervised!(
         {Runtime,
          task_supervisor: tvisor,
@@ -84,20 +65,108 @@ defmodule NextLs.RuntimeTest do
          parent: self(),
          logger: logger,
          db: :some_db,
-         registry: RuntimeTest.Registry}
+         registry: RuntimeTest.Registry},
+        restart: :temporary
       )
 
-    Process.link(pid)
+      assert_receive {:error, :portdown}
 
-    assert {:error, :not_ready} = Runtime.call(pid, {IO, :puts, ["hi"]})
+      assert_receive {:log, :log, log_msg}
+      assert log_msg =~ "syntax error"
+
+      assert_receive {:log, :error, error_msg}
+      assert error_msg =~ "{:shutdown, :portdown}"
+    end
+
+    test "emitted on crash after initialization",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      pid =
+        start_supervised!(
+          {Runtime,
+           task_supervisor: tvisor,
+           name: "my_proj",
+           on_initialized: on_init,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           registry: RuntimeTest.Registry},
+          restart: :temporary
+        )
+
+      assert_receive :ready
+
+      assert {:ok, {:badrpc, :nodedown}} = Runtime.call(pid, {System, :halt, [1]})
+
+      assert_receive {:log, :error, error_msg}
+      assert error_msg =~ "{:shutdown, :nodedown}"
+    end
   end
 
-  test "compiles the code and returns diagnostics", %{logger: logger, cwd: cwd, on_init: on_init} do
-    start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+  describe "call/2" do
+    test "responds with an ok tuple if the runtime has initialized",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+      tvisor = start_supervised!(Task.Supervisor)
 
-    tvisor = start_supervised!(Task.Supervisor)
+      pid =
+        start_supervised!(
+          {Runtime,
+           name: "my_proj",
+           on_initialized: on_init,
+           task_supervisor: tvisor,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           registry: RuntimeTest.Registry}
+        )
 
-    capture_log(fn ->
+      Process.link(pid)
+
+      assert_receive :ready
+
+      assert {:ok, "\"hi\""} = Runtime.call(pid, {Kernel, :inspect, ["hi"]})
+    end
+
+    test "responds with an error when the runtime hasn't initialized", %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      pid =
+        start_supervised!(
+          {Runtime,
+           task_supervisor: tvisor,
+           name: "my_proj",
+           on_initialized: on_init,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           registry: RuntimeTest.Registry}
+        )
+
+      Process.link(pid)
+
+      assert {:error, :not_ready} = Runtime.call(pid, {IO, :puts, ["hi"]})
+    end
+  end
+
+  describe "compile/1" do
+    test "compiles the project and returns diagnostics",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
       pid =
         start_link_supervised!(
           {Runtime,
@@ -112,7 +181,7 @@ defmodule NextLs.RuntimeTest do
            registry: RuntimeTest.Registry}
         )
 
-      assert wait_for_ready()
+      assert_receive :ready
 
       file = Path.join(cwd, "lib/bar.ex")
 
@@ -143,15 +212,38 @@ defmodule NextLs.RuntimeTest do
       """)
 
       assert [] == Runtime.compile(pid)
-    end) =~ "Connected to node"
+    end
+
+    test "responds with an error when the runtime isn't ready", %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      pid =
+        start_supervised!(
+          {Runtime,
+           task_supervisor: tvisor,
+           name: "my_proj",
+           on_initialized: on_init,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           registry: RuntimeTest.Registry}
+        )
+
+      Process.link(pid)
+
+      assert {:error, :not_ready} = Runtime.compile(pid)
+    end
   end
 
-  defp wait_for_ready do
+  defp flush_messages do
     receive do
-      :ready -> true
+      _ -> flush_messages()
     after
-      30_000 ->
-        false
+      0 -> :ok
     end
   end
 end

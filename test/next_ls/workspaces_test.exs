@@ -89,7 +89,7 @@ defmodule NextLS.WorkspacesTest do
       }
     })
 
-    message = "[NextLS] The runtime for #{context.module}-proj_two has successfully shutdown."
+    message = "[NextLS] The runtime for #{context.module}-proj_two has successfully shut down."
 
     assert_notification "window/logMessage", %{
       "message" => ^message

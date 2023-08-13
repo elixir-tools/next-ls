@@ -3,6 +3,7 @@ defmodule NextLS.Runtime do
   use GenServer
 
   @env Mix.env()
+  defguardp is_ready(state) when is_map_key(state, :node)
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -125,10 +126,10 @@ defmodule NextLS.Runtime do
           {:DOWN, ^ref, :process, ^me, reason} ->
             case reason do
               :shutdown ->
-                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shutdown.")
+                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shut down.")
 
               reason ->
-                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{reason}.")
+                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
             end
         end
       end)
@@ -144,8 +145,8 @@ defmodule NextLS.Runtime do
           |> Path.join("monkey/_next_ls_private_compiler.ex")
           |> then(&:rpc.call(node, Code, :compile_file, [&1]))
           |> tap(fn
-            {:badrpc, :EXIT, {error, _}} ->
-              NextLS.Logger.error(logger, error)
+            {:badrpc, error} ->
+              NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
 
             _ ->
               :ok
@@ -155,9 +156,8 @@ defmodule NextLS.Runtime do
 
           send(me, {:node, node})
         else
-          _ ->
-            on_initialized.(:error)
-            send(me, :cancel)
+          error ->
+            send(me, {:cancel, error})
         end
       end)
 
@@ -180,7 +180,7 @@ defmodule NextLS.Runtime do
   end
 
   @impl GenServer
-  def handle_call(:ready?, _from, %{node: _node} = state) do
+  def handle_call(:ready?, _from, state) when is_ready(state) do
     {:reply, true, state}
   end
 
@@ -188,27 +188,34 @@ defmodule NextLS.Runtime do
     {:reply, false, state}
   end
 
+  def handle_call(_, _from, state) when not is_ready(state) do
+    {:reply, {:error, :not_ready}, state}
+  end
+
   def handle_call({:call, {m, f, a}}, _from, %{node: node} = state) do
     reply = :rpc.call(node, m, f, a)
     {:reply, {:ok, reply}, state}
   end
 
-  def handle_call({:call, _}, _from, state) do
-    {:reply, {:error, :not_ready}, state}
-  end
-
   def handle_call(:compile, from, %{node: node} = state) do
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-        {_, errors} = :rpc.call(node, :_next_ls_private_compiler, :compile, [])
+        case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
+          {:badrpc, error} ->
+            NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+            []
 
-        Registry.dispatch(state.registry, :extensions, fn entries ->
-          for {pid, _} <- entries do
-            send(pid, {:compiler, errors})
-          end
-        end)
+          {_, diagnostics} when is_list(diagnostics) ->
+            Registry.dispatch(state.registry, :extensions, fn entries ->
+              for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
+            end)
 
-        errors
+            diagnostics
+
+          unknown ->
+            NextLS.Logger.warning(state.logger, "Unexpected compiler response: #{inspect(unknown)}")
+            []
+        end
       end)
 
     {:noreply, %{state | compiler_ref: %{task.ref => from}}}
@@ -228,10 +235,27 @@ defmodule NextLS.Runtime do
     {:noreply, %{state | compiler_ref: nil}}
   end
 
+  def handle_info({:DOWN, _, :port, port, _}, %{port: port} = state) do
+    unless is_ready(state) do
+      state.on_initialized.({:error, :portdown})
+    end
+
+    {:stop, {:shutdown, :portdown}, state}
+  end
+
+  def handle_info({:cancel, error}, state) do
+    state.on_initialized.({:error, error})
+    {:stop, error, state}
+  end
+
   def handle_info({:node, node}, state) do
     Node.monitor(node, true)
     state.on_initialized.(:ready)
     {:noreply, Map.put(state, :node, node)}
+  end
+
+  def handle_info({:nodedown, node}, %{node: node} = state) do
+    {:stop, {:shutdown, :nodedown}, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do
