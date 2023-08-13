@@ -5,14 +5,13 @@ defmodule NextLS.Runtime.Sidecar do
   alias NextLS.DB
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, Keyword.take(args, [:symbol_table, :db]), Keyword.take(args, [:name]))
+    GenServer.start_link(__MODULE__, Keyword.drop(args, [:name]), Keyword.take(args, [:name]))
   end
 
   def init(args) do
-    symbol_table = Keyword.fetch!(args, :symbol_table)
     db = Keyword.fetch!(args, :db)
 
-    {:ok, %{symbol_table: symbol_table, db: db}}
+    {:ok, %{db: db}}
   end
 
   def handle_info({:tracer, payload}, state) do
