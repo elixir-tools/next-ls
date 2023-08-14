@@ -241,9 +241,33 @@ defmodule NextLS do
       end
     end
 
+    symbols = fn pid ->
+      rows =
+        DB.query(
+          pid,
+          ~Q"""
+          SELECT *
+          FROM symbols
+          WHERE source = 'user';
+          """,
+          []
+        )
+
+      for [_pk, module, file, type, name, line, column | _] <- rows do
+        %{
+          module: module,
+          file: file,
+          type: type,
+          name: name,
+          line: line,
+          column: column
+        }
+      end
+    end
+
     symbols =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
-        for {pid, _} <- entries, symbol <- DB.symbols(pid), filter.(symbol.name) do
+        for {pid, _} <- entries, symbol <- symbols.(pid), filter.(symbol.name) do
           name =
             if symbol.type != "defstruct" do
               "#{symbol.type} #{symbol.name}"

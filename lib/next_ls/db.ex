@@ -13,9 +13,6 @@ defmodule NextLS.DB do
   @spec query(pid(), query(), list()) :: list()
   def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args}, :infinity)
 
-  @spec symbols(pid()) :: list(map())
-  def symbols(server), do: GenServer.call(server, :symbols, :infinity)
-
   @spec insert_symbol(pid(), map()) :: :ok
   def insert_symbol(server, payload), do: GenServer.cast(server, {:insert_symbol, payload})
 
@@ -49,33 +46,6 @@ defmodule NextLS.DB do
     rows = __query__({conn, s.logger}, query, args)
 
     {:reply, rows, s}
-  end
-
-  def handle_call(:symbols, _from, %{conn: conn} = s) do
-    rows =
-      __query__(
-        {conn, s.logger},
-        ~Q"""
-        SELECT *
-        FROM symbols
-        WHERE source = 'user';
-        """,
-        []
-      )
-
-    symbols =
-      for [_pk, module, file, type, name, line, column | _] <- rows do
-        %{
-          module: module,
-          file: file,
-          type: type,
-          name: name,
-          line: line,
-          column: column
-        }
-      end
-
-    {:reply, symbols, s}
   end
 
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do
