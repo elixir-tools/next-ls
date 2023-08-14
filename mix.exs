@@ -19,7 +19,11 @@ defmodule NextLS.MixProject do
         main: "README",
         extras: ["README.md"]
       ],
-      dialyzer: [ignore_warnings: ".dialyzer_ignore.exs"]
+      dialyzer: [
+        plt_core_path: "priv/plts",
+        plt_local_path: "priv/plts",
+        ignore_warnings: ".dialyzer_ignore.exs"
+      ]
     ]
   end
 
