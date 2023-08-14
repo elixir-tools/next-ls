@@ -56,10 +56,9 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        SELECT
-            *
-        FROM
-            symbols;
+        SELECT *
+        FROM symbols
+        WHERE source = 'user';
         """,
         []
       )

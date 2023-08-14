@@ -194,7 +194,7 @@ defmodule NextLS do
                   WHERE refs.identifier = ?
                     AND refs.type = ?
                     AND refs.module = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
+                    AND refs.source = 'user'
                   """,
                   [function, "function", module]
                 )
@@ -207,7 +207,7 @@ defmodule NextLS do
                   FROM "references" as refs
                   WHERE refs.module = ?
                     AND refs.type = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
+                    AND refs.source = 'user'
                   """,
                   [module, "alias"]
                 )
