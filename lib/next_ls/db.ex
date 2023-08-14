@@ -88,7 +88,8 @@ defmodule NextLS.DB do
       module_line: module_line,
       struct: struct,
       file: file,
-      defs: defs
+      defs: defs,
+      source: source
     } = symbol
 
     __query__(
@@ -103,10 +104,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO symbols (module, file, type, name, line, 'column')
-          VALUES (?, ?, ?, ?, ?, ?);
+      INSERT INTO symbols (module, file, type, name, line, 'column', source)
+          VALUES (?, ?, ?, ?, ?, ?, ?);
       """,
-      [mod, file, "defmodule", mod, module_line, 1]
+      [mod, file, "defmodule", mod, module_line, 1, source]
     )
 
     if struct do
@@ -115,10 +116,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column')
-            VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1]
+        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, source]
       )
     end
 
@@ -126,10 +127,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column')
-            VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, meta[:line], meta[:column] || 1]
+        [mod, file, type, name, meta[:line], meta[:column] || 1, source]
       )
     end
 
@@ -145,7 +146,8 @@ defmodule NextLS.DB do
       identifier: identifier,
       file: file,
       type: type,
-      module: module
+      module: module,
+      source: source
     } = reference
 
     line = meta[:line] || 1
@@ -157,10 +159,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+      INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column, source)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
       """,
-      [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column]
+      [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column, source]
     )
 
     {:noreply, s}
