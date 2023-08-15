@@ -216,12 +216,12 @@ defmodule NextLS do
                 []
             end
 
-          for [file, start_line, end_line, start_column, end_column] <- references do
+          for [file, startl, endl, startc, endc] <- references, match?({:ok, _}, File.stat(file)) do
             %Location{
               uri: "file://#{file}",
               range: %Range{
-                start: %Position{line: clamp(start_line - 1), character: clamp(start_column - 1)},
-                end: %Position{line: clamp(end_line - 1), character: clamp(end_column - 1)}
+                start: %Position{line: clamp(startl - 1), character: clamp(startc - 1)},
+                end: %Position{line: clamp(endl - 1), character: clamp(endc - 1)}
               }
             }
           end

@@ -36,6 +36,22 @@ defmodule NextLS.DependencyTest do
     end
     """)
 
+    cache = Path.join(cwd, "my_proj/lib/cache.ex")
+
+    File.write!(cache, """
+    defmodule Cache do
+      use GenServer
+
+      def init(_) do
+        {:ok, nil}
+      end
+
+      def get() do
+        GenServer.call(__MODULE__, :get)
+      end
+    end
+    """)
+
     bar = Path.join(cwd, "bar/lib/bar.ex")
 
     File.write!(bar, """
@@ -60,7 +76,7 @@ defmodule NextLS.DependencyTest do
     end
     """)
 
-    [foo: foo, bar: bar, baz: baz]
+    [foo: foo, bar: bar, baz: baz, cache: cache]
   end
 
   setup :with_lsp
@@ -189,14 +205,61 @@ defmodule NextLS.DependencyTest do
     )
   end
 
+  test "elixir source files do not show up in references", %{client: client, cache: cache} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+    assert_is_ready(context, "my_proj")
+
+    assert_notification "$/progress", %{
+      "value" => %{"kind" => "end", "message" => "Compiled Elixir.NextLS.DependencyTest-my_proj!"}
+    }
+
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    uri = uri(cache)
+
+    request(client, %{
+      method: "textDocument/references",
+      id: 4,
+      jsonrpc: "2.0",
+      params: %{
+        position: %{line: 8, character: 6},
+        textDocument: %{uri: uri},
+        context: %{includeDeclaration: true}
+      }
+    })
+
+    assert_result2(
+      4,
+      [
+        %{
+          "range" => %{"end" => %{"character" => 15, "line" => 1}, "start" => %{"character" => 6, "line" => 1}},
+          "uri" => uri
+        },
+        %{
+          "range" => %{"end" => %{"character" => 8, "line" => 1}, "start" => %{"character" => 0, "line" => 1}},
+          "uri" => uri
+        },
+        %{
+          "range" => %{"end" => %{"character" => 8, "line" => 1}, "start" => %{"character" => 0, "line" => 1}},
+          "uri" => uri
+        },
+        %{
+          "range" => %{"end" => %{"character" => 13, "line" => 8}, "start" => %{"character" => 4, "line" => 8}},
+          "uri" => uri
+        }
+      ]
+    )
+  end
+
   defp proj_mix_exs do
     """
-    defmodule Project.MixProject do
+    defmodule MyProj.MixProject do
       use Mix.Project
 
       def project do
         [
-          app: :project,
+          app: :my_proj,
           version: "0.1.0",
           elixir: "~> 1.10",
           deps: [
