@@ -13,9 +13,6 @@ defmodule NextLS.DB do
   @spec query(pid(), query(), list()) :: list()
   def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args}, :infinity)
 
-  @spec symbols(pid()) :: list(map())
-  def symbols(server), do: GenServer.call(server, :symbols, :infinity)
-
   @spec insert_symbol(pid(), map()) :: :ok
   def insert_symbol(server, payload), do: GenServer.cast(server, {:insert_symbol, payload})
 
@@ -51,34 +48,6 @@ defmodule NextLS.DB do
     {:reply, rows, s}
   end
 
-  def handle_call(:symbols, _from, %{conn: conn} = s) do
-    rows =
-      __query__(
-        {conn, s.logger},
-        ~Q"""
-        SELECT
-            *
-        FROM
-            symbols;
-        """,
-        []
-      )
-
-    symbols =
-      for [_pk, module, file, type, name, line, column | _] <- rows do
-        %{
-          module: module,
-          file: file,
-          type: type,
-          name: name,
-          line: line,
-          column: column
-        }
-      end
-
-    {:reply, symbols, s}
-  end
-
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
     NextLS.DB.Activity.update(s.activity, count)
@@ -88,7 +57,8 @@ defmodule NextLS.DB do
       module_line: module_line,
       struct: struct,
       file: file,
-      defs: defs
+      defs: defs,
+      source: source
     } = symbol
 
     __query__(
@@ -103,10 +73,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO symbols (module, file, type, name, line, 'column')
-          VALUES (?, ?, ?, ?, ?, ?);
+      INSERT INTO symbols (module, file, type, name, line, 'column', source)
+          VALUES (?, ?, ?, ?, ?, ?, ?);
       """,
-      [mod, file, "defmodule", mod, module_line, 1]
+      [mod, file, "defmodule", mod, module_line, 1, source]
     )
 
     if struct do
@@ -115,10 +85,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column')
-            VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1]
+        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, source]
       )
     end
 
@@ -126,10 +96,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column')
-            VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, meta[:line], meta[:column] || 1]
+        [mod, file, type, name, meta[:line], meta[:column] || 1, source]
       )
     end
 
@@ -145,7 +115,8 @@ defmodule NextLS.DB do
       identifier: identifier,
       file: file,
       type: type,
-      module: module
+      module: module,
+      source: source
     } = reference
 
     line = meta[:line] || 1
@@ -157,10 +128,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+      INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column, source)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
       """,
-      [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column]
+      [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column, source]
     )
 
     {:noreply, s}

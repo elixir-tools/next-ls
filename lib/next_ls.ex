@@ -194,7 +194,7 @@ defmodule NextLS do
                   WHERE refs.identifier = ?
                     AND refs.type = ?
                     AND refs.module = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
+                    AND refs.source = 'user'
                   """,
                   [function, "function", module]
                 )
@@ -207,7 +207,7 @@ defmodule NextLS do
                   FROM "references" as refs
                   WHERE refs.module = ?
                     AND refs.type = ?
-                    AND NOT like('/home/runner/work/elixir/%', refs.file)
+                    AND refs.source = 'user'
                   """,
                   [module, "alias"]
                 )
@@ -216,12 +216,12 @@ defmodule NextLS do
                 []
             end
 
-          for [file, start_line, end_line, start_column, end_column] <- references do
+          for [file, startl, endl, startc, endc] <- references, match?({:ok, _}, File.stat(file)) do
             %Location{
               uri: "file://#{file}",
               range: %Range{
-                start: %Position{line: clamp(start_line - 1), character: clamp(start_column - 1)},
-                end: %Position{line: clamp(end_line - 1), character: clamp(end_column - 1)}
+                start: %Position{line: clamp(startl - 1), character: clamp(startc - 1)},
+                end: %Position{line: clamp(endl - 1), character: clamp(endc - 1)}
               }
             }
           end
@@ -241,9 +241,33 @@ defmodule NextLS do
       end
     end
 
+    symbols = fn pid ->
+      rows =
+        DB.query(
+          pid,
+          ~Q"""
+          SELECT *
+          FROM symbols
+          WHERE source = 'user';
+          """,
+          []
+        )
+
+      for [_pk, module, file, type, name, line, column | _] <- rows do
+        %{
+          module: module,
+          file: file,
+          type: type,
+          name: name,
+          line: line,
+          column: column
+        }
+      end
+    end
+
     symbols =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
-        for {pid, _} <- entries, symbol <- DB.symbols(pid), filter.(symbol.name) do
+        for {pid, _} <- entries, symbol <- symbols.(pid), filter.(symbol.name) do
           name =
             if symbol.type != "defstruct" do
               "#{symbol.type} #{symbol.name}"
