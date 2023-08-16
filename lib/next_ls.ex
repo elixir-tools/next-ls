@@ -454,21 +454,12 @@ defmodule NextLS do
 
     refresh_refs =
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {pid, %{name: name, uri: wuri, db: db}} <- entries, String.starts_with?(uri, wuri), into: %{} do
+        for {pid, %{name: name, uri: wuri}} <- entries, String.starts_with?(uri, wuri), into: %{} do
           token = Progress.token()
           Progress.start(lsp, token, "Compiling #{name}...")
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-              DB.query(
-                db,
-                ~Q"""
-                DELETE FROM 'references'
-                WHERE file = ?;
-                """,
-                [URI.parse(uri).path]
-              )
-
               {name, Runtime.compile(pid)}
             end)
 
