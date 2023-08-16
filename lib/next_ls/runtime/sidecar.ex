@@ -25,4 +25,10 @@ defmodule NextLS.Runtime.Sidecar do
 
     {:noreply, state}
   end
+
+  def handle_info({{:tracer, :start}, filename}, state) do
+    DB.clean_references(state.db, filename)
+
+    {:noreply, state}
+  end
 end

@@ -19,6 +19,9 @@ defmodule NextLS.DB do
   @spec insert_reference(pid(), map()) :: :ok
   def insert_reference(server, payload), do: GenServer.cast(server, {:insert_reference, payload})
 
+  @spec insert_reference(pid(), String.t()) :: :ok
+  def clean_references(server, filename), do: GenServer.cast(server, {:clean_references, filename})
+
   def init(args) do
     file = Keyword.fetch!(args, :file)
     registry = Keyword.fetch!(args, :registry)
@@ -132,6 +135,24 @@ defmodule NextLS.DB do
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
       """,
       [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column, source]
+    )
+
+    {:noreply, s}
+  end
+
+  def handle_cast({:clean_references, filename}, %{conn: conn} = s) do
+    {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+    NextLS.DB.Activity.update(s.activity, count)
+
+    NextLS.Logger.warning(s.logger, "CLEANING REFERENCES FOR #{filename}")
+
+    __query__(
+      {conn, s.logger},
+      ~Q"""
+      DELETE FROM 'references'
+      WHERE file = ?;
+      """,
+      [filename]
     )
 
     {:noreply, s}
