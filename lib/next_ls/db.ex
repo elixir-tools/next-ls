@@ -19,7 +19,7 @@ defmodule NextLS.DB do
   @spec insert_reference(pid(), map()) :: :ok
   def insert_reference(server, payload), do: GenServer.cast(server, {:insert_reference, payload})
 
-  @spec insert_reference(pid(), String.t()) :: :ok
+  @spec clean_references(pid(), String.t()) :: :ok
   def clean_references(server, filename), do: GenServer.cast(server, {:clean_references, filename})
 
   def init(args) do
