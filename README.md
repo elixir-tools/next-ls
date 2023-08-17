@@ -15,6 +15,8 @@ Still in heavy development, currently supporting the following features:
 - Go To Definition
 - Workspace Folders
 - Find References
+- Extensions
+  - Credo
 
 ## Editor Support
 
