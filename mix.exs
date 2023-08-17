@@ -6,7 +6,7 @@ defmodule NextLS.MixProject do
   def project do
     [
       app: :next_ls,
-      description: "The language server for Elixir that just works. No longer published to Hex, please see our GitHub Releases for downloads,",
+      description: "The language server for Elixir that just works. No longer published to Hex, please see our GitHub Releases for downloads.",
       version: @version,
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
