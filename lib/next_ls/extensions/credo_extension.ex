@@ -29,7 +29,7 @@ defmodule NextLS.CredoExtension do
 
     {:ok,
      %{
-       runtimes: [],
+       runtimes: Map.new(),
        cache: cache,
        registry: registry,
        task_supervisor: task_supervisor,
@@ -38,45 +38,56 @@ defmodule NextLS.CredoExtension do
      }}
   end
 
-  def handle_info({:runtime_ready, _name, runtime_pid}, state) do
-    state =
-      case Runtime.call(runtime_pid, {Code, :ensure_loaded?, [Credo]}) do
-        {:ok, true} ->
-          :next_ls
-          |> :code.priv_dir()
-          |> Path.join("monkey/_next_ls_private_credo.ex")
-          |> then(&Runtime.call(runtime_pid, {Code, :compile_file, [&1]}))
-
-          Runtime.call(runtime_pid, {Application, :ensure_all_started, [:credo]})
-
-          Runtime.call(runtime_pid, {GenServer, :call, [Credo.CLI.Output.Shell, {:suppress_output, true}]})
-
-          update_in(state.runtimes, &[runtime_pid | &1])
-
-        _ ->
-          state
-      end
-
-    {:noreply, state}
-  end
-
   @impl GenServer
+
+  def handle_info({:runtime_ready, _, _}, state), do: {:noreply, state}
+
   def handle_info({:compiler, _diagnostics}, state) do
-    refresh_refs =
+
+    {state, refresh_refs} =
       dispatch(state.registry, :runtimes, fn entries ->
-        for {runtime, %{path: path}} <- entries, runtime in state.runtimes, into: %{} do
-          namespace = {:credo, path}
-          DiagnosticCache.clear(state.cache, namespace)
+        # loop over runtimes
+        for {runtime, %{path: path}} <- entries, reduce: {state, %{}} do
+          {state, refs} ->
+            # determine the existence of Credo and memoize the result
+            state =
+              if not Map.has_key?(state.runtimes, runtime) do
+                case Runtime.call(runtime, {Code, :ensure_loaded?, [Credo]}) do
+                  {:ok, true} ->
+                    :next_ls
+                    |> :code.priv_dir()
+                    |> Path.join("monkey/_next_ls_private_credo.ex")
+                    |> then(&Runtime.call(runtime, {Code, :compile_file, [&1]}))
 
-          task =
-            Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-              case Runtime.call(runtime, {:_next_ls_private_credo, :issues, [path]}) do
-                {:ok, issues} -> issues
-                _error -> []
+                    Runtime.call(runtime, {Application, :ensure_all_started, [:credo]})
+                    Runtime.call(runtime, {GenServer, :call, [Credo.CLI.Output.Shell, {:suppress_output, true}]})
+
+                    put_in(state.runtimes[runtime], true)
+
+                  _ ->
+                    state
+                end
+              else
+                state
               end
-            end)
 
-          {task.ref, namespace}
+            # if runtime has Credo
+            if state.runtimes[runtime] do
+              namespace = {:credo, path}
+              DiagnosticCache.clear(state.cache, namespace)
+
+              task =
+                Task.Supervisor.async_nolink(state.task_supervisor, fn ->
+                  case Runtime.call(runtime, {:_next_ls_private_credo, :issues, [path]}) do
+                    {:ok, issues} -> issues
+                    _error -> []
+                  end
+                end)
+
+              {state, Map.put(refs, task.ref, namespace)}
+            else
+              {state, refs}
+            end
         end
       end)
 
@@ -98,7 +109,7 @@ defmodule NextLS.CredoExtension do
           },
           end: %Position{
             line: issue.line_no - 1,
-            character: issue.column || 1
+            character: 999
           }
         },
         severity: category_to_severity(issue.category),
