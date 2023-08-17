@@ -6,7 +6,7 @@ defmodule NextLS.MixProject do
   def project do
     [
       app: :next_ls,
-      description: "The language server for Elixir that just works",
+      description: "The language server for Elixir that just works. No longer published to Hex, please see our GitHub Releases for downloads,",
       version: @version,
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -75,7 +75,8 @@ defmodule NextLS.MixProject do
       licenses: ["MIT"],
       links: %{
         GitHub: "https://github.com/elixir-tools/next-ls",
-        Sponsor: "https://github.com/sponsors/mhanberg"
+        Sponsor: "https://github.com/sponsors/mhanberg",
+        Downloads: "https://github.com/elixir-tools/next-ls/releases",
       },
       files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
