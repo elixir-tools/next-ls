@@ -52,7 +52,13 @@ defmodule NextLSPrivate.Tracer do
 
   @source "user"
 
-  def trace(:start, _env) do
+  def trace(:start, env) do
+    Process.send(
+      parent_pid(),
+      {{:tracer, :start}, env.file},
+      []
+    )
+
     :ok
   end
 
