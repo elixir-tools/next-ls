@@ -181,12 +181,6 @@ defmodule NextLS.DB do
       is_atom(arg) and String.starts_with?(to_string(arg), "Elixir.") ->
         Macro.to_string(arg)
 
-      arg in [nil, :undefined] ->
-        arg
-
-      is_atom(arg) ->
-        to_string(arg)
-
       true ->
         arg
     end
