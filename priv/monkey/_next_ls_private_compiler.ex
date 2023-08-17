@@ -55,7 +55,7 @@ defmodule NextLSPrivate.Tracer do
   def trace(:start, env) do
     Process.send(
       parent_pid(),
-      {{:tracer, :start}, URI.parse(env.file).path},
+      {{:tracer, :start}, env.file},
       []
     )
 
