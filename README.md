@@ -66,7 +66,9 @@ language-server = { command = "path/to/next-ls", args = ["--stdio=true"] }
 
 The preferred way to use Next LS is through one of the supported editor extensions.
 
-If you need to install Next LS on it's own, you can download the executable hosted by the GitHub release. The executable is an Elixir script that utilizes `Mix.install/2`.
+If you need to install Next LS on it's own, you can download the appropriate executable from our [GitHub Releases](https://github.com/elixir-tools/next-ls/releases).
+
+These executables are created with [Burrito](https://github.com/burrito-elixir/burrito) and are completely standalone, except you'll still need Elixir and OTP installed in order for it to start a runtime for your application code.
 
 ## Development
 
