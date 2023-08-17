@@ -214,6 +214,8 @@ defmodule NextLS.Runtime do
               for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
             end)
 
+            NextLS.Logger.log(state.logger, "Compiled #{state.name}!")
+
             diagnostics
 
           unknown ->

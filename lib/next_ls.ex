@@ -614,8 +614,6 @@ defmodule NextLS do
   end
 
   def handle_info(:publish, lsp) do
-    GenLSP.log(lsp, "[NextLS] Compiled!")
-
     all =
       for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache), {file, diagnostics} <- cache, reduce: %{} do
         d -> Map.update(d, file, diagnostics, fn value -> value ++ diagnostics end)

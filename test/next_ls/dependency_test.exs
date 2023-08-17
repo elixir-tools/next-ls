@@ -59,10 +59,6 @@ defmodule NextLS.DependencyTest do
       def bar() do
         42
       end
-
-      def call_baz() do
-        Baz.baz()
-      end
     end
     """)
 
@@ -264,7 +260,6 @@ defmodule NextLS.DependencyTest do
           elixir: "~> 1.10",
           deps: [
             {:bar, path: "../bar"},
-            {:baz, path: "../baz"}
           ]
         ]
       end
