@@ -144,8 +144,6 @@ defmodule NextLS.DB do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
     NextLS.DB.Activity.update(s.activity, count)
 
-    NextLS.Logger.warning(s.logger, "CLEANING REFERENCES FOR #{filename}")
-
     __query__(
       {conn, s.logger},
       ~Q"""
