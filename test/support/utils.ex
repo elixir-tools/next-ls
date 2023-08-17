@@ -44,7 +44,7 @@ defmodule NextLS.Support.Utils do
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
     start_supervised!({Registry, [keys: :duplicate, name: context.module]})
-    extensions = [NextLS.ElixirExtension]
+    extensions = [NextLS.ElixirExtension, NextLS.CredoExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
 
     server =

@@ -50,7 +50,7 @@ defmodule NextLS.Runtime do
     on_initialized = Keyword.fetch!(opts, :on_initialized)
     db = Keyword.fetch!(opts, :db)
 
-    Registry.register(registry, :runtimes, %{name: name, uri: uri, db: db})
+    Registry.register(registry, :runtimes, %{name: name, uri: uri, path: working_dir, db: db})
 
     pid =
       cond do
@@ -213,6 +213,8 @@ defmodule NextLS.Runtime do
             Registry.dispatch(state.registry, :extensions, fn entries ->
               for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
             end)
+
+            NextLS.Logger.log(state.logger, "Compiled #{state.name}!")
 
             diagnostics
 

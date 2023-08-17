@@ -44,7 +44,7 @@ defmodule NextLS.ReferencesTest do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
     assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "my_proj")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     request(client, %{
@@ -78,7 +78,7 @@ defmodule NextLS.ReferencesTest do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
     assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "my_proj")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     request(client, %{

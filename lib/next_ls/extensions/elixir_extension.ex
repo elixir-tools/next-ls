@@ -24,6 +24,10 @@ defmodule NextLS.ElixirExtension do
   end
 
   @impl GenServer
+  def handle_info({:runtime_ready, _path, _pid}, state) do
+    {:noreply, state}
+  end
+
   def handle_info({:compiler, diagnostics}, state) when is_list(diagnostics) do
     DiagnosticCache.clear(state.cache, :elixir)
 

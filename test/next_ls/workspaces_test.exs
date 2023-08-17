@@ -125,7 +125,7 @@ defmodule NextLS.WorkspacesTest do
     end)
 
     assert_is_ready(context, "proj_one")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "proj_one")
   end
 
   @tag root_paths: ["proj_one"]
@@ -135,7 +135,7 @@ defmodule NextLS.WorkspacesTest do
     assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "proj_one")
-    assert_notification "window/logMessage", %{"message" => "[NextLS] Compiled!"}
+    assert_compiled(context, "proj_one")
 
     notify(client, %{
       method: "workspace/didChangeWatchedFiles",
