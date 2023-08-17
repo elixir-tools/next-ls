@@ -43,7 +43,6 @@ defmodule NextLS.CredoExtension do
   def handle_info({:runtime_ready, _, _}, state), do: {:noreply, state}
 
   def handle_info({:compiler, _diagnostics}, state) do
-
     {state, refresh_refs} =
       dispatch(state.registry, :runtimes, fn entries ->
         # loop over runtimes
