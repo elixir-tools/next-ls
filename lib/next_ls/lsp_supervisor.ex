@@ -53,6 +53,18 @@ defmodule NextLS.LSPSupervisor do
             raise OptionsError, invalid
         end
 
+      auto_update =
+        if "NEXTLS_AUTO_UPDATE" |> System.get_env("false") |> String.to_existing_atom() do
+          [
+            binpath: System.get_env("NEXTLS_BINPATH", Path.expand("~/.cache/elixir-tools/nextls/bin/nextls")),
+            api_host: System.get_env("NEXTLS_GITHUB_API", "https://api.github.com"),
+            github_host: System.get_env("NEXTLS_GITHUB", "https://github.com"),
+            current_version: Version.parse!(NextLS.version())
+          ]
+        else
+          false
+        end
+
       children = [
         {DynamicSupervisor, name: NextLS.DynamicSupervisor},
         {Task.Supervisor, name: NextLS.TaskSupervisor},
@@ -61,6 +73,7 @@ defmodule NextLS.LSPSupervisor do
         {NextLS.DiagnosticCache, name: :diagnostic_cache},
         {Registry, name: NextLS.Registry, keys: :duplicate},
         {NextLS,
+         auto_update: auto_update,
          buffer: NextLS.Buffer,
          cache: :diagnostic_cache,
          task_supervisor: NextLS.TaskSupervisor,

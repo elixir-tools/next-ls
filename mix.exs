@@ -60,12 +60,15 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:gen_lsp, "~> 0.6"},
       {:exqlite, "~> 0.13.14"},
-      {:styler, "~> 0.8", only: :dev},
-      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:gen_lsp, "~> 0.6"},
+      {:req, "~> 0.3.11"},
+
       {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
-      {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false}
+      {:bypass, "~> 2.1", only: :test},
+      {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
+      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:styler, "~> 0.8", only: :dev}
     ]
   end
 
@@ -76,7 +79,7 @@ defmodule NextLS.MixProject do
       links: %{
         GitHub: "https://github.com/elixir-tools/next-ls",
         Sponsor: "https://github.com/sponsors/mhanberg",
-        Downloads: "https://github.com/elixir-tools/next-ls/releases",
+        Downloads: "https://github.com/elixir-tools/next-ls/releases"
       },
       files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
