@@ -58,6 +58,7 @@ name = "elixir"
 scope = "source.elixir"
 language-server = { command = "path/to/next-ls", args = ["--stdio=true"] }
 ```
+
 </details>
 </li>
 </ul>
@@ -91,11 +92,55 @@ Visual Studio Code
 
 ```json
 {
-    "elixir-tools.nextls.adapter": "tcp",
-    "elixir-tools.nextls.port": 9000,
+  "elixir-tools.nextls.adapter": "tcp",
+  "elixir-tools.nextls.port": 9000
 }
 ```
 
 ### Note
 
 Next LS creates an `.elixir-tools` hidden directory in your project, but it will be automatically ignored by `git`.
+
+## Troubleshooting
+
+### 1. Is `epmd` running?
+
+#### Linux/Mac:
+
+```bash
+pgrep -fl epmd
+```
+
+If `epmd` is not running, you might need to start it or ensure it starts automatically with your system. You can do this by running `epmd -daemon`.
+
+---
+
+### 2. Ensure `glibc` version is at least 2.34
+
+#### Linux:
+
+```bash
+ldd --version
+```
+
+This will show the `glibc` version at the top. Ensure it's 2.34 or higher.
+
+#### Mac:
+
+macOS doesn't use `glibc`; it uses the Darwin C Library. Hence, this step is not applicable.
+
+#### Windows:
+
+Windows does not use `glibc`. If you're using a subsystem or tool that needs it, ensure it's updated.
+
+---
+
+### 3. Does it work in TCP mode?
+
+#### All Platforms:
+
+Start the language server in TCP mode and connect to it with your editor, as described above.
+
+### 4. Firewall Interference
+
+Sometimes, the firewall can interfere with the TCP mode. If you face connection issues, you might try turning off the firewall temporarily to see if it resolves the issue.
