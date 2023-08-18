@@ -144,3 +144,7 @@ Start the language server in TCP mode and connect to it with your editor, as des
 ### 4. Firewall Interference
 
 Sometimes, the firewall can interfere with the TCP mode. If you face connection issues, you might try turning off the firewall temporarily to see if it resolves the issue.
+
+This is usually a problem on macOS, as you should see a popup asking if `beam` and `epmd` can accept incoming connections (which you should click "yes").
+
+In future version, we plan to sign and notarize the darwin binaries, which should avoid this popups and make this a non-issue.
