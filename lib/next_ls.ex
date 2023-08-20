@@ -46,6 +46,7 @@ defmodule NextLS do
     {args, opts} =
       Keyword.split(args, [
         :cache,
+        :auto_update,
         :task_supervisor,
         :runtime_task_supervisor,
         :dynamic_supervisor,
@@ -70,6 +71,7 @@ defmodule NextLS do
 
     {:ok,
      assign(lsp,
+       auto_update: Keyword.get(args, :auto_update, false),
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -359,6 +361,14 @@ defmodule NextLS do
   @impl true
   def handle_notification(%Initialized{}, lsp) do
     GenLSP.log(lsp, "[NextLS] NextLS v#{version()} has initialized!")
+
+    with opts when is_list(opts) <- lsp.assigns.auto_update do
+      {:ok, _} =
+        DynamicSupervisor.start_child(
+          lsp.assigns.dynamic_supervisor,
+          {NextLS.Updater, Keyword.merge(opts, logger: lsp.assigns.logger)}
+        )
+    end
 
     for extension <- lsp.assigns.extensions do
       {:ok, _} =
@@ -664,7 +674,7 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  defp version do
+  def version do
     case :application.get_key(:next_ls, :vsn) do
       {:ok, version} -> to_string(version)
       _ -> "dev"
