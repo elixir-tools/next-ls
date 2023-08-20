@@ -65,7 +65,7 @@ defmodule NextLS.UpdaterTest do
     )
 
     assert File.read!(binpath) == exe
-    assert File.stat!(binpath).mode == 33261
+    assert File.stat!(binpath).mode == 33_261
     assert File.exists?(binpath <> "-0.9.0")
   end
 
