@@ -54,6 +54,7 @@ defmodule NextLS.UpdaterTest do
     end)
 
     binpath = Path.join(tmp_dir, "nextls")
+    File.write(binpath, "yoyoyo")
 
     Updater.run(
       current_version: Version.parse!("0.9.0"),
@@ -64,7 +65,8 @@ defmodule NextLS.UpdaterTest do
     )
 
     assert File.read!(binpath) == exe
-    assert File.stat!(binpath).mode == 33_188
+    assert File.stat!(binpath).mode == 33261
+    assert File.exists?(binpath <> "-0.9.0")
   end
 
   test "doesn't download when the version is at the latest", %{tmp_dir: tmp_dir, logger: logger} do
@@ -91,6 +93,7 @@ defmodule NextLS.UpdaterTest do
 
   test "logs that it failed when api call fails", %{tmp_dir: tmp_dir, logger: logger} do
     binpath = Path.join(tmp_dir, "nextls")
+    File.write(binpath, "yoyoyo")
 
     Updater.run(
       current_version: Version.parse!("1.0.0"),
@@ -114,6 +117,7 @@ defmodule NextLS.UpdaterTest do
     end)
 
     binpath = Path.join(tmp_dir, "nextls")
+    File.write(binpath, "yoyoyo")
 
     Updater.run(
       current_version: Version.parse!("0.9.0"),

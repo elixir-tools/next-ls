@@ -53,7 +53,7 @@ defmodule NextLS.Updater do
                      :error
                    end
                  end) do
-            System.cmd("chmod", ["+x", binpath])
+            File.chmod(binpath, 0o755)
 
             NextLS.Logger.show_message(logger, :info, "Downloaded #{version} of Next LS!")
             NextLS.Logger.info(logger, "Downloaded #{version} of Next LS!")
