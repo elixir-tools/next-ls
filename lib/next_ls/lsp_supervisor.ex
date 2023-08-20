@@ -33,12 +33,18 @@ defmodule NextLS.LSPSupervisor do
     if @env == :test do
       :ignore
     else
-      {m, f, a} = if @env == :prod, do: {Burrito.Util.Args, :get_arguments, []}, else: {System, :argv, []}
+      {m, f, a} =
+        if @env == :prod, do: {Burrito.Util.Args, :get_arguments, []}, else: {System, :argv, []}
 
       argv = apply(m, f, a)
 
       {opts, _, invalid} =
-        OptionParser.parse(argv, strict: [stdio: :boolean, port: :integer])
+        OptionParser.parse(argv, strict: [version: :boolean, stdio: :boolean, port: :integer])
+
+      if opts[:version] do
+        IO.puts("#{NextLS.version()}")
+        System.halt(0)
+      end
 
       buffer_opts =
         cond do
@@ -56,7 +62,11 @@ defmodule NextLS.LSPSupervisor do
       auto_update =
         if "NEXTLS_AUTO_UPDATE" |> System.get_env("false") |> String.to_existing_atom() do
           [
-            binpath: System.get_env("NEXTLS_BINPATH", Path.expand("~/.cache/elixir-tools/nextls/bin/nextls")),
+            binpath:
+              System.get_env(
+                "NEXTLS_BINPATH",
+                Path.expand("~/.cache/elixir-tools/nextls/bin/nextls")
+              ),
             api_host: System.get_env("NEXTLS_GITHUB_API", "https://api.github.com"),
             github_host: System.get_env("NEXTLS_GITHUB", "https://github.com"),
             current_version: Version.parse!(NextLS.version())
