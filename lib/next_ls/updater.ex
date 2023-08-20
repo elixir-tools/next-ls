@@ -55,8 +55,8 @@ defmodule NextLS.Updater do
                  end) do
             File.chmod(binpath, 0o755)
 
-            NextLS.Logger.show_message(logger, :info, "Downloaded #{version} of Next LS!")
-            NextLS.Logger.info(logger, "Downloaded #{version} of Next LS!")
+            NextLS.Logger.show_message(logger, :info, "[Next LS] Downloaded v#{version}, please restart your editor for it to take effect.")
+            NextLS.Logger.info(logger, "Downloaded #{version} of Next LS")
           end
         end
 
