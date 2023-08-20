@@ -5,25 +5,6 @@ defmodule NextLS.LSPSupervisor do
 
   @env Mix.env()
 
-  defmodule OptionsError do
-    @moduledoc false
-    defexception [:message]
-
-    @impl true
-    def exception(options) do
-      msg = """
-      Unknown Options: #{Enum.map_join(options, " ", fn {k, v} -> "#{k} #{v}" end)}
-
-      Valid options:
-
-      --stdio              Starts the server using stdio
-      --port port-number   Starts the server using TCP on the given port
-      """
-
-      %OptionsError{message: msg}
-    end
-  end
-
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -38,12 +19,40 @@ defmodule NextLS.LSPSupervisor do
 
       argv = apply(m, f, a)
 
-      {opts, _, invalid} =
-        OptionParser.parse(argv, strict: [version: :boolean, stdio: :boolean, port: :integer])
+      {opts, _, _invalid} =
+        OptionParser.parse(argv, strict: [version: :boolean, help: :boolean, stdio: :boolean, port: :integer])
 
-      if opts[:version] do
-        IO.puts("#{NextLS.version()}")
-        System.halt(0)
+      help_text = """
+      Next LS v#{NextLS.version()}
+
+      The langauge server for Elixir that #{IO.ANSI.italic()}#{IO.ANSI.bright()}just#{IO.ANSI.reset()} works.
+
+           Author: Mitchell Hanberg
+        Home page: https://www.elixir-tools.dev/next-ls
+      Source code: https://github.com/elixir-tools/next-ls
+
+      nextls [flags]
+
+      #{IO.ANSI.bright()}FLAGS#{IO.ANSI.reset()}
+
+        --stdio             Use stdio as the transport mechanism
+        --tcp <port>        Use TCP as the transport mechanism, with the given port
+        --help              Show help
+        --version           Show nextls version
+      """
+
+      cond do
+        opts[:help] ->
+          IO.puts(help_text)
+
+          System.halt(0)
+
+        opts[:version] ->
+          IO.puts("#{NextLS.version()}")
+          System.halt(0)
+
+        true ->
+          :noop
       end
 
       buffer_opts =
@@ -56,7 +65,9 @@ defmodule NextLS.LSPSupervisor do
             [communication: {GenLSP.Communication.TCP, [port: opts[:port]]}]
 
           true ->
-            raise OptionsError, invalid
+            IO.puts(help_text)
+
+            System.halt(1)
         end
 
       auto_update =
