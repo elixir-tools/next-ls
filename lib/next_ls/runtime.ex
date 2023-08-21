@@ -12,7 +12,7 @@ defmodule NextLS.Runtime do
   @type mod_fun_arg :: {atom(), atom(), list()}
 
   @spec call(pid(), mod_fun_arg()) :: any()
-  def call(server, mfa), do: GenServer.call(server, {:call, mfa})
+  def call(server, mfa), do: GenServer.call(server, {:call, mfa}, :infinity)
 
   @spec ready?(pid()) :: boolean()
   def ready?(server), do: GenServer.call(server, :ready?)
