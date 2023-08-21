@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/elixir-tools/next-ls/compare/v0.10.0...v0.10.1) (2023-08-21)
+
+
+### Bug Fixes
+
+* don't timeout when calling functions on the runtime ([#196](https://github.com/elixir-tools/next-ls/issues/196)) ([555b191](https://github.com/elixir-tools/next-ls/commit/555b19162c502838e82f6ecff42383c0da076801))
+
 ## [0.10.0](https://github.com/elixir-tools/next-ls/compare/v0.9.1...v0.10.0) (2023-08-20)
 
 
