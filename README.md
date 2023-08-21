@@ -67,6 +67,19 @@ language-server = { command = "path/to/next-ls", args = ["--stdio=true"] }
 
 The preferred way to use Next LS is through one of the supported editor extensions.
 
+### VSCode
+Works with VSCode for Mac and Linux.
+
+1. Ensure VS Code is properly installed on your system
+2. Install the `elixir-tools` extension.
+3. Open the extension settings and check the box enabling NextLS (it is disabled by default)
+4. When prompted, accept the installation of NextLS
+5. Reset VSCode.
+
+If the server is not connecting by default, try opening VSCode via command line: `code .`
+
+### Independent Install
+   
 If you need to install Next LS on it's own, you can download the appropriate executable from our [GitHub Releases](https://github.com/elixir-tools/next-ls/releases).
 
 These executables are created with [Burrito](https://github.com/burrito-elixir/burrito) and are completely standalone, except you'll still need Elixir and OTP installed in order for it to start a runtime for your application code.
@@ -135,13 +148,31 @@ Windows does not use `glibc`. If you're using a subsystem or tool that needs it,
 
 ---
 
-### 3. Does it work in TCP mode?
+### 3. If using VS Code, does work when opened via terminal?
+
+If using a third party packager, sometimes it is required to use the `code` shell command to open VSCode.  This
+ensures the right environmental variables are present to allow VSCode to properly initialize the NextLS Server.
+
+1. Ensure the code ([mac](https://code.visualstudio.com/docs/setup/mac), [linux](https://code.visualstudio.com/docs/setup/linux)) shell command is installed.
+2. Navigate to your project directory
+3. Open your project with the command `code .`
+
+___
+### 4. Does it work in TCP mode?
 
 #### All Platforms:
 
 Start the language server in TCP mode and connect to it with your editor, as described above.
 
-### 4. Firewall Interference
+When using elixir-tools extension on VS Code: 
+1. Set `elixir-tools` IO setting to `TCP`
+2. Close VSCode.
+3. Run the following in terminal: `~/.cache/elixir-tools/nextls/bin/nextls --port 9000`
+4. Open VSCode normally.  If it fails, Repeat Troubleshooting Step 3 (Open Code via terminal).
+
+
+___
+### 5. Firewall Interference
 
 Sometimes, the firewall can interfere with the TCP mode. If you face connection issues, you might try turning off the firewall temporarily to see if it resolves the issue.
 
