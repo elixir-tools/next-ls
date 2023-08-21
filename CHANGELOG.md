@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0](https://github.com/elixir-tools/next-ls/compare/v0.9.1...v0.10.0) (2023-08-20)
+
+
+### Features
+
+* auto update ([#192](https://github.com/elixir-tools/next-ls/issues/192)) ([d2db88a](https://github.com/elixir-tools/next-ls/commit/d2db88a9d975c13d2b5284b47da15176d60e5878)), closes [#170](https://github.com/elixir-tools/next-ls/issues/170)
+* **cli:** --help flag ([#194](https://github.com/elixir-tools/next-ls/issues/194)) ([3cdfa18](https://github.com/elixir-tools/next-ls/commit/3cdfa18d841092adedaab93b5226ab1049685dcd))
+* **cli:** --version flag ([#193](https://github.com/elixir-tools/next-ls/issues/193)) ([8455ba7](https://github.com/elixir-tools/next-ls/commit/8455ba75dd91299501b5f1e9962fa3a654802177))
+* **definition:** go to dependency ([#171](https://github.com/elixir-tools/next-ls/issues/171)) ([ddd28de](https://github.com/elixir-tools/next-ls/commit/ddd28deeb2b9a3a1ff0bede27a512ddd9c51165e))
+* **extension:** credo ([#163](https://github.com/elixir-tools/next-ls/issues/163)) ([70d52dc](https://github.com/elixir-tools/next-ls/commit/70d52dcc16a2532b181da60723f9d0d18384505b))
+* progress messages for workspace indexing ([#179](https://github.com/elixir-tools/next-ls/issues/179)) ([09883bc](https://github.com/elixir-tools/next-ls/commit/09883bc0529076ff492cfd8289128cd340255e13))
+
+
+### Bug Fixes
+
+* coalesce nil start line to 1 ([#182](https://github.com/elixir-tools/next-ls/issues/182)) ([9864fc4](https://github.com/elixir-tools/next-ls/commit/9864fc4567c674e1570102c250c74a5f437e8f0a)), closes [#160](https://github.com/elixir-tools/next-ls/issues/160)
+* improve error handling for compiler diagnostics ([#165](https://github.com/elixir-tools/next-ls/issues/165)) ([e77cebd](https://github.com/elixir-tools/next-ls/commit/e77cebd5f5198ae98e8ae046eefcc04094c68e41))
+* log failed db query with arguments ([#166](https://github.com/elixir-tools/next-ls/issues/166)) ([c0d813d](https://github.com/elixir-tools/next-ls/commit/c0d813d37a1859fc43a7b7ad89ae1149acc62332))
+* only purge references when actually recompiling ([#187](https://github.com/elixir-tools/next-ls/issues/187)) ([481acc4](https://github.com/elixir-tools/next-ls/commit/481acc4203e47ffaa30e9b3127a82953ffe2c121)), closes [#154](https://github.com/elixir-tools/next-ls/issues/154)
+* set db timeouts to :infinity ([#168](https://github.com/elixir-tools/next-ls/issues/168)) ([ebe2ea3](https://github.com/elixir-tools/next-ls/commit/ebe2ea3d463266f0963a689978e7d72cd3fa2ff4))
+
 ## [0.9.1](https://github.com/elixir-tools/next-ls/compare/v0.9.0...v0.9.1) (2023-08-09)
 
 
