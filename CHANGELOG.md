@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/elixir-tools/next-ls/compare/v0.10.1...v0.10.2) (2023-08-22)
+
+
+### Bug Fixes
+
+* typos ([f80b57b](https://github.com/elixir-tools/next-ls/commit/f80b57b35a354a416eca6504396417a177ffe6f2))
+
 ## [0.10.1](https://github.com/elixir-tools/next-ls/compare/v0.10.0...v0.10.1) (2023-08-21)
 
 
