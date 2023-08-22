@@ -235,14 +235,7 @@ defmodule NextLS do
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
-    filter = fn sym ->
-      if query == "" do
-        true
-      else
-        # TODO: sqlite has a regexp feature, this can be done in sql most likely
-        to_string(sym) =~ query
-      end
-    end
+    case_sensitive? = String.downcase(query) != query
 
     symbols = fn pid ->
       rows =
@@ -270,7 +263,7 @@ defmodule NextLS do
 
     symbols =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
-        for {pid, _} <- entries, symbol <- symbols.(pid), filter.(symbol.name) do
+        for {pid, _} <- entries, symbol <- symbols.(pid), fuzzy_match?(symbol.name, query, case_sensitive?) do
           name =
             if symbol.type != "defstruct" do
               "#{symbol.type} #{symbol.name}"
@@ -706,15 +699,14 @@ defmodule NextLS do
   end
 
   defp symbol_info(file, line, col, database) do
-    definition_query =
-      ~Q"""
-      SELECT module, type, name
-      FROM "symbols" sym
-      WHERE sym.file = ?
-        AND sym.line = ?
-      ORDER BY sym.id ASC
-      LIMIT 1
-      """
+    definition_query = ~Q"""
+    SELECT module, type, name
+    FROM "symbols" sym
+    WHERE sym.file = ?
+      AND sym.line = ?
+    ORDER BY sym.id ASC
+    LIMIT 1
+    """
 
     reference_query = ~Q"""
     SELECT identifier, type, module
@@ -757,4 +749,31 @@ defmodule NextLS do
   end
 
   defp clamp(line), do: max(line, 0)
+
+  defp fuzzy_match?(_source, "", _case_sensitive), do: true
+
+  defp fuzzy_match?(source, query, case_sensitive) do
+    source = if case_sensitive, do: source, else: String.downcase(source)
+
+    do_match?(String.codepoints(source), String.codepoints(query))
+  end
+
+  defp do_match?(_source_codepoints, []), do: true
+
+  defp do_match?(source_codepoints, [query_head | query_rest]) do
+    case compare_codepoint(source_codepoints, query_head) do
+      :no_match -> false
+      rest_source_codepoints -> do_match?(rest_source_codepoints, query_rest)
+    end
+  end
+
+  defp compare_codepoint([], _query_codepoint), do: :no_match
+
+  defp compare_codepoint([source_head | source_rest], query_codepoint) do
+    if query_codepoint == source_head do
+      source_rest
+    else
+      compare_codepoint(source_rest, query_codepoint)
+    end
+  end
 end
