@@ -25,7 +25,7 @@ defmodule NextLS.LSPSupervisor do
       help_text = """
       Next LS v#{NextLS.version()}
 
-      The langauge server for Elixir that #{IO.ANSI.italic()}#{IO.ANSI.bright()}just#{IO.ANSI.reset()} works.
+      The language server for Elixir that #{IO.ANSI.italic()}#{IO.ANSI.bright()}just#{IO.ANSI.reset()} works.
 
            Author: Mitchell Hanberg
         Home page: https://www.elixir-tools.dev/next-ls
@@ -36,7 +36,7 @@ defmodule NextLS.LSPSupervisor do
       #{IO.ANSI.bright()}FLAGS#{IO.ANSI.reset()}
 
         --stdio             Use stdio as the transport mechanism
-        --tcp <port>        Use TCP as the transport mechanism, with the given port
+        --port <port>       Use TCP as the transport mechanism, with the given port
         --help              Show help
         --version           Show nextls version
       """
