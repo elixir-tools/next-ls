@@ -94,8 +94,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
           path: |
-            deps
-            _build
             priv/plts
 
       - name: Install Dependencies
@@ -116,8 +114,6 @@ jobs:
           key: |
             ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           path: |
-            deps
-            _build
             priv/plts
 
       - name: Run dialyzer
