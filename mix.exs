@@ -1,7 +1,7 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
-  @version "0.10.3" # x-release-please-version
+  @version "0.10.3-retired-from-hex" # x-release-please-version
 
   def project do
     [
@@ -64,7 +64,6 @@ defmodule NextLS.MixProject do
       {:gen_lsp, "~> 0.6"},
       {:req, "~> 0.3.11"},
 
-      {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},
