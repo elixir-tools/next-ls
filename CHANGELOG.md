@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.3](https://github.com/elixir-tools/next-ls/compare/v0.10.2...v0.10.3) (2023-08-24)
+
+
+### Bug Fixes
+
+* update burrito ([#200](https://github.com/elixir-tools/next-ls/issues/200)) ([11a992b](https://github.com/elixir-tools/next-ls/commit/11a992ba48bde3fb2776df49ad37f498bfa87a1b))
+
 ## [0.10.2](https://github.com/elixir-tools/next-ls/compare/v0.10.1...v0.10.2) (2023-08-22)
 
 
