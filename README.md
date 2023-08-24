@@ -73,12 +73,9 @@ These executables are created with [Burrito](https://github.com/burrito-elixir/b
 
 ## Development
 
-If you are making changes to NextLS and want to test them locally you can run
-`bin/start --port 9000` to start the language server (port 9000 is just an
-example, you can use any port that you want as long as it is not being used
-already).
+If you are making changes to Next LS and want to test them locally you can run `bin/start --port 9000` to start the language server (port 9000 is just an example, you can use any port that you want as long as it is not being used already).
 
-Then you can configure your editor to connect to NextLS using that port.
+Then you can configure your editor to connect to Next LS using that port.
 
 [elixir-tools.nvim](https://github.com/elixir-tools/elixir-tools.nvim)
 
@@ -113,7 +110,6 @@ pgrep -fl epmd
 
 If `epmd` is not running, you might need to start it or ensure it starts automatically with your system. You can do this by running `epmd -daemon`.
 
----
 
 ### 2. Ensure `glibc` version is at least 2.34
 
@@ -133,17 +129,24 @@ macOS doesn't use `glibc`; it uses the Darwin C Library. Hence, this step is not
 
 Windows does not use `glibc`. If you're using a subsystem or tool that needs it, ensure it's updated.
 
----
 
-### 3. Does it work in TCP mode?
+### 3. Open Visual Studio Code from the terminal
+
+To ensure that `elixir` is in your `PATH`, open Visual Studio Code from the terminal using the [command-line tools](https://code.visualstudio.com/docs/editor/command-line#_launching-from-command-line).
+
+
+### 4. Does it work in TCP mode?
 
 #### All Platforms:
 
 Start the language server in TCP mode and connect to it with your editor, as described above.
 
-### 4. Firewall Interference
+Both extensions install the Next LS executable to `~/.cache/elixir-tools/nextls/bin/nextls`, so you can start the server with `~/.cache/elixir-tools/nextls/bin/nextls --port 9000`.
 
-Sometimes, the firewall can interfere with the TCP mode. If you face connection issues, you might try turning off the firewall temporarily to see if it resolves the issue.
+
+### 5. Firewall Interference
+
+Sometimes, the firewall can interfere with `epmd` and each Erlang node's ability to cluster. If you face connection issues, you might try turning off the firewall temporarily to see if it resolves the issue.
 
 This is usually a problem on macOS, as you should see a popup asking if `beam` and `epmd` can accept incoming connections (which you should click "yes").
 
