@@ -59,6 +59,19 @@ scope = "source.elixir"
 language-server = { command = "path/to/next-ls", args = ["--stdio=true"] }
 ```
 
+If you are using the latest git version of helix use this:
+
+```toml
+[[language]]
+name = "elixir"
+scope = "source.elixir"
+language-servers = ["nextls"]
+
+[language-server.nextls]
+command = "path/to/next-ls"
+args = ["--stdio=true"]
+```
+
 </details>
 </li>
 </ul>
