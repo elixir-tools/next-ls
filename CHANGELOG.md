@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4](https://github.com/elixir-tools/next-ls/compare/v0.10.3...v0.10.4) (2023-08-28)
+
+
+### Bug Fixes
+
+* redirect log messages to stderr ([#208](https://github.com/elixir-tools/next-ls/issues/208)) ([c3ab60f](https://github.com/elixir-tools/next-ls/commit/c3ab60ffb875695f869ced656ffe3f087cd5e8c9))
+
 ## [0.10.3](https://github.com/elixir-tools/next-ls/compare/v0.10.2...v0.10.3) (2023-08-24)
 
 
