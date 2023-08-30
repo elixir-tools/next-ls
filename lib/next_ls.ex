@@ -837,7 +837,7 @@ defmodule NextLS do
   defp calc_matched_bonus(score, _traits, _new_traits), do: score
 
   # penalty applied for every letter in str before the first match
-  defp calc_unmatched_penalty(score, %{leading: true}) when score > -15, do: score - 15
+  defp calc_unmatched_penalty(score, %{leading: true}) when score > -15, do: score - 5
 
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
