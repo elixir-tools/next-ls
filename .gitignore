@@ -25,6 +25,7 @@ next_ls-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 burrito_out
+result
 
 # Ignore dialyzer plt files
 /priv/plts/*.plt
