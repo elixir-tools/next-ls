@@ -1,59 +1,60 @@
 {
-  # not sure what this is
-  inputs.systems.url = "github:nix-systems/default";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs";
+  };
 
-  outputs = {
-    self,
-    nixpkgs,
-    systems,
-    flake-utils,
-    }:
-    # not sure how to use this function
-    flake-utils.lib.eachSystem (import systems) #what is systems?
-    (
-      system: let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
+  outputs = { self, nixpkgs }:
+    let
+      # Systems supported
+      allSystems = [
+        "x86_64-linux" # 64-bit Intel/AMD Linux
+        "aarch64-linux" # 64-bit ARM Linux
+        "x86_64-darwin" # 64-bit Intel macOS
+        "aarch64-darwin" # 64-bit ARM macOS
+      ];
 
-        # Set the Erlang version
-        erlangVersion = "erlangR26";
-        # Set the Elixir version
-        elixirVersion = "elixir_1_15";
+      pname = "next-ls";
+      version = "0.10.4"; # x-release-please-version
+      src = ./.;
 
-        erlang = pkgs.beam.interpreters.${erlangVersion};
-        beamPackages = pkgs.beam.packages.${erlangVersion};
-        elixir = beamPackages.${elixirVersion};
-      in  {
-        # this doesn't work for some reason
-        packages."<system>".default = with import <nixpkgs> {}; stdenv.mkDerivation {
-          name = "next-ls";
-          src = self;
-          buildInputs = [
-            erlang
-            elixir
-            pkgs.zig
-          ];
+      # Helper to provide system-specific attributes
+      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
+        pkgs = import nixpkgs { inherit system; };
+      });
+    in
+    {
+      packages = forAllSystems ({ pkgs }:
+        let
+          beamPackages = pkgs.beam.packages.erlang_26;
+        in {
+          default = beamPackages.mixRelease {
+            inherit pname version src;
+            erlang = beamPackages.erlang;
+            elixir = beamPackages.elixir_1_15;
 
-          buildPhase = ''
-            mix local.hex --force
-            mix local.rebar --force
-            mix deps.get
-            BURRITO_TARGET="darwin_arm64" MIX_ENV=prod mix release
-          '';
+            nativeBuildInputs = [pkgs.xz pkgs.zig_0_10 pkgs._7zz];
 
-          installPhase = ''
-            mkdir -p $out/bin
-            cp burrito_out/next_ls_darwin_arm64 $out/bin
-          '';
-        };
+            mixFodDeps = beamPackages.fetchMixDeps {
+              inherit src version;
+              pname = "${pname}-deps";
+              hash = "sha256-wweJ9+YuI+2ZdrWDgnMplAE7e538m1YoYRu8wKEPltQ=";
+            };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            erlang
-            elixir
-          ];
-        };
-      }
-    );
+            preConfigure = ''
+              bindir="$(pwd)/bin"
+              mkdir -p "$bindir"
+              echo '#!/usr/bin/env bash
+              7zz "$@"' > "$bindir/7z"
+              chmod +x "$bindir/7z"
+
+              export HOME="$(pwd)"
+              export PATH="$bindir:$PATH"
+            '';
+
+            postInstall = ''
+              cp -r ./burrito_out "$out"
+            '';
+          };
+      });
+    };
 }
