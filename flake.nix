@@ -20,19 +20,31 @@
       # Helper to provide system-specific attributes
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
         pkgs = import nixpkgs { inherit system; };
+        system = system;
       });
+
+      burritoExe = system:
+          if system == "aarch64-darwin" then
+            "darwin_arm64"
+          else if system == "x86_64-darwin" then
+            "darwin_amd64"
+          else if system == "x86_64-linux" then
+            "linux_amd64"
+          else if system == "aarch64-linux" then
+            "linux_arm64"
+          else
+            "";
     in
     {
-      packages = forAllSystems ({ pkgs }:
+      packages = forAllSystems ({ pkgs, system }:
         let
           beamPackages = pkgs.beam.packages.erlang_26;
-        in {
-          default = beamPackages.mixRelease {
+          build = type: beamPackages.mixRelease {
             inherit pname version src;
             erlang = beamPackages.erlang;
             elixir = beamPackages.elixir_1_15;
 
-            nativeBuildInputs = [pkgs.xz pkgs.zig_0_10 pkgs._7zz];
+            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_10 pkgs._7zz ];
 
             mixFodDeps = beamPackages.fetchMixDeps {
               inherit src version;
@@ -51,23 +63,40 @@
               export PATH="$bindir:$PATH"
             '';
 
+            preInstall = if type == "local" then ''
+              export BURRITO_TARGET="${burritoExe(system)}"
+            ''
+            else "";
+
             postInstall = ''
               cp -r ./burrito_out "$out"
             '';
           };
-      });
+        in
+        {
+          default = build("local");
+          ci = build("ci");
+        });
 
-      devShells = forAllSystems ({ pkgs }:
-        let
-          beamPackages = pkgs.beam.packages.erlang_26;
-        in {
-          default = pkgs.mkShell {
-          # The Nix packages provided in the environment
-          packages = [
-            beamPackages.erlang
-            beamPackages.elixir_1_15
-          ];
+      apps = forAllSystems ({ pkgs, system }: {
+        default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/burrito_out/next_ls_${burritoExe(system)}";
         };
       });
+
+      devShells = forAllSystems ({ pkgs, ... }:
+        let
+          beamPackages = pkgs.beam.packages.erlang_26;
+        in
+        {
+          default = pkgs.mkShell {
+            # The Nix packages provided in the environment
+            packages = [
+              beamPackages.erlang
+              beamPackages.elixir_1_15
+            ];
+          };
+        });
     };
 }
