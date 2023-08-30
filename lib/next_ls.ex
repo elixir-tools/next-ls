@@ -235,14 +235,7 @@ defmodule NextLS do
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do
-    filter = fn sym ->
-      if query == "" do
-        true
-      else
-        # TODO: sqlite has a regexp feature, this can be done in sql most likely
-        to_string(sym) =~ query
-      end
-    end
+    case_sensitive? = String.downcase(query) != query
 
     symbols = fn pid ->
       rows =
@@ -270,32 +263,35 @@ defmodule NextLS do
 
     symbols =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
-        for {pid, _} <- entries, symbol <- symbols.(pid), filter.(symbol.name) do
-          name =
-            if symbol.type != "defstruct" do
-              "#{symbol.type} #{symbol.name}"
-            else
-              "#{symbol.name}"
-            end
+        filtered_symbols =
+          for {pid, _} <- entries, symbol <- symbols.(pid), score = fuzzy_match(symbol.name, query, case_sensitive?) do
+            name =
+              if symbol.type != "defstruct" do
+                "#{symbol.type} #{symbol.name}"
+              else
+                "#{symbol.name}"
+              end
 
-          %SymbolInformation{
-            name: name,
-            kind: elixir_kind_to_lsp_kind(symbol.type),
-            location: %Location{
-              uri: "file://#{symbol.file}",
-              range: %Range{
-                start: %Position{
-                  line: symbol.line - 1,
-                  character: symbol.column - 1
-                },
-                end: %Position{
-                  line: symbol.line - 1,
-                  character: symbol.column - 1
-                }
-              }
-            }
-          }
-        end
+            {%SymbolInformation{
+               name: name,
+               kind: elixir_kind_to_lsp_kind(symbol.type),
+               location: %Location{
+                 uri: "file://#{symbol.file}",
+                 range: %Range{
+                   start: %Position{
+                     line: symbol.line - 1,
+                     character: symbol.column - 1
+                   },
+                   end: %Position{
+                     line: symbol.line - 1,
+                     character: symbol.column - 1
+                   }
+                 }
+               }
+             }, score}
+          end
+
+        filtered_symbols |> List.keysort(1, :desc) |> Enum.map(&elem(&1, 0))
       end)
 
     {:reply, symbols, lsp}
@@ -706,15 +702,14 @@ defmodule NextLS do
   end
 
   defp symbol_info(file, line, col, database) do
-    definition_query =
-      ~Q"""
-      SELECT module, type, name
-      FROM "symbols" sym
-      WHERE sym.file = ?
-        AND sym.line = ?
-      ORDER BY sym.id ASC
-      LIMIT 1
-      """
+    definition_query = ~Q"""
+    SELECT module, type, name
+    FROM "symbols" sym
+    WHERE sym.file = ?
+      AND sym.line = ?
+    ORDER BY sym.id ASC
+    LIMIT 1
+    """
 
     reference_query = ~Q"""
     SELECT identifier, type, module
@@ -757,4 +752,93 @@ defmodule NextLS do
   end
 
   defp clamp(line), do: max(line, 0)
+
+  # This is an implementation of a sequential fuzzy string matching algorithm,
+  # similar to those used in code editors like Sublime Text.
+  # It is based on Forrest Smith's work on https://github.com/forrestthewoods/lib_fts/)
+  # and his blog post https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/.
+  #
+  # Function checks if letters from the query present in the source in correct order.
+  # It calculates match score only for matching sources.
+
+  defp fuzzy_match(_source, "", _case_sensitive), do: 1
+
+  defp fuzzy_match(source, query, case_sensitive) do
+    source_converted = if case_sensitive, do: source, else: String.downcase(source)
+    source_letters = String.codepoints(source_converted)
+    query_letters = String.codepoints(query)
+
+    if do_fuzzy_match?(source_letters, query_letters) do
+      source_anycase = String.codepoints(source)
+      source_downcase = query |> String.downcase() |> String.codepoints()
+
+      calc_match_score(source_anycase, source_downcase, %{leading: true, separator: true}, 0)
+    else
+      false
+    end
+  end
+
+  defp do_fuzzy_match?(_source_letters, []), do: true
+
+  defp do_fuzzy_match?(source_letters, [query_head | query_rest]) do
+    case match_letter(source_letters, query_head) do
+      :no_match -> false
+      rest_source_letters -> do_fuzzy_match?(rest_source_letters, query_rest)
+    end
+  end
+
+  defp match_letter([], _query_letter), do: :no_match
+
+  defp match_letter([source_letter | source_rest], query_letter) when query_letter == source_letter, do: source_rest
+
+  defp match_letter([_ | source_rest], query_letter), do: match_letter(source_rest, query_letter)
+
+  defp calc_match_score(_source_letters, [], _traits, score), do: score
+
+  defp calc_match_score(source_letters, [query_letter | query_rest], traits, score) do
+    {rest_source_letters, new_traits, new_score} = calc_letter_score(source_letters, query_letter, traits, score)
+
+    calc_match_score(rest_source_letters, query_rest, new_traits, new_score)
+  end
+
+  defp calc_letter_score([source_letter | source_rest], query_letter, traits, score) do
+    separator? = source_letter in ["_", ".", "-", "/", " "]
+    source_letter_downcase = String.downcase(source_letter)
+    upper? = source_letter_downcase != source_letter
+
+    if query_letter == source_letter_downcase do
+      new_traits = %{matched: true, leading: false, separator: separator?, upper: upper?}
+      new_score = calc_matched_bonus(score, traits, new_traits)
+
+      {source_rest, new_traits, new_score}
+    else
+      new_traits = %{
+        matched: false,
+        separator: separator?,
+        upper: upper?,
+        leading: traits.leading
+      }
+
+      new_score = calc_unmatched_penalty(score, traits)
+
+      calc_letter_score(source_rest, query_letter, new_traits, new_score)
+    end
+  end
+
+  # bonus if match occurs after a separator or on the first letter
+  defp calc_matched_bonus(score, %{separator: true}, _new_traits), do: score + 30
+
+  # bonus if match is uppercase and previous is lowercase
+  defp calc_matched_bonus(score, %{upper: false}, %{upper: true}), do: score + 30
+
+  # bonus for adjacent matches
+  defp calc_matched_bonus(score, %{matched: true}, _new_traits), do: score + 15
+
+  defp calc_matched_bonus(score, _traits, _new_traits), do: score
+
+  # penalty applied for every letter in str before the first match
+  defp calc_unmatched_penalty(score, %{leading: true}) when score > -15, do: score - 15
+
+  # penalty for unmatched letter
+  defp calc_unmatched_penalty(score, _traits), do: score - 1
 end
