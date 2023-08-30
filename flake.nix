@@ -56,5 +56,18 @@
             '';
           };
       });
+
+      devShells = forAllSystems ({ pkgs }:
+        let
+          beamPackages = pkgs.beam.packages.erlang_26;
+        in {
+          default = pkgs.mkShell {
+          # The Nix packages provided in the environment
+          packages = [
+            beamPackages.erlang
+            beamPackages.elixir_1_15
+          ];
+        };
+      });
     };
 }
