@@ -15,28 +15,37 @@
 
       pname = "next-ls";
       version = "0.10.4"; # x-release-please-version
-      src = ./.;
 
       # Helper to provide system-specific attributes
-      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
-        pkgs = import nixpkgs { inherit system; };
-        system = system;
-      });
+      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        f {
+          inherit pkgs;
+          src = pkgs.fetchFromGitHub {
+            owner = "elixir-tools";
+            repo = "next-ls";
+            rev = "v${version}";
+            sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
+          };
+          system = system;
+        });
 
       burritoExe = system:
-          if system == "aarch64-darwin" then
-            "darwin_arm64"
-          else if system == "x86_64-darwin" then
-            "darwin_amd64"
-          else if system == "x86_64-linux" then
-            "linux_amd64"
-          else if system == "aarch64-linux" then
-            "linux_arm64"
-          else
-            "";
+        if system == "aarch64-darwin" then
+          "darwin_arm64"
+        else if system == "x86_64-darwin" then
+          "darwin_amd64"
+        else if system == "x86_64-linux" then
+          "linux_amd64"
+        else if system == "aarch64-linux" then
+          "linux_arm64"
+        else
+          "";
     in
     {
-      packages = forAllSystems ({ pkgs, system }:
+      packages = forAllSystems ({ pkgs, system, src }:
         let
           beamPackages = pkgs.beam.packages.erlang_26;
           build = type: beamPackages.mixRelease {
@@ -49,7 +58,7 @@
             mixFodDeps = beamPackages.fetchMixDeps {
               inherit src version;
               pname = "${pname}-deps";
-              hash = "sha256-wweJ9+YuI+2ZdrWDgnMplAE7e538m1YoYRu8wKEPltQ=";
+              hash = "sha256-jUkz/pu3iyizpHkMYgmbYfalFv10t11b6SmLVEXAJ30=";
             };
 
             preConfigure = ''
@@ -63,10 +72,11 @@
               export PATH="$bindir:$PATH"
             '';
 
-            preInstall = if type == "local" then ''
-              export BURRITO_TARGET="${burritoExe(system)}"
-            ''
-            else "";
+            preInstall =
+              if type == "local" then ''
+                export BURRITO_TARGET="${burritoExe(system)}"
+              ''
+              else "";
 
             postInstall = ''
               cp -r ./burrito_out "$out"
@@ -74,8 +84,8 @@
           };
         in
         {
-          default = build("local");
-          ci = build("ci");
+          default = build ("local");
+          ci = build ("ci");
         });
 
       apps = forAllSystems ({ pkgs, system }: {
