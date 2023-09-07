@@ -7,4 +7,4 @@ task:
     - . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
     - nix build .#ci
   binary_artifacts:
-    path: next-ls/result/burrito_out/*
+    path: result/burrito_out/*
