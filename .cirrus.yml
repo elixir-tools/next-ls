@@ -5,8 +5,6 @@ task:
   build_script:
     - curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
     - . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-    - nix shell nixpkgs#git -c sh -c "git clone https://github.com/elixir-tools/next-ls.git"
-    - cd next-ls
     - nix build .#ci
   binary_artifacts:
     path: next-ls/result/burrito_out/*
