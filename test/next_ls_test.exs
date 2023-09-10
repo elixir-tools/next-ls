@@ -334,7 +334,40 @@ defmodule NextLSTest do
       id: 2,
       jsonrpc: "2.0",
       params: %{
-        query: "fo"
+        query: "Project"
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert [
+             %{
+               "kind" => 2,
+               "location" => %{
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
+                 },
+                 "uri" => "file://#{cwd}/my_proj/lib/project.ex"
+               },
+               "name" => "defmodule Project"
+             }
+           ] == symbols
+  end
+
+  test "workspace symbols with query fuzzy search", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: "heo"
       }
     }
 
@@ -345,35 +378,56 @@ defmodule NextLSTest do
                "kind" => 12,
                "location" => %{
                  "range" => %{
-                   "start" => %{
-                     "line" => 4,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 4,
-                     "character" => 0
-                   }
+                   "end" => %{"character" => 0, "line" => 1},
+                   "start" => %{"character" => 0, "line" => 1}
+                 },
+                 "uri" => "file://#{cwd}/my_proj/lib/project.ex"
+               },
+               "name" => "def hello"
+             }
+           ] == symbols
+  end
+
+  test "workspace symbols with query case sensitive fuzzy search", %{client: client, cwd: cwd} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
+    assert_is_ready(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    request client, %{
+      method: "workspace/symbol",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        query: "Ct"
+      }
+    }
+
+    assert_result 2, symbols
+
+    assert [
+             %{
+               "kind" => 2,
+               "location" => %{
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 3},
+                   "start" => %{"character" => 0, "line" => 3}
                  },
                  "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
                },
-               "name" => "def foo"
+               "name" => "defmodule Foo.CodeAction.NestedMod"
              },
              %{
-               "kind" => 12,
+               "kind" => 2,
                "location" => %{
                  "range" => %{
-                   "start" => %{
-                     "line" => 3,
-                     "character" => 0
-                   },
-                   "end" => %{
-                     "line" => 3,
-                     "character" => 0
-                   }
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
                  },
-                 "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
+                 "uri" => "file://#{cwd}/my_proj/lib/code_action.ex"
                },
-               "name" => "def foo"
+               "name" => "defmodule Foo.CodeAction"
              }
            ] == symbols
   end
