@@ -15,6 +15,7 @@
 
       pname = "next-ls";
       version = "0.10.4"; # x-release-please-version
+      src = ./.;
 
       # Helper to provide system-specific attributes
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system:
@@ -23,12 +24,12 @@
         in
         f {
           inherit pkgs;
-          src = pkgs.fetchFromGitHub {
-            owner = "elixir-tools";
-            repo = "next-ls";
-            rev = "v${version}";
-            sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
-          };
+          # src = pkgs.fetchFromGitHub {
+          #   owner = "elixir-tools";
+          #   repo = "next-ls";
+          #  rev = "v${version}";
+          #  sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
+          # };
           system = system;
         });
 
@@ -45,7 +46,7 @@
           "";
     in
     {
-      packages = forAllSystems ({ pkgs, system, src }:
+      packages = forAllSystems ({ pkgs, system }:
         let
           beamPackages = pkgs.beam.packages.erlang_26;
           build = type: beamPackages.mixRelease {
