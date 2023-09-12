@@ -78,15 +78,11 @@ args = ["--stdio=true"]
 
 ## Installation
 
+### Editor Extensions
+
 The preferred way to use Next LS is through one of the supported editor extensions.
 
 The extension will automatically install the latest version of Next LS and will be kept up to date automatically.
-
-### GitHub Releases
-
-If you need to install Next LS on it's own, you can download the appropriate executable from our [GitHub Releases](https://github.com/elixir-tools/next-ls/releases).
-
-These executables are created with [Burrito](https://github.com/burrito-elixir/burrito) and are completely standalone, except you'll still need Elixir and OTP installed in order for it to start a runtime for your application code.
 
 ### Homebrew
 
@@ -99,6 +95,12 @@ $ brew install elixir-tools/tap/next-ls
 ```bash
 $ nix profile install github:elixir-tools/next-ls
 ```
+
+### GitHub Releases
+
+If you need to install Next LS on it's own, you can download the appropriate executable from our [GitHub Releases](https://github.com/elixir-tools/next-ls/releases).
+
+These executables are created with [Burrito](https://github.com/burrito-elixir/burrito) and are completely standalone, except you'll still need Elixir and OTP installed in order for it to start a runtime for your application code.
 
 ## Development
 
