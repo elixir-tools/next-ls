@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/elixir-tools/next-ls/compare/v0.10.4...v0.11.0) (2023-09-12)
+
+
+### Features
+
+* ranked fuzzy match search of workspace symbols ([#212](https://github.com/elixir-tools/next-ls/issues/212)) ([9395744](https://github.com/elixir-tools/next-ls/commit/9395744069537ec1b90dfd652c6b388781bb6795))
+
 ## [0.10.4](https://github.com/elixir-tools/next-ls/compare/v0.10.3...v0.10.4) (2023-08-28)
 
 
