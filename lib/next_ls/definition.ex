@@ -41,6 +41,9 @@ defmodule NextLS.Definition do
           "function" ->
             [module, identifier]
 
+          "attribute" ->
+            [module, identifier]
+
           _ ->
             nil
         end

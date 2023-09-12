@@ -403,4 +403,159 @@ defmodule NextLS.DefinitionTest do
                     500
     end
   end
+
+  describe "attribute" do
+    @describetag root_paths: ["my_proj"]
+    setup %{tmp_dir: tmp_dir} do
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
+    setup %{cwd: cwd} do
+      bar = Path.join(cwd, "my_proj/lib/bar.ex")
+
+      File.write!(bar, """
+      defmodule Bar do
+        @my_attr 1
+        @second_attr 2
+
+        @spec run() :: :ok | :error
+        def run() do
+          if @my_attr == 1 do
+            :ok
+          else
+            {:error, @second_attr}
+          end
+        end
+
+        defmodule Inner do
+          @inner_attr 123
+
+          def foo(a) do
+            if a, do: @inner_attr
+          end
+        end
+
+        def foo() do
+          :nothing
+        end
+      end
+
+      defmodule TopSecond.Some.Long.Name do
+        @top_second_attr "something"
+
+        def run_second do
+          {:error, @top_second_attr}
+        end
+      end
+      """)
+
+      [bar: bar]
+    end
+
+    setup :with_lsp
+
+    test "go to attribute definition", %{client: client, bar: bar} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_request(client, "client/registerCapability", fn _params -> nil end)
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 6, character: 9},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{
+                          "line" => 1,
+                          "character" => 2
+                        },
+                        "end" => %{
+                          "line" => 1,
+                          "character" => 2
+                        }
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+
+    test "go to attribute definition in second module", %{client: client, bar: bar} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_request(client, "client/registerCapability", fn _params -> nil end)
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 30, character: 17},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{
+                          "line" => 27,
+                          "character" => 2
+                        },
+                        "end" => %{
+                          "line" => 27,
+                          "character" => 2
+                        }
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+
+    test "go to attribute definition in inner module", %{client: client, bar: bar} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_request(client, "client/registerCapability", fn _params -> nil end)
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 17, character: 20},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{
+                          "line" => 14,
+                          "character" => 4
+                        },
+                        "end" => %{
+                          "line" => 14,
+                          "character" => 4
+                        }
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+  end
 end
