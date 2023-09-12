@@ -12,6 +12,8 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     strategy:
       matrix:
         otp: [26.0.2]
@@ -24,47 +26,12 @@ jobs:
           package-name: next_ls
           extra-files: |
             flake.nix
-
-      # - uses: actions/checkout@v3
-      #   if: ${{ steps.release.outputs.release_created }}
-
-      # - uses: erlef/setup-beam@v1
-      #   with:
-      #     otp-version: ${{matrix.otp}}
-      #     elixir-version: ${{matrix.elixir}}
-      #   if: ${{ steps.release.outputs.release_created }}
-
-      # - uses: actions/cache@v3
-      #   id: cache
-      #   if: ${{ steps.release.outputs.release_created }}
-      #   with:
-      #     path: |
-      #       deps
-      #       _build
-      #     key: ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-mix-${{ matrix.otp }}-${{ matrix.elixir }}-
-
-      # - name: Install Dependencies
-      #   if: steps.release.outputs.release_created && steps.cache.outputs.cache-hit != 'true'
-      #   run: mix deps.get
-
-      # we can't publish to hex anymore because burrito is a git dependency
-
-      # - name: publish to hex
-      #   if: ${{ steps.release.outputs.release_created }}
-      #   env:
-      #     HEX_API_KEY: ${{secrets.HEX_API_KEY}}
-      #   run: |
-      #     mix hex.publish --yes
-
-      # figure out how to get an apple silicon runner
-      # to be able to build the burritos on CI
-      # I will manually build them and upload for now
-
-      # - name: Upload Release Artifact
-      #   if: ${{ steps.release.outputs.release_created }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run:
-      #     gh release upload ${{ steps.release.outputs.tag_name }} ./bin/nextls
+  build:
+    needs: release
+    if: ${{ needs.release.outputs.release_created }}
+    uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
+    with:
+      repo: elixir-tools/next-ls
+      tag: ${{ github.event.release.tag_name }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
