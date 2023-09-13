@@ -15,7 +15,7 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({:tracer, payload}, state) do
-    "Elixir." <> module_name = to_string(payload.module)
+    module_name = payload.module |> to_string() |> String.replace("Elixir.", "")
     all_symbols = parse_symbols(payload.file, module_name)
     attributes = filter_attributes(all_symbols)
 
