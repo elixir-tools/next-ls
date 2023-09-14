@@ -11,7 +11,7 @@ defmodule NextLS.DB do
   end
 
   @spec query(pid(), query(), list()) :: list()
-  def query(server, query, args \\ []), do: GenServer.call(server, {:query, query, args}, :infinity)
+  def query(server, query, opts \\ []), do: GenServer.call(server, {:query, query, opts}, :infinity)
 
   @spec insert_symbol(pid(), map()) :: :ok
   def insert_symbol(server, payload), do: GenServer.cast(server, {:insert_symbol, payload})
@@ -43,10 +43,26 @@ defmodule NextLS.DB do
      }}
   end
 
-  def handle_call({:query, query, args}, _from, %{conn: conn} = s) do
+  def handle_call({:query, query, args_or_opts}, _from, %{conn: conn} = s) do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
     NextLS.DB.Activity.update(s.activity, count)
-    rows = __query__({conn, s.logger}, query, args)
+    opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
+
+    query =
+      if opts[:select] do
+        String.replace(query, ":select", Enum.map_join(opts[:select], ", ", &to_string/1))
+      else
+        query
+      end
+
+    rows =
+      for row <- __query__({conn, s.logger}, query, opts[:args] || []) do
+        if opts[:select] do
+          opts[:select] |> Enum.zip(row) |> Map.new()
+        else
+          row
+        end
+      end
 
     {:reply, rows, s}
   end
@@ -134,23 +150,25 @@ defmodule NextLS.DB do
       source: source
     } = reference
 
-    line = meta[:line] || 1
-    col = meta[:column] || 0
+    if (meta[:line] && meta[:column]) || (reference[:range][:start] && reference[:range][:stop]) do
+      line = meta[:line] || 1
+      col = meta[:column] || 0
 
-    {start_line, start_column} = reference[:range][:start] || {line, col}
+      {start_line, start_column} = reference[:range][:start] || {line, col}
 
-    {end_line, end_column} =
-      reference[:range][:stop] ||
-        {line, col + String.length(identifier |> to_string() |> String.replace("Elixir.", ""))}
+      {end_line, end_column} =
+        reference[:range][:stop] ||
+          {line, col + String.length(identifier |> to_string() |> String.replace("Elixir.", "")) - 1}
 
-    __query__(
-      {conn, s.logger},
-      ~Q"""
-      INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column, source)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-      """,
-      [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column, source]
-    )
+      __query__(
+        {conn, s.logger},
+        ~Q"""
+        INSERT INTO 'references' (identifier, arity, file, type, module, start_line, start_column, end_line, end_column, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        [identifier, reference[:arity], file, type, module, start_line, start_column, end_line, end_column, source]
+      )
+    end
 
     {:noreply, s}
   end

@@ -79,7 +79,7 @@ defmodule NextLS.ReferencesTest do
           "uri" => uri,
           "range" => %{
             "start" => %{"line" => 3, "character" => 10},
-            "end" => %{"line" => 3, "character" => 18}
+            "end" => %{"line" => 3, "character" => 17}
           }
         }
       ]
@@ -119,7 +119,7 @@ defmodule NextLS.ReferencesTest do
                       "uri" => ^uri,
                       "range" => %{
                         "start" => %{"line" => 3, "character" => 4},
-                        "end" => %{"line" => 3, "character" => 9}
+                        "end" => %{"line" => 3, "character" => 8}
                       }
                     }
                   ]
@@ -152,14 +152,14 @@ defmodule NextLS.ReferencesTest do
           "uri" => uri,
           "range" => %{
             "start" => %{"line" => 11, "character" => 14},
-            "end" => %{"line" => 11, "character" => 23}
+            "end" => %{"line" => 11, "character" => 22}
           }
         },
         %{
           "uri" => uri,
           "range" => %{
             "start" => %{"line" => 15, "character" => 13},
-            "end" => %{"line" => 15, "character" => 22}
+            "end" => %{"line" => 15, "character" => 21}
           }
         }
       ]
