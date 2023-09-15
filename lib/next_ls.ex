@@ -215,6 +215,20 @@ defmodule NextLS do
                   [module, "alias"]
                 )
 
+              {:attribute, module, attribute} ->
+                DB.query(
+                  database,
+                  ~Q"""
+                  SELECT file, start_line, end_line, start_column, end_column
+                  FROM "references" as refs
+                  WHERE refs.identifier = ?
+                    AND refs.type = ?
+                    AND refs.module = ?
+                    AND refs.source = 'user'
+                  """,
+                  [attribute, "attribute", module]
+                )
+
               :unknown ->
                 []
             end
@@ -266,7 +280,7 @@ defmodule NextLS do
         filtered_symbols =
           for {pid, _} <- entries, symbol <- symbols.(pid), score = fuzzy_match(symbol.name, query, case_sensitive?) do
             name =
-              if symbol.type != "defstruct" do
+              if symbol.type not in ["defstruct", "attribute"] do
                 "#{symbol.type} #{symbol.name}"
               else
                 "#{symbol.name}"
@@ -679,6 +693,7 @@ defmodule NextLS do
 
   defp elixir_kind_to_lsp_kind("defmodule"), do: GenLSP.Enumerations.SymbolKind.module()
   defp elixir_kind_to_lsp_kind("defstruct"), do: GenLSP.Enumerations.SymbolKind.struct()
+  defp elixir_kind_to_lsp_kind("attribute"), do: GenLSP.Enumerations.SymbolKind.property()
 
   defp elixir_kind_to_lsp_kind(kind) when kind in ["def", "defp", "defmacro", "defmacrop"],
     do: GenLSP.Enumerations.SymbolKind.function()
@@ -737,10 +752,16 @@ defmodule NextLS do
       [[module, "defmacro", function]] ->
         {:function, module, function}
 
+      [[module, "attribute", attribute]] ->
+        {:attribute, module, attribute}
+
       _unknown_definition ->
         case DB.query(database, reference_query, [file, line, col]) do
           [[function, "function", module]] ->
             {:function, module, function}
+
+          [[attribute, "attribute", module]] ->
+            {:attribute, module, attribute}
 
           [[_alias, "alias", module]] ->
             {:module, module}

@@ -61,6 +61,7 @@ defmodule NextLS.DB do
       struct: struct,
       file: file,
       defs: defs,
+      symbols: symbols,
       source: source
     } = symbol
 
@@ -103,6 +104,17 @@ defmodule NextLS.DB do
             VALUES (?, ?, ?, ?, ?, ?, ?);
         """,
         [mod, file, type, name, meta[:line], meta[:column] || 1, source]
+      )
+    end
+
+    for {type, name, line, column} <- symbols do
+      __query__(
+        {conn, s.logger},
+        ~Q"""
+        INSERT INTO symbols (module, file, type, name, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """,
+        [mod, file, type, name, line, column, source]
       )
     end
 

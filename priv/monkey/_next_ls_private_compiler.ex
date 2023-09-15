@@ -84,6 +84,27 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
+  def trace({:imported_macro, meta, _module, :@, arity}, env) do
+    parent = parent_pid()
+
+    Process.send(
+      parent,
+      {{:tracer, :reference, :attribute},
+       %{
+         meta: meta,
+         identifier: :@,
+         arity: arity,
+         file: env.file,
+         type: :attribute,
+         module: env.module,
+         source: @source
+       }},
+      []
+    )
+
+    :ok
+  end
+
   def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
