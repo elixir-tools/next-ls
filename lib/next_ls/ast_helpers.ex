@@ -1,7 +1,7 @@
 defmodule NextLS.ASTHelpers do
   @moduledoc false
 
-  @spec get_attribute_reference_name(String.t(), integer(), integer()) :: String.t()
+  @spec get_attribute_reference_name(String.t(), integer(), integer()) :: String.t() | nil
   def get_attribute_reference_name(file, line, column) do
     ast = ast_from_file(file)
 
