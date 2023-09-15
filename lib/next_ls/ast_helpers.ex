@@ -7,11 +7,11 @@ defmodule NextLS.ASTHelpers do
 
     {_ast, name} =
       Macro.prewalk(ast, nil, fn
-        {:@, [line: ^line, column: ^column], [{name, _meta, nil}]} = ast, _acc -> {ast, name}
+        {:@, [line: ^line, column: ^column], [{name, _meta, nil}]} = ast, _acc -> {ast, "@#{name}"}
         other, acc -> {other, acc}
       end)
 
-    "@#{name}"
+    name
   end
 
   @spec get_module_attributes(String.t(), module()) :: [{atom(), String.t(), integer(), integer()}]
