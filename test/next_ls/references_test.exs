@@ -111,6 +111,13 @@ defmodule NextLS.ReferencesTest do
                     %{
                       "uri" => ^uri,
                       "range" => %{
+                        "start" => %{"line" => 1, "character" => 8},
+                        "end" => %{"line" => 1, "character" => 18}
+                      }
+                    },
+                    %{
+                      "uri" => ^uri,
+                      "range" => %{
                         "start" => %{"line" => 3, "character" => 4},
                         "end" => %{"line" => 3, "character" => 9}
                       }

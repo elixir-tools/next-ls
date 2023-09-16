@@ -137,8 +137,11 @@ defmodule NextLS.DB do
     line = meta[:line] || 1
     col = meta[:column] || 0
 
-    {start_line, start_column} = {line, col}
-    {end_line, end_column} = {line, col + String.length(identifier |> to_string() |> String.replace("Elixir.", ""))}
+    {start_line, start_column} = reference[:range][:start] || {line, col}
+
+    {end_line, end_column} =
+      reference[:range][:stop] ||
+        {line, col + String.length(identifier |> to_string() |> String.replace("Elixir.", ""))}
 
     __query__(
       {conn, s.logger},
