@@ -30,7 +30,7 @@ defmodule NextLS.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :crypto],
+      extra_applications: [:logger, :crypto, :epmdless],
       mod: {NextLS.Application, []}
     ]
   end
@@ -60,6 +60,7 @@ defmodule NextLS.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:epmdless, "~> 0.3.0"},
       {:exqlite, "~> 0.13.14"},
       {:gen_lsp, "~> 0.6"},
       {:req, "~> 0.3.11"},

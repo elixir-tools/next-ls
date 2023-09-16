@@ -1,0 +1,14 @@
+## This file only affects `mix release`.
+## For example, the VM settings from this file do not propagate into `mix run`.
+## https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-vm-args-and-env-sh-env-bat
+
+## Remove the need for epmd with epmdless.
+##
+## Note: There is no module epmdless_proto provided by epmdless, instead there
+## is one called epmdless_proto_dist. Erlang suffixes _dist itself, see
+## https://github.com/erlang/otp/blob/74a0b753d6a8559be3928932ad2c372ad97030b5/lib/kernel/src/net_kernel.erl#L1988
+##
+## You can also set these via ERL_FLAGS="-proto_dist epmdless_proto ..." ENV var for dev
+-proto_dist epmdless_proto
+-start_epmd false
+-epmd_module epmdless_client
