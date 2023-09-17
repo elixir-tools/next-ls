@@ -82,8 +82,9 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({:alias_reference, meta, module}, env) do
+  def trace({:alias_reference, meta, module} = term, env) do
     parent = parent_pid()
+    # Process.send(parent, {:tracer, :dbg, {term, env.file}}, [])
 
     alias_map = Map.new(env.aliases, fn {alias, mod} -> {mod, alias} end)
 
@@ -176,6 +177,7 @@ defmodule NextLSPrivate.Tracer do
 
   def trace({:on_module, bytecode, _}, env) do
     parent = parent_pid()
+    # Process.send(parent, {:tracer, :dbg, {:on_module, env}}, [])
 
     defs = Module.definitions_in(env.module)
 

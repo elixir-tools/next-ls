@@ -16,6 +16,12 @@ defmodule NextLS.Runtime.Sidecar do
     {:ok, %{db: db}}
   end
 
+  def handle_info({:tracer, :dbg, term}, state) do
+    dbg(term)
+
+    {:noreply, state}
+  end
+
   def handle_info({:tracer, payload}, state) do
     attributes = Attributes.get_module_attributes(payload.file, payload.module)
     payload = Map.put_new(payload, :symbols, attributes)

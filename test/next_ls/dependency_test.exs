@@ -160,7 +160,7 @@ defmodule NextLS.DependencyTest do
       4,
       [
         %{
-          "range" => %{"start" => %{"character" => 8, "line" => 7}, "end" => %{"character" => 11, "line" => 7}},
+          "range" => %{"start" => %{"character" => 8, "line" => 7}, "end" => %{"character" => 10, "line" => 7}},
           "uri" => uri
         }
       ]
@@ -190,11 +190,11 @@ defmodule NextLS.DependencyTest do
       4,
       [
         %{
-          "range" => %{"start" => %{"character" => 4, "line" => 3}, "end" => %{"character" => 7, "line" => 3}},
+          "range" => %{"start" => %{"character" => 4, "line" => 3}, "end" => %{"character" => 6, "line" => 3}},
           "uri" => uri
         },
         %{
-          "range" => %{"start" => %{"character" => 4, "line" => 7}, "end" => %{"character" => 7, "line" => 7}},
+          "range" => %{"start" => %{"character" => 4, "line" => 7}, "end" => %{"character" => 6, "line" => 7}},
           "uri" => uri
         }
       ]
@@ -229,19 +229,11 @@ defmodule NextLS.DependencyTest do
       4,
       [
         %{
-          "range" => %{"end" => %{"character" => 15, "line" => 1}, "start" => %{"character" => 6, "line" => 1}},
+          "range" => %{"end" => %{"character" => 14, "line" => 1}, "start" => %{"character" => 6, "line" => 1}},
           "uri" => uri
         },
         %{
-          "range" => %{"end" => %{"character" => 8, "line" => 1}, "start" => %{"character" => 0, "line" => 1}},
-          "uri" => uri
-        },
-        %{
-          "range" => %{"end" => %{"character" => 8, "line" => 1}, "start" => %{"character" => 0, "line" => 1}},
-          "uri" => uri
-        },
-        %{
-          "range" => %{"end" => %{"character" => 13, "line" => 8}, "start" => %{"character" => 4, "line" => 8}},
+          "range" => %{"end" => %{"character" => 12, "line" => 8}, "start" => %{"character" => 4, "line" => 8}},
           "uri" => uri
         }
       ]
