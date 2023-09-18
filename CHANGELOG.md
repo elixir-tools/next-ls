@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/elixir-tools/next-ls/compare/v0.12.1...v0.12.2) (2023-09-18)
+
+
+### Bug Fixes
+
+* update db schema version ([#223](https://github.com/elixir-tools/next-ls/issues/223)) ([bd0ae63](https://github.com/elixir-tools/next-ls/commit/bd0ae631c13e54d7f720b6e28664028cf9f3f785))
+
 ## [0.12.1](https://github.com/elixir-tools/next-ls/compare/v0.12.0...v0.12.1) (2023-09-18)
 
 
