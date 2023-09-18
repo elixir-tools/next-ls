@@ -1,7 +1,7 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
-  @version "0.12.3" # x-release-please-version
+  @version "0.12.4" # x-release-please-version
 
   def project do
     [
