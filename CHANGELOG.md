@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/elixir-tools/next-ls/compare/v0.12.0...v0.12.1) (2023-09-18)
+
+
+### Bug Fixes
+
+* ensure epmd is started ([#221](https://github.com/elixir-tools/next-ls/issues/221)) ([2edfe59](https://github.com/elixir-tools/next-ls/commit/2edfe5904b5505a7276557f7b75dda2fc5c0f96f))
+* remove unused variables from monkey patch ([fec818e](https://github.com/elixir-tools/next-ls/commit/fec818e5dee67cfa5f2cda3de7c05c4325e9cf84))
+
 ## [0.12.0](https://github.com/elixir-tools/next-ls/compare/v0.11.0...v0.12.0) (2023-09-18)
 
 
