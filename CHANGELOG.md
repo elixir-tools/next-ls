@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.3](https://github.com/elixir-tools/next-ls/compare/v0.12.2...v0.12.3) (2023-09-18)
+
+
+### Bug Fixes
+
+* make priv/cmd executable before release ([c1469ae](https://github.com/elixir-tools/next-ls/commit/c1469ae591b9c7f64d3633430b8885b2db1c36c0))
+
 ## [0.12.2](https://github.com/elixir-tools/next-ls/compare/v0.12.1...v0.12.2) (2023-09-18)
 
 
