@@ -17,6 +17,7 @@ task:
     - mix local.hex --force
     - mix local.rebar --force
     - mix deps.get
+    - chmod +x priv/cmd
     - PATH="$PWD/bin:$PATH" MIX_ENV=prod mix release
   binary_artifacts:
     path: burrito_out/*
