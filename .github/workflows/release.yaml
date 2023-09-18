@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     strategy:
       matrix:
         otp: [26.0.2]
@@ -32,6 +33,6 @@ jobs:
     uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
     with:
       repo: elixir-tools/next-ls
-      tag: ${{ github.event.release.tag_name }}
+      tag: ${{ needs.release.outputs.tag_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
