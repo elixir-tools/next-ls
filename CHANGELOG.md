@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.5](https://github.com/elixir-tools/next-ls/compare/v0.12.4...v0.12.5) (2023-09-18)
+
+
+### Bug Fixes
+
+* handle aliases injected by macros ([4ad4855](https://github.com/elixir-tools/next-ls/commit/4ad48559d31496253093ad57eaa60b8b21105de7))
+
 ## [0.12.4](https://github.com/elixir-tools/next-ls/compare/v0.12.3...v0.12.4) (2023-09-18)
 
 
