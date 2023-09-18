@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.4](https://github.com/elixir-tools/next-ls/compare/v0.12.3...v0.12.4) (2023-09-18)
+
+
+### Bug Fixes
+
+* guard from missing function doc ([#226](https://github.com/elixir-tools/next-ls/issues/226)) ([72c4706](https://github.com/elixir-tools/next-ls/commit/72c4706f097a118f098a4773c126a225eba11ade))
+
 ## [0.12.3](https://github.com/elixir-tools/next-ls/compare/v0.12.2...v0.12.3) (2023-09-18)
 
 
