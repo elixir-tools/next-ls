@@ -305,13 +305,13 @@ defmodule NextLS do
                   """
 
                 "function" ->
-                  {_, _, _, doc, _} =
+                  doc =
                     Enum.find(fdocs, fn {{type, name, _a}, _, _, _doc, _} ->
                       type in [:function, :macro] and to_string(name) == reference.identifier
                     end)
 
                   case doc do
-                    %{"en" => fdoc} ->
+                    {_, _, _, %{"en" => fdoc}, _} ->
                       """
                       ## #{Macro.to_string(mod)}.#{reference.identifier}/#{reference.arity}
 
