@@ -62,7 +62,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({:alias, meta, alias, as, _opts} = term, env) do
+  def trace({:alias, meta, alias, as, _opts}, env) do
     parent = parent_pid()
 
     Process.send(
@@ -82,9 +82,8 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({:alias_reference, meta, module} = term, env) do
+  def trace({:alias_reference, meta, module}, env) do
     parent = parent_pid()
-    # Process.send(parent, {:tracer, :dbg, {term, env.file}}, [])
 
     alias_map = Map.new(env.aliases, fn {alias, mod} -> {mod, alias} end)
 
@@ -126,8 +125,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, module, func, arity} = it, env)
-      when type in [:remote_function, :remote_macro, :imported_macro] do
+  def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
     if type == :remote_macro && meta[:closing][:line] != meta[:line] do
