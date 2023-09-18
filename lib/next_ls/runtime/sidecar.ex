@@ -31,23 +31,29 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({{:tracer, :reference, :alias}, payload}, state) do
-    if payload.meta[:end_of_expression] do
-      start = %{line: payload.meta[:line], col: payload.meta[:column]}
-      stop = %{line: payload.meta[:end_of_expression][:line], col: payload.meta[:end_of_expression][:column]}
+    # TODO: in the next version of elixir, generated code will not have :column metadata, so we can tell if the alias is from
+    # a macro. For now, just try and rescue
+    try do
+      if payload.meta[:end_of_expression] do
+        start = %{line: payload.meta[:line], col: payload.meta[:column]}
+        stop = %{line: payload.meta[:end_of_expression][:line], col: payload.meta[:end_of_expression][:column]}
 
-      {start, stop} =
-        Aliases.extract_alias_range(
-          File.read!(payload.file),
-          {start, stop},
-          payload.identifier |> Macro.to_string() |> String.to_atom()
-        )
+        {start, stop} =
+          Aliases.extract_alias_range(
+            File.read!(payload.file),
+            {start, stop},
+            payload.identifier |> Macro.to_string() |> String.to_atom()
+          )
 
-      payload =
-        payload
-        |> Map.put(:identifier, payload.module)
-        |> Map.put(:range, %{start: start, stop: stop})
+        payload =
+          payload
+          |> Map.put(:identifier, payload.module)
+          |> Map.put(:range, %{start: start, stop: stop})
 
-      DB.insert_reference(state.db, payload)
+        DB.insert_reference(state.db, payload)
+      end
+    rescue
+      _ -> :ok
     end
 
     {:noreply, state}
