@@ -17,6 +17,7 @@ Still in heavy development, currently supporting the following features:
 - Find References
 - Extensions
   - Credo
+- Hover
 
 ## Editor Support
 
