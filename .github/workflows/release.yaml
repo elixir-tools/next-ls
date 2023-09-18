@@ -25,6 +25,7 @@ jobs:
         with:
           release-type: elixir
           package-name: next_ls
+          draft: true
           extra-files: |
             flake.nix
   build:
@@ -36,3 +37,10 @@ jobs:
       tag: ${{ needs.release.outputs.tag_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: publish
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false
