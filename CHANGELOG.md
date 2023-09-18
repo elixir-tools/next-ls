@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.0](https://github.com/elixir-tools/next-ls/compare/v0.11.0...v0.12.0) (2023-09-18)
+
+
+### Features
+
+* **definition,references:** go to definition when aliasing modules ([#152](https://github.com/elixir-tools/next-ls/issues/152)) ([627bb94](https://github.com/elixir-tools/next-ls/commit/627bb9452e2516cd483cb25e690f189dbd604e32))
+* **definition,references:** module attributes ([#215](https://github.com/elixir-tools/next-ls/issues/215)) ([b14a09d](https://github.com/elixir-tools/next-ls/commit/b14a09d558b0b6e9c40456af7298a7578a1ca6eb))
+* hover ([#220](https://github.com/elixir-tools/next-ls/issues/220)) ([c5a68df](https://github.com/elixir-tools/next-ls/commit/c5a68dfef268ea64bf499954aede4caeb052a515))
+
 ## [0.11.0](https://github.com/elixir-tools/next-ls/compare/v0.10.4...v0.11.0) (2023-09-12)
 
 
