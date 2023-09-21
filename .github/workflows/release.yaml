@@ -42,5 +42,7 @@ jobs:
     name: publish
     needs: [release, build]
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false
