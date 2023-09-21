@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.6](https://github.com/elixir-tools/next-ls/compare/v0.12.5...v0.12.6) (2023-09-21)
+
+
+### Bug Fixes
+
+* gracefully handle injected attributes ([#235](https://github.com/elixir-tools/next-ls/issues/235)) ([5ff9830](https://github.com/elixir-tools/next-ls/commit/5ff9830629453beb4b5e88ebaa1df2cf7b073185)), closes [#234](https://github.com/elixir-tools/next-ls/issues/234)
+
 ## [0.12.5](https://github.com/elixir-tools/next-ls/compare/v0.12.4...v0.12.5) (2023-09-18)
 
 
