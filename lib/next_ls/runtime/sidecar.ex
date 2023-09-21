@@ -60,8 +60,12 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({{:tracer, :reference, :attribute}, payload}, state) do
-    name = Attributes.get_attribute_reference_name(payload.file, payload.meta[:line], payload.meta[:column])
-    if name, do: DB.insert_reference(state.db, %{payload | identifier: name})
+    try do
+      name = Attributes.get_attribute_reference_name(payload.file, payload.meta[:line], payload.meta[:column])
+      if name, do: DB.insert_reference(state.db, %{payload | identifier: name})
+    rescue
+      _ -> :ok
+    end
 
     {:noreply, state}
   end
