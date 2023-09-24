@@ -19,6 +19,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
+  alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.DidChangeWatchedFilesParams
@@ -110,6 +111,7 @@ defmodule NextLS do
            change: TextDocumentSyncKind.full()
          },
          document_formatting_provider: true,
+         hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
          references_provider: true,
@@ -246,6 +248,102 @@ defmodule NextLS do
       end)
 
     {:reply, locations, lsp}
+  end
+
+  def handle_request(%TextDocumentHover{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
+    file = URI.parse(uri).path
+    line = position.line + 1
+    col = position.character + 1
+
+    select = ~w<identifier type module arity start_line start_column end_line end_column>a
+
+    reference_query = ~Q"""
+    SELECT :select
+    FROM "references" refs
+    WHERE refs.file = ?
+      AND ? BETWEEN refs.start_line AND refs.end_line
+      AND ? BETWEEN refs.start_column AND refs.end_column
+    ORDER BY refs.id ASC
+    LIMIT 1
+    """
+
+    locations =
+      dispatch(lsp.assigns.registry, :databases, fn databases ->
+        Enum.flat_map(databases, fn {database, _} ->
+          DB.query(database, reference_query, args: [file, line, col], select: select)
+        end)
+      end)
+
+    resp =
+      case locations do
+        [reference] ->
+          mod =
+            if reference.module == String.downcase(reference.module) do
+              String.to_existing_atom(reference.module)
+            else
+              Module.concat([reference.module])
+            end
+
+          result =
+            dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+              [result] =
+                for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+                  Runtime.call(runtime, {Code, :fetch_docs, [mod]})
+                end
+
+              result
+            end)
+
+          value =
+            with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mod_doc}, _, fdocs}} <- result do
+              case reference.type do
+                "alias" ->
+                  """
+                  ## #{reference.module}
+
+                  #{NextLS.HoverHelpers.to_markdown(content_type, mod_doc)}
+                  """
+
+                "function" ->
+                  doc =
+                    Enum.find(fdocs, fn {{type, name, _a}, _, _, _doc, _} ->
+                      type in [:function, :macro] and to_string(name) == reference.identifier
+                    end)
+
+                  case doc do
+                    {_, _, _, %{"en" => fdoc}, _} ->
+                      """
+                      ## #{Macro.to_string(mod)}.#{reference.identifier}/#{reference.arity}
+
+                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
+                      """
+
+                    _ ->
+                      nil
+                  end
+              end
+            else
+              _ -> nil
+            end
+
+          with value when is_binary(value) <- value do
+            %GenLSP.Structures.Hover{
+              contents: %GenLSP.Structures.MarkupContent{
+                kind: GenLSP.Enumerations.MarkupKind.markdown(),
+                value: String.trim(value)
+              },
+              range: %Range{
+                start: %Position{line: reference.start_line - 1, character: reference.start_column - 1},
+                end: %Position{line: reference.end_line - 1, character: reference.end_column - 1}
+              }
+            }
+          end
+
+        _ ->
+          nil
+      end
+
+    {:reply, resp, lsp}
   end
 
   def handle_request(%WorkspaceSymbol{params: %{query: query}}, lsp) do

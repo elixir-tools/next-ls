@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     strategy:
       matrix:
         otp: [26.0.2]
@@ -24,6 +25,7 @@ jobs:
         with:
           release-type: elixir
           package-name: next_ls
+          draft: true
           extra-files: |
             flake.nix
   build:
@@ -32,6 +34,15 @@ jobs:
     uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
     with:
       repo: elixir-tools/next-ls
-      tag: ${{ github.event.release.tag_name }}
+      tag: ${{ needs.release.outputs.tag_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: publish
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false

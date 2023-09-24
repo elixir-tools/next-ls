@@ -5,23 +5,36 @@ defmodule NextLS.Definition do
   alias NextLS.DB
 
   def fetch(file, {line, col}, db) do
-    with [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c | _]] <-
-           DB.query(
-             db,
-             ~Q"""
-             SELECT
-                 *
-             FROM
-                 'references' AS refs
-             WHERE
-                 refs.file = ?
-                 AND ? BETWEEN refs.start_line AND refs.end_line
-                 AND ? BETWEEN refs.start_column AND refs.end_column
-             ORDER BY refs.id asc
-             LIMIT 1;
-             """,
-             [file, line, col]
-           ) do
+    rows =
+      DB.query(
+        db,
+        ~Q"""
+        SELECT
+            *
+        FROM
+            'references' AS refs
+        WHERE
+            refs.file = ?
+            AND refs.start_line <= ?
+            AND ? <= refs.end_line
+            AND refs.start_column <= ?
+            AND ? <= refs.end_column
+        ORDER BY refs.id asc
+        LIMIT 1;
+        """,
+        [file, line, line, col, col]
+      )
+
+    reference =
+      case rows do
+        [[_pk, identifier, _arity, _file, type, module, _start_l, _start_c, _end_l, _end_c | _]] ->
+          %{identifier: identifier, type: type, module: module}
+
+        [] ->
+          nil
+      end
+
+    with %{identifier: identifier, type: type, module: module} <- reference do
       query =
         ~Q"""
         SELECT
@@ -53,9 +66,6 @@ defmodule NextLS.Definition do
       else
         nil
       end
-    else
-      _ ->
-        nil
     end
   end
 end

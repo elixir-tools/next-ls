@@ -353,7 +353,7 @@ defmodule NextLS.DefinitionTest do
       bar = Path.join(cwd, "my_proj/lib/bar.ex")
 
       File.write!(bar, """
-      defmodule Bar do
+      defmodule Bar.Bell do
         alias MyApp.Peace
         def run() do
           Peace.and_love()
@@ -361,7 +361,21 @@ defmodule NextLS.DefinitionTest do
       end
       """)
 
-      [bar: bar, peace: peace]
+      baz = Path.join(cwd, "my_proj/lib/baz.ex")
+
+      File.write!(baz, """
+      defmodule Baz do
+        alias Bar.Bell
+        alias MyApp.{
+          Peace
+        }
+        def run() do
+          Peace.and_love()
+        end
+      end
+      """)
+
+      [bar: bar, peace: peace, baz: baz]
     end
 
     setup :with_lsp
@@ -389,14 +403,63 @@ defmodule NextLS.DefinitionTest do
       assert_result 4,
                     %{
                       "range" => %{
-                        "start" => %{
-                          "line" => 0,
-                          "character" => 0
-                        },
-                        "end" => %{
-                          "line" => 0,
-                          "character" => 0
-                        }
+                        "start" => %{"line" => 0, "character" => 0},
+                        "end" => %{"line" => 0, "character" => 0}
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+
+    test "go to module alias definition", %{client: client, peace: peace, bar: bar, baz: baz} = context do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_request(client, "client/registerCapability", fn _params -> nil end)
+      assert_is_ready(context, "my_proj")
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+      uri = uri(baz)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 3, character: 5},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      uri = uri(peace)
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{"line" => 0, "character" => 0},
+                        "end" => %{"line" => 0, "character" => 0}
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+
+      uri = uri(baz)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 1, character: 10},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      uri = uri(bar)
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{"line" => 0, "character" => 0},
+                        "end" => %{"line" => 0, "character" => 0}
                       },
                       "uri" => ^uri
                     },

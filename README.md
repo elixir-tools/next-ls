@@ -17,6 +17,7 @@ Still in heavy development, currently supporting the following features:
 - Find References
 - Extensions
   - Credo
+- Hover
 
 ## Editor Support
 
@@ -120,8 +121,8 @@ Visual Studio Code
 
 ```json
 {
-  "elixir-tools.nextls.adapter": "tcp",
-  "elixir-tools.nextls.port": 9000
+  "elixir-tools.nextLS.adapter": "tcp",
+  "elixir-tools.nextLS.port": 9000
 }
 ```
 

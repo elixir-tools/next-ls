@@ -7,6 +7,16 @@ defmodule NextLS.Application do
 
   @impl true
   def start(_type, _args) do
+    case System.cmd("epmd", ["-daemon"], stderr_to_stdout: true) do
+      {_, 0} ->
+        :ok
+
+      {output, code} ->
+        IO.warn("Failed to start epmd! Exited with code=#{code} and output=#{output}")
+
+        raise "Failed to start epmd!"
+    end
+
     Node.start(:"next-ls-#{System.system_time()}", :shortnames)
 
     children = [NextLS.LSPSupervisor]

@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.12.6](https://github.com/elixir-tools/next-ls/compare/v0.12.5...v0.12.6) (2023-09-21)
+
+
+### Bug Fixes
+
+* gracefully handle injected attributes ([#235](https://github.com/elixir-tools/next-ls/issues/235)) ([5ff9830](https://github.com/elixir-tools/next-ls/commit/5ff9830629453beb4b5e88ebaa1df2cf7b073185)), closes [#234](https://github.com/elixir-tools/next-ls/issues/234)
+
+## [0.12.5](https://github.com/elixir-tools/next-ls/compare/v0.12.4...v0.12.5) (2023-09-18)
+
+
+### Bug Fixes
+
+* handle aliases injected by macros ([4ad4855](https://github.com/elixir-tools/next-ls/commit/4ad48559d31496253093ad57eaa60b8b21105de7))
+
+## [0.12.4](https://github.com/elixir-tools/next-ls/compare/v0.12.3...v0.12.4) (2023-09-18)
+
+
+### Bug Fixes
+
+* guard from missing function doc ([#226](https://github.com/elixir-tools/next-ls/issues/226)) ([72c4706](https://github.com/elixir-tools/next-ls/commit/72c4706f097a118f098a4773c126a225eba11ade))
+
+## [0.12.3](https://github.com/elixir-tools/next-ls/compare/v0.12.2...v0.12.3) (2023-09-18)
+
+
+### Bug Fixes
+
+* make priv/cmd executable before release ([c1469ae](https://github.com/elixir-tools/next-ls/commit/c1469ae591b9c7f64d3633430b8885b2db1c36c0))
+
+## [0.12.2](https://github.com/elixir-tools/next-ls/compare/v0.12.1...v0.12.2) (2023-09-18)
+
+
+### Bug Fixes
+
+* update db schema version ([#223](https://github.com/elixir-tools/next-ls/issues/223)) ([bd0ae63](https://github.com/elixir-tools/next-ls/commit/bd0ae631c13e54d7f720b6e28664028cf9f3f785))
+
+## [0.12.1](https://github.com/elixir-tools/next-ls/compare/v0.12.0...v0.12.1) (2023-09-18)
+
+
+### Bug Fixes
+
+* ensure epmd is started ([#221](https://github.com/elixir-tools/next-ls/issues/221)) ([2edfe59](https://github.com/elixir-tools/next-ls/commit/2edfe5904b5505a7276557f7b75dda2fc5c0f96f))
+* remove unused variables from monkey patch ([fec818e](https://github.com/elixir-tools/next-ls/commit/fec818e5dee67cfa5f2cda3de7c05c4325e9cf84))
+
+## [0.12.0](https://github.com/elixir-tools/next-ls/compare/v0.11.0...v0.12.0) (2023-09-18)
+
+
+### Features
+
+* **definition,references:** go to definition when aliasing modules ([#152](https://github.com/elixir-tools/next-ls/issues/152)) ([627bb94](https://github.com/elixir-tools/next-ls/commit/627bb9452e2516cd483cb25e690f189dbd604e32))
+* **definition,references:** module attributes ([#215](https://github.com/elixir-tools/next-ls/issues/215)) ([b14a09d](https://github.com/elixir-tools/next-ls/commit/b14a09d558b0b6e9c40456af7298a7578a1ca6eb))
+* hover ([#220](https://github.com/elixir-tools/next-ls/issues/220)) ([c5a68df](https://github.com/elixir-tools/next-ls/commit/c5a68dfef268ea64bf499954aede4caeb052a515))
+
 ## [0.11.0](https://github.com/elixir-tools/next-ls/compare/v0.10.4...v0.11.0) (2023-09-12)
 
 

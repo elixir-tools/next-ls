@@ -23,7 +23,7 @@ defmodule NextLS.DB.Schema do
 
   alias NextLS.DB
 
-  @version 4
+  @version 5
 
   def init(conn) do
     # FIXME: this is odd tech debt. not a big deal but is confusing
