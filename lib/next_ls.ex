@@ -91,7 +91,12 @@ defmodule NextLS do
   @impl true
   def handle_request(
         %Initialize{
-          params: %InitializeParams{root_uri: root_uri, workspace_folders: workspace_folders, capabilities: caps}
+          params: %InitializeParams{
+            root_uri: root_uri,
+            workspace_folders: workspace_folders,
+            capabilities: caps,
+            initialization_options: init_opts
+          }
         },
         lsp
       ) do
@@ -101,6 +106,15 @@ defmodule NextLS do
       else
         %{name: Path.basename(root_uri), uri: root_uri}
       end
+
+    safe_opt = fn opts, key, default ->
+      if val = opts[key] in ["", nil], do: default, else: val
+    end
+
+    safe_init_opts = %{
+      mix_env: safe_opt.(init_opts, "mix_env", "dev"),
+      mix_target: safe_opt.(init_opts, "mix_target", "host")
+    }
 
     {:reply,
      %InitializeResult{
@@ -124,7 +138,13 @@ defmodule NextLS do
          }
        },
        server_info: %{name: "Next LS"}
-     }, assign(lsp, root_uri: root_uri, workspace_folders: workspace_folders, client_capabilities: caps)}
+     },
+     assign(lsp,
+       root_uri: root_uri,
+       workspace_folders: workspace_folders,
+       client_capabilities: caps,
+       init_opts: safe_init_opts
+     )}
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
@@ -555,6 +575,8 @@ defmodule NextLS do
              task_supervisor: lsp.assigns.runtime_task_supervisor,
              working_dir: working_dir,
              uri: uri,
+             mix_env: lsp.assigns.init_opts.mix_env,
+             mix_target: lsp.assigns.init_opts.mix_target,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -668,6 +690,8 @@ defmodule NextLS do
                task_supervisor: lsp.assigns.runtime_task_supervisor,
                working_dir: working_dir,
                uri: uri,
+               mix_env: lsp.assigns.init_opts.mix_env,
+               mix_target: lsp.assigns.init_opts.mix_target,
                on_initialized: fn status ->
                  if status == :ready do
                    Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
