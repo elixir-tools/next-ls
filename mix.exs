@@ -40,7 +40,7 @@ defmodule NextLS.MixProject do
       next_ls: [
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
-          targets: [
+          targets: inject_custom_erts([
             darwin_arm64: [os: :darwin, cpu: :aarch64],
             darwin_amd64: [os: :darwin, cpu: :x86_64],
             linux_arm64: [os: :linux, cpu: :aarch64, libc: :gnu],
@@ -48,7 +48,7 @@ defmodule NextLS.MixProject do
             linux_arm64_musl: [os: :linux, cpu: :aarch64, libc: :musl],
             linux_amd64_musl: [os: :linux, cpu: :x86_64, libc: :musl],
             windows_amd64: [os: :windows, cpu: :x86_64]
-          ]
+          ])
         ]
       ]
     ]
@@ -83,5 +83,20 @@ defmodule NextLS.MixProject do
       },
       files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
+  end
+
+  defp inject_custom_erts(targets) do
+    # By default, Burrito downloads ERTS from https://burrito-otp.b-cdn.net.
+    # When building with Nix, side-effects like network access are not allowed,
+    # so we need to inject our own ERTS path.
+
+    erts_path = System.get_env("BURRITO_ERTS_PATH", "")
+
+    Enum.map(targets, fn {target_name, target_conf} ->
+      case erts_path do
+        "" -> {target_name, target_conf}
+        path -> {target_name, [{:custom_erts, path} | target_conf]}
+      end
+    end)
   end
 end

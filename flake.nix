@@ -59,7 +59,7 @@
             mixFodDeps = beamPackages.fetchMixDeps {
               inherit src version;
               pname = "${pname}-deps";
-              hash = "sha256-jUkz/pu3iyizpHkMYgmbYfalFv10t11b6SmLVEXAJ30=";
+              hash = "sha256-sRve0L7qFw5vEsespIXVg4loSej+oLO1ewdmT6qGExw=";
             };
 
             preConfigure = ''
@@ -71,6 +71,10 @@
 
               export HOME="$(pwd)"
               export PATH="$bindir:$PATH"
+            '';
+
+            preBuild = ''
+              export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
             '';
 
             preInstall =
