@@ -84,7 +84,12 @@
               else "";
 
             postInstall = ''
+              chmod +x ./burrito_out/*
               cp -r ./burrito_out "$out"
+
+              if [ "${system}" == "x86_64-linux" ]; then
+                patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 "$out/burrito_out/next_ls_linux_amd64"
+              fi
             '';
           };
         in
