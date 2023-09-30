@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.7](https://github.com/elixir-tools/next-ls/compare/v0.12.6...v0.12.7) (2023-09-30)
+
+
+### Bug Fixes
+
+* cancel previous compile requests ([#242](https://github.com/elixir-tools/next-ls/issues/242)) ([0a2f8fe](https://github.com/elixir-tools/next-ls/commit/0a2f8fe7666f741d9063be4e7d0522f4e7f11fd1))
+* nix build ([#247](https://github.com/elixir-tools/next-ls/issues/247)) ([17c41db](https://github.com/elixir-tools/next-ls/commit/17c41dbc33a395f654194bdc956b9eabbddb12f4))
+
 ## [0.12.6](https://github.com/elixir-tools/next-ls/compare/v0.12.5...v0.12.6) (2023-09-21)
 
 
