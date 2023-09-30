@@ -164,7 +164,7 @@ defmodule NextLS.Runtime do
        %{
          name: name,
          working_dir: working_dir,
-         compiler_ref: nil,
+         compiler_refs: %{},
          port: port,
          task_supervisor: task_supervisor,
          logger: logger,
@@ -198,6 +198,8 @@ defmodule NextLS.Runtime do
   end
 
   def handle_call({:compile, opts}, from, %{node: node} = state) do
+    for {_ref, {task_pid, _from}} <- state.compiler_refs, do: Process.exit(task_pid, :kill)
+
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         if opts[:force] do
@@ -224,21 +226,22 @@ defmodule NextLS.Runtime do
         end
       end)
 
-    {:noreply, %{state | compiler_ref: %{task.ref => from}}}
+    {:noreply, %{state | compiler_refs: Map.put(state.compiler_refs, task.ref, {task.pid, from})}}
   end
 
   @impl GenServer
-  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
+  def handle_info({ref, errors}, %{compiler_refs: compiler_refs} = state) when is_map_key(compiler_refs, ref) do
     Process.demonitor(ref, [:flush])
 
-    GenServer.reply(compiler_ref[ref], errors)
+    orig = elem(compiler_refs[ref], 1)
+    GenServer.reply(orig, errors)
 
-    {:noreply, %{state | compiler_ref: nil}}
+    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_ref: compiler_ref} = state)
-      when is_map_key(compiler_ref, ref) do
-    {:noreply, %{state | compiler_ref: nil}}
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_refs: compiler_refs} = state)
+      when is_map_key(compiler_refs, ref) do
+    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
   end
 
   def handle_info({:DOWN, _, :port, port, _}, %{port: port} = state) do
