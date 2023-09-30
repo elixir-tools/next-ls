@@ -19,6 +19,7 @@ defmodule NextLS.ASTHelpers.Variables do
             &prewalk/2,
             &postwalk/2
           )
+          |> dbg(limit: :infinity)
 
         Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
           if position_in_range?(position, ref_range), do: {name, range}, else: nil
@@ -26,6 +27,19 @@ defmodule NextLS.ASTHelpers.Variables do
 
       _error ->
         nil
+    end
+  end
+
+  def collect(ast) do
+    {_, %{cursor: cursor, symbols: symbols}} =
+      ast
+      |> Macro.traverse(%{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
+      # |> dbg(limit: :infinity)
+
+    cscope = Enum.reverse(cursor.scope)
+
+    for {name, defs} <- symbols, def <- defs, List.starts_with?(cscope, Enum.reverse(def.scope)) do
+      to_string(name)
     end
   end
 
@@ -122,6 +136,18 @@ defmodule NextLS.ASTHelpers.Variables do
     {nil, acc}
   end
 
+  defp prewalk({:__cursor__, meta, _} = ast, acc) do
+    range = {meta[:line]..meta[:line], meta[:column]..meta[:column]}
+
+    acc =
+      Map.put(acc, :cursor, %{
+        range: range,
+        scope: acc.scope
+      })
+
+    {ast, acc}
+  end
+
   # find variable
   defp prewalk({name, meta, nil} = ast, acc) do
     range = calculate_range(name, meta[:line], meta[:column])
@@ -133,7 +159,9 @@ defmodule NextLS.ASTHelpers.Variables do
     {ast, acc}
   end
 
-  defp prewalk(ast, acc), do: {ast, acc}
+  defp prewalk(ast, acc) do
+    {ast, acc}
+  end
 
   # decrease scope when exiting it
   defp postwalk({operation, _, _} = ast, acc) when operation in @scope_ends do

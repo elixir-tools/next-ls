@@ -16,6 +16,7 @@ defmodule NextLS do
   alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
   alias GenLSP.Requests.Shutdown
+  alias GenLSP.Requests.TextDocumentCompletion
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
@@ -116,6 +117,9 @@ defmodule NextLS do
            open_close: true,
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
+         },
+         completion_provider: %GenLSP.Structures.CompletionOptions{
+           trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~"]
          },
          document_formatting_provider: true,
          hover_provider: true,
@@ -502,6 +506,74 @@ defmodule NextLS do
       end
 
     resp
+  end
+
+  def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
+    document = lsp.assigns.documents[uri]
+
+    document_slice =
+      document
+      |> Enum.take(position.line + 1)
+      |> Enum.reverse()
+      |> then(fn [last_line | rest] ->
+        [String.slice(last_line, 1..(position.character + 1)) | rest]
+      end)
+      |> Enum.reverse()
+      |> Enum.join("\n")
+
+    results =
+      lsp.assigns.registry
+      |> dispatch(:runtimes, fn entries ->
+        [result] =
+          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+            NextLS.Autocomplete.expand(document_slice |> String.to_charlist() |> Enum.reverse(), runtime)
+          end
+
+        case result do
+          {:yes, _, entries} -> entries
+          _ -> []
+        end
+      end)
+      |> Enum.map(fn %{name: name, kind: kind} = symbol ->
+        {label, kind, docs} =
+          case kind do
+            :struct -> {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
+            :function -> {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
+            :module -> {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
+            :variable -> {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+            _ -> {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
+          end
+
+        %GenLSP.Structures.CompletionItem{
+          label: label,
+          kind: kind,
+          insert_text: name,
+          documentation: docs
+        }
+      end)
+
+    # results =
+    #   for snippet <- [
+    #         "defmodule",
+    #         "def",
+    #         "defp",
+    #         "defmacro",
+    #         "defmacrop",
+    #         "for",
+    #         "with",
+    #         "case",
+    #         "cond",
+    #         "defprotocol",
+    #         "defimpl",
+    #         "defexception",
+    #         "defstruct"
+    #       ],
+    #       item <- List.wrap(NextLS.Snippet.get(snippet, context.trigger_character)),
+    #       item do
+    #     item
+    #   end
+
+    {:reply, results, lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
