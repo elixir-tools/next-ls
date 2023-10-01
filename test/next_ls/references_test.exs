@@ -42,7 +42,13 @@ defmodule NextLS.ReferencesTest do
       end
 
       def foo2 do
-        {:error, @foo_attr}
+        alpha = 1
+        bravo = 2
+        charlie = alpha + bravo
+        delta = alpha
+
+        alpha = false
+        {:error, @foo_attr, alpha}
       end
     end
     """)
@@ -158,8 +164,49 @@ defmodule NextLS.ReferencesTest do
         %{
           "uri" => uri,
           "range" => %{
-            "start" => %{"line" => 15, "character" => 13},
-            "end" => %{"line" => 15, "character" => 21}
+            "start" => %{"line" => 21, "character" => 13},
+            "end" => %{"line" => 21, "character" => 21}
+          }
+        }
+      ]
+    )
+  end
+
+  test "list variable references", %{client: client, bar: bar} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+    assert_request(client, "client/registerCapability", fn _params -> nil end)
+    assert_is_ready(context, "my_proj")
+    assert_compiled(context, "my_proj")
+    assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    request(client, %{
+      method: "textDocument/references",
+      id: 4,
+      jsonrpc: "2.0",
+      params: %{
+        position: %{line: 15, character: 5},
+        textDocument: %{uri: uri(bar)},
+        context: %{includeDeclaration: true}
+      }
+    })
+
+    uri = uri(bar)
+
+    assert_result2(
+      4,
+      [
+        %{
+          "uri" => uri,
+          "range" => %{
+            "start" => %{"line" => 17, "character" => 14},
+            "end" => %{"line" => 17, "character" => 19}
+          }
+        },
+        %{
+          "uri" => uri,
+          "range" => %{
+            "start" => %{"line" => 18, "character" => 12},
+            "end" => %{"line" => 18, "character" => 17}
           }
         }
       ]
