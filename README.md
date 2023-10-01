@@ -6,6 +6,8 @@
 
 The language server for Elixir that just works. 😎
 
+You can read more about the background of this project [here](https://www.elixir-tools.dev/news/introducing-next-ls-and-an-elixir-tools-update).
+
 Still in heavy development, currently supporting the following features:
 
 - Compiler Diagnostics
