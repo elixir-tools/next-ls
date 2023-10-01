@@ -209,8 +209,7 @@ defmodule NextLS.ASTHelpers do
     end
 
     # search symbols in function and macro definition args and increase scope
-    defp prewalk({operation, meta, [args | _]} = ast, acc)
-         when operation in @defs_with_args do
+    defp prewalk({operation, meta, [args | _]} = ast, acc) when operation in @defs_with_args do
       acc = increase_scope_nesting(acc, meta[:line])
       acc = find_symbols(args, acc)
       {ast, acc}
@@ -278,8 +277,7 @@ defmodule NextLS.ASTHelpers do
     defp prewalk(ast, acc), do: {ast, acc}
 
     # decrease scope when exiting it
-    defp postwalk({operation, _, _} = ast, acc)
-         when operation in @scope_ends do
+    defp postwalk({operation, _, _} = ast, acc) when operation in @scope_ends do
       acc = decrease_scope_nesting(acc)
       {ast, acc}
     end
@@ -352,9 +350,7 @@ defmodule NextLS.ASTHelpers do
     end
 
     # ignore reference which was not defined yet
-    defp collect_var(%{symbols: symbols} = acc, {:ref, name, _, _})
-         when not is_map_key(symbols, name),
-         do: acc
+    defp collect_var(%{symbols: symbols} = acc, {:ref, name, _, _}) when not is_map_key(symbols, name), do: acc
 
     # find symbol for current reference and save sym/ref pair
     # remove symbol scopes if reference is from outer scope
