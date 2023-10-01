@@ -76,6 +76,24 @@ args = ["--stdio=true"]
 </details>
 </li>
 </ul>
+<li>
+<details>
+<summary>Zed</summary>
+
+[Zed](https://zed.dev)
+
+Add the following settings (tested with Zed v0.106.2):
+
+```elixir
+{
+  "elixir": {
+    "lsp": "next_ls"
+  }
+}
+```
+
+</details>
+</li>
 
 ## Installation
 
