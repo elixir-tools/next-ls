@@ -680,7 +680,7 @@ defmodule NextLS.DefinitionTest do
                         },
                         "end" => %{
                           "line" => 5,
-                          "character" => 13
+                          "character" => 12
                         }
                       },
                       "uri" => ^uri

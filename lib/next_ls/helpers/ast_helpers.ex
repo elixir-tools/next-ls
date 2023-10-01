@@ -221,7 +221,7 @@ defmodule NextLS.ASTHelpers do
       {ast, acc}
     end
 
-    # search symbols in a left side of forward arrow clause adn increase scope
+    # search symbols in a left side of forward arrow clause and increase scope
     defp prewalk({:->, meta, [left, _right]} = ast, acc) do
       acc = increase_scope_nesting(acc, meta[:line])
       acc = find_symbols(left, acc)
@@ -315,7 +315,7 @@ defmodule NextLS.ASTHelpers do
     defp calculate_range(name, line, column) do
       length = name |> to_string() |> String.length()
 
-      {line..line, column..(column + length)}
+      {line..line, column..(column + length - 1)}
     end
 
     defp position_in_range?({position_line, position_column}, {range_lines, range_columns}) do
