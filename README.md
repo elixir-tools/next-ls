@@ -75,7 +75,6 @@ args = ["--stdio=true"]
 
 </details>
 </li>
-</ul>
 <li>
 <details>
 <summary>Zed</summary>
@@ -94,6 +93,7 @@ Add the following settings (tested with Zed v0.106.2):
 
 </details>
 </li>
+</ul>
 
 ## Installation
 
