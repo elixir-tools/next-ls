@@ -81,7 +81,7 @@ args = ["--stdio=true"]
 
 [Zed](https://zed.dev)
 
-Add the following settings (tested with Zed v0.106.2):
+Add the following settings (tested with [Zed Preview v0.106.2](https://zed.dev/releases/preview)):
 
 ```json
 {
