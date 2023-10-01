@@ -84,7 +84,7 @@ args = ["--stdio=true"]
 
 Add the following settings (tested with Zed v0.106.2):
 
-```elixir
+```json
 {
   "elixir": {
     "lsp": "next_ls"
