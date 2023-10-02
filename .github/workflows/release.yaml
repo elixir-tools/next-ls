@@ -48,9 +48,9 @@ jobs:
 
   publish:
     name: publish
-    needs: [release, build]
+    needs: [build]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
+      - run: gh release edit ${{ steps.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
