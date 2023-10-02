@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/elixir-tools/next-ls/compare/v0.13.0...v0.13.1) (2023-10-02)
+
+
+### Bug Fixes
+
+* **document_symbols:** handle struct which is last expression in a block ([d4ea0b2](https://github.com/elixir-tools/next-ls/commit/d4ea0b2b3d72321718596cf0ae9434441e8a01d4)), closes [#111](https://github.com/elixir-tools/next-ls/issues/111)
+
 ## [0.13.0](https://github.com/elixir-tools/next-ls/compare/v0.12.7...v0.13.0) (2023-10-02)
 
 

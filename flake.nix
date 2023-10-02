@@ -14,7 +14,7 @@
       ];
 
       pname = "next-ls";
-      version = "0.13.0"; # x-release-please-version
+      version = "0.13.1"; # x-release-please-version
       src = ./.;
 
       # Helper to provide system-specific attributes
