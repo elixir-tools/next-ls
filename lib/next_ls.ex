@@ -91,7 +91,12 @@ defmodule NextLS do
   @impl true
   def handle_request(
         %Initialize{
-          params: %InitializeParams{root_uri: root_uri, workspace_folders: workspace_folders, capabilities: caps}
+          params: %InitializeParams{
+            root_uri: root_uri,
+            workspace_folders: workspace_folders,
+            capabilities: caps,
+            initialization_options: init_opts
+          }
         },
         lsp
       ) do
@@ -101,6 +106,8 @@ defmodule NextLS do
       else
         %{name: Path.basename(root_uri), uri: root_uri}
       end
+
+    {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
 
     {:reply,
      %InitializeResult{
@@ -124,7 +131,13 @@ defmodule NextLS do
          }
        },
        server_info: %{name: "Next LS"}
-     }, assign(lsp, root_uri: root_uri, workspace_folders: workspace_folders, client_capabilities: caps)}
+     },
+     assign(lsp,
+       root_uri: root_uri,
+       workspace_folders: workspace_folders,
+       client_capabilities: caps,
+       init_opts: init_opts
+     )}
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
@@ -555,6 +568,8 @@ defmodule NextLS do
              task_supervisor: lsp.assigns.runtime_task_supervisor,
              working_dir: working_dir,
              uri: uri,
+             mix_env: lsp.assigns.init_opts.mix_env,
+             mix_target: lsp.assigns.init_opts.mix_target,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -668,6 +683,8 @@ defmodule NextLS do
                task_supervisor: lsp.assigns.runtime_task_supervisor,
                working_dir: working_dir,
                uri: uri,
+               mix_env: lsp.assigns.init_opts.mix_env,
+               mix_target: lsp.assigns.init_opts.mix_target,
                on_initialized: fn status ->
                  if status == :ready do
                    Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -985,4 +1002,25 @@ defmodule NextLS do
 
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
+
+  defmodule InitOpts do
+    @moduledoc false
+    import Schematic
+
+    defstruct mix_target: "host", mix_env: "dev"
+
+    def validate(opts) do
+      schematic =
+        nullable(
+          schema(__MODULE__, %{
+            optional(:mix_target) => str(),
+            optional(:mix_env) => str()
+          })
+        )
+
+      with {:ok, nil} <- unify(schematic, opts) do
+        {:ok, %__MODULE__{}}
+      end
+    end
+  end
 end

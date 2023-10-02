@@ -63,6 +63,7 @@ defmodule NextLS.MixProject do
       {:exqlite, "~> 0.13.14"},
       {:gen_lsp, "~> 0.6"},
       {:req, "~> 0.3.11"},
+      {:schematic, "~> 0.2"},
 
       {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
