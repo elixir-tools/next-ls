@@ -42,7 +42,7 @@ jobs:
     uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
     with:
       repo: elixir-tools/next-ls
-      tag: ${{ needs.release.outputs.tag_name }}
+      tag: ${{ steps.release.outputs.tag_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
 
