@@ -37,20 +37,20 @@ jobs:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=true --repo='elixir-tools/next-ls'
 
   build:
-    needs: draft
+    needs: [release, draft]
     if: ${{ needs.release.outputs.release_created }}
     uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
     with:
       repo: elixir-tools/next-ls
-      tag: ${{ steps.release.outputs.tag_name }}
+      tag: ${{ needs.release.outputs.tag_name }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     name: publish
-    needs: build
+    needs: [release, build]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - run: gh release edit ${{ steps.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
