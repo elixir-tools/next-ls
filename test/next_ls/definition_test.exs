@@ -621,4 +621,71 @@ defmodule NextLS.DefinitionTest do
                     500
     end
   end
+
+  describe "local variables" do
+    @describetag root_paths: ["my_proj"]
+    setup %{tmp_dir: tmp_dir} do
+      File.mkdir_p!(Path.join(tmp_dir, "my_proj/lib"))
+      File.write!(Path.join(tmp_dir, "my_proj/mix.exs"), mix_exs())
+      [cwd: tmp_dir]
+    end
+
+    setup %{cwd: cwd} do
+      bar = Path.join(cwd, "my_proj/lib/bar.ex")
+
+      File.write!(bar, """
+      defmodule Bar do
+        @my_attr 1
+
+        def run({:ok, alpha} = bravo) do
+          if @my_attr == 1 do
+            charlie = "Something: " <> alpha
+
+            {:ok, charlie}
+          else
+            bravo
+          end
+        end
+      end
+      """)
+
+      [bar: bar]
+    end
+
+    setup :with_lsp
+
+    test "go to local variable definition", %{client: client, bar: bar} do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      assert_request(client, "client/registerCapability", fn _params -> nil end)
+      assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+      uri = uri(bar)
+
+      request(client, %{
+        method: "textDocument/definition",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 7, character: 12},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4,
+                    %{
+                      "range" => %{
+                        "start" => %{
+                          "line" => 5,
+                          "character" => 6
+                        },
+                        "end" => %{
+                          "line" => 5,
+                          "character" => 12
+                        }
+                      },
+                      "uri" => ^uri
+                    },
+                    500
+    end
+  end
 end

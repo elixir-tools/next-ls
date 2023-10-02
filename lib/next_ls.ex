@@ -133,7 +133,28 @@ defmodule NextLS do
         for {pid, _} <- entries do
           case Definition.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid) do
             nil ->
-              nil
+              case NextLS.ASTHelpers.Variables.get_variable_definition(
+                     URI.parse(uri).path,
+                     {position.line + 1, position.character + 1}
+                   ) do
+                {_name, {startl..endl, startc..endc}} ->
+                  %Location{
+                    uri: "file://#{URI.parse(uri).path}",
+                    range: %Range{
+                      start: %Position{
+                        line: startl - 1,
+                        character: startc - 1
+                      },
+                      end: %Position{
+                        line: endl - 1,
+                        character: endc - 1
+                      }
+                    }
+                  }
+
+                _other ->
+                  nil
+              end
 
             [] ->
               nil
@@ -232,7 +253,11 @@ defmodule NextLS do
                 )
 
               :unknown ->
-                []
+                file
+                |> NextLS.ASTHelpers.Variables.list_variable_references({line, col})
+                |> Enum.map(fn {_name, {startl..endl, startc..endc}} ->
+                  [file, startl, endl, startc, endc]
+                end)
             end
 
           for [file, startl, endl, startc, endc] <- references, match?({:ok, _}, File.stat(file)) do
