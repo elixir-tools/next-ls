@@ -48,7 +48,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [build]
+    needs: build
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
