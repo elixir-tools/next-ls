@@ -1,4 +1,4 @@
-defmodule NextLS.ASTHelpersVariablesTest do
+defmodule NextLS.ASTHelpers.VariablesTest do
   use ExUnit.Case, async: true
 
   alias NextLS.ASTHelpers.Variables
@@ -146,7 +146,7 @@ defmodule NextLS.ASTHelpersVariablesTest do
     [source: source]
   end
 
-  describe("get_variable_definition/2") do
+  describe "get_variable_definition/2" do
     test "symbol defined in a match is found", %{source: source} do
       symbol = Variables.get_variable_definition(source, {7, 25})
       assert symbol == {:charlie, {5..5, 5..11}}
@@ -163,7 +163,7 @@ defmodule NextLS.ASTHelpersVariablesTest do
     end
   end
 
-  describe("list_variable_references/2") do
+  describe "list_variable_references/2" do
     test "references that defined by same symbol as target reference", %{source: source} do
       refs = Variables.list_variable_references(source, {6, 17})
       assert length(refs) == 2
