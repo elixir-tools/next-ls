@@ -107,14 +107,7 @@ defmodule NextLS do
         %{name: Path.basename(root_uri), uri: root_uri}
       end
 
-    safe_opt = fn opts, key, default ->
-      if val = opts[key] in ["", nil], do: default, else: val
-    end
-
-    safe_init_opts = %{
-      mix_env: safe_opt.(init_opts, "mix_env", "dev"),
-      mix_target: safe_opt.(init_opts, "mix_target", "host")
-    }
+    {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
 
     {:reply,
      %InitializeResult{
@@ -143,7 +136,7 @@ defmodule NextLS do
        root_uri: root_uri,
        workspace_folders: workspace_folders,
        client_capabilities: caps,
-       init_opts: safe_init_opts
+       init_opts: init_opts
      )}
   end
 
@@ -1009,4 +1002,25 @@ defmodule NextLS do
 
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
+
+  defmodule InitOpts do
+    @moduledoc false
+    import Schematic
+
+    defstruct mix_target: "host", mix_env: "dev"
+
+    def validate(opts) do
+      schematic =
+        nullable(
+          schema(__MODULE__, %{
+            optional(:mix_target) => str(),
+            optional(:mix_env) => str()
+          })
+        )
+
+      with {:ok, nil} <- unify(schematic, opts) do
+        {:ok, %__MODULE__{}}
+      end
+    end
+  end
 end
