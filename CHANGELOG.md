@@ -1,13 +1,5 @@
 # Changelog
 
-## [0.13.0](https://github.com/elixir-tools/next-ls/compare/v0.12.7...v0.13.0) (2023-10-02)
-
-
-### Features
-
-* configureable MIX_ENV and MIX_TARGET ([#246](https://github.com/elixir-tools/next-ls/issues/246)) ([c56518a](https://github.com/elixir-tools/next-ls/commit/c56518a297afd4bb3cd3ad86ebc32f3bf5a70ab4))
-* **definition,references:** local variables ([#253](https://github.com/elixir-tools/next-ls/issues/253)) ([7099370](https://github.com/elixir-tools/next-ls/commit/7099370f445de3aee48dfc03481f434536b8ae44))
-
 ## [0.12.7](https://github.com/elixir-tools/next-ls/compare/v0.12.6...v0.12.7) (2023-09-30)
 
 
