@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/elixir-tools/next-ls/compare/v0.13.1...v0.13.2) (2023-10-03)
+
+
+### Bug Fixes
+
+* build release on macOS 14 ([#263](https://github.com/elixir-tools/next-ls/issues/263)) ([0dce0ad](https://github.com/elixir-tools/next-ls/commit/0dce0ad7306963ffb50803b60fe2cb848cbea537)), closes [#249](https://github.com/elixir-tools/next-ls/issues/249)
+
 ## [0.13.1](https://github.com/elixir-tools/next-ls/compare/v0.13.0...v0.13.1) (2023-10-02)
 
 
