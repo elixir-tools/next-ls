@@ -22,6 +22,13 @@ defmodule NextLS.LSPSupervisor do
       {opts, _, _invalid} =
         OptionParser.parse(argv, strict: [version: :boolean, help: :boolean, stdio: :boolean, port: :integer])
 
+      port =
+        opts[:port] || # fallback to env port if not set by args
+        case "NEXTLS_PORT" |> System.get_env("") |> Integer.parse() do
+          {int_port, ""} -> int_port
+          _bad_parse_or_error -> nil
+        end
+
       help_text = """
       Next LS v#{NextLS.version()}
 
@@ -60,9 +67,9 @@ defmodule NextLS.LSPSupervisor do
           opts[:stdio] ->
             []
 
-          is_integer(opts[:port]) ->
-            IO.puts("Starting on port #{opts[:port]}")
-            [communication: {GenLSP.Communication.TCP, [port: opts[:port]]}]
+          is_integer(port) ->
+            IO.puts("Starting on port #{port}")
+            [communication: {GenLSP.Communication.TCP, [port: port]}]
 
           true ->
             IO.puts(help_text)
