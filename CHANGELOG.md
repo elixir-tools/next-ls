@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.3](https://github.com/elixir-tools/next-ls/compare/v0.13.2...v0.13.3) (2023-10-04)
+
+
+### Bug Fixes
+
+* don't fail when document is missing ([#266](https://github.com/elixir-tools/next-ls/issues/266)) ([8ec5c7b](https://github.com/elixir-tools/next-ls/commit/8ec5c7b17ee51729c7b1b9cae962536968ea10e4))
+
 ## [0.13.2](https://github.com/elixir-tools/next-ls/compare/v0.13.1...v0.13.2) (2023-10-04)
 
 
