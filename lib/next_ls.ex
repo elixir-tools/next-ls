@@ -451,41 +451,52 @@ defmodule NextLS do
     document = lsp.assigns.documents[uri]
 
     [resp] =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-          with {:ok, {formatter, _}} <-
-                 Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
-               {:ok, response} when is_binary(response) or is_list(response) <-
-                 Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
-            {:reply,
-             [
-               %TextEdit{
-                 new_text: IO.iodata_to_binary(response),
-                 range: %Range{
-                   start: %Position{line: 0, character: 0},
-                   end: %Position{
-                     line: length(document),
-                     character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+      if is_list(document) do
+        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+            with {:ok, {formatter, _}} <-
+                   Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
+                 {:ok, response} when is_binary(response) or is_list(response) <-
+                   Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
+              {:reply,
+               [
+                 %TextEdit{
+                   new_text: IO.iodata_to_binary(response),
+                   range: %Range{
+                     start: %Position{line: 0, character: 0},
+                     end: %Position{
+                       line: length(document),
+                       character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+                     }
                    }
                  }
-               }
-             ], lsp}
-          else
-            {:error, :not_ready} ->
-              GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
-                params: %GenLSP.Structures.ShowMessageParams{
-                  type: GenLSP.Enumerations.MessageType.info(),
-                  message: "The NextLS runtime is still initializing!"
-                }
-              })
+               ], lsp}
+            else
+              {:error, :not_ready} ->
+                GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
+                  params: %GenLSP.Structures.ShowMessageParams{
+                    type: GenLSP.Enumerations.MessageType.info(),
+                    message: "The NextLS runtime is still initializing!"
+                  }
+                })
 
-              {:reply, nil, lsp}
+                {:reply, nil, lsp}
 
-            _ ->
-              {:reply, nil, lsp}
+              _ ->
+                GenLSP.warning(lsp, "[Next LS] Failed to format the file: #{uri}")
+
+                {:reply, nil, lsp}
+            end
           end
-        end
-      end)
+        end)
+      else
+        GenLSP.warning(
+          lsp,
+          "[Next LS] The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+        )
+
+        [{:reply, nil, lsp}]
+      end
 
     resp
   end
