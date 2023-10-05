@@ -70,11 +70,14 @@ defmodule NextLS.Runtime do
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
 
-    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
+    with dir when is_list(dir) <- :code.priv_dir(:next_ls),
+         elixir_exe when is_binary(elixir_exe) <- System.find_executable("elixir") do
       exe =
         dir
         |> Path.join("cmd")
         |> Path.absname()
+
+      NextLS.Logger.log(logger, "Using `elixir` found at: #{elixir_exe}")
 
       port =
         Port.open(
@@ -98,7 +101,7 @@ defmodule NextLS.Runtime do
               {~c"PATH", String.to_charlist(new_path)}
             ],
             args:
-              [System.find_executable("elixir")] ++
+              [elixir_exe] ++
                 if @env == :test do
                   ["--erl", "-kernel prevent_overlapping_partitions false"]
                 else
@@ -178,6 +181,11 @@ defmodule NextLS.Runtime do
        }}
     else
       _ ->
+        NextLS.Logger.error(
+          logger,
+          "Either failed to find the private cmd wrapper script or an `elixir`exe on your PATH"
+        )
+
         {:stop, :failed_to_boot}
     end
   end
