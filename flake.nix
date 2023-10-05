@@ -54,7 +54,7 @@
             erlang = beamPackages.erlang;
             elixir = beamPackages.elixir_1_15;
 
-            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
+            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_10 pkgs._7zz pkgs.patchelf ];
 
             mixFodDeps = beamPackages.fetchMixDeps {
               inherit src version;
@@ -83,16 +83,17 @@
               ''
               else "";
 
-            postInstall =
-              if system == "x86_64-linux" then ''
-                chmod +x ./burrito_out/*
-                cp -r ./burrito_out "$out"
+            postInstall = ''
+              chmod +x ./burrito_out/*
+              cp -r ./burrito_out "$out"
 
+              if [ "${system}" == "x86_64-linux" ]; then
                 patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 "$out/burrito_out/next_ls_linux_amd64"
-              '' else ''
-                chmod +x ./burrito_out/*
-                cp -r ./burrito_out "$out"
-              '';
+              fi
+              if [ "${system}" == "aarch64-linux" ]; then
+                patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-aarch64.so.1 "$out/burrito_out/next_ls_linux_arm64"
+              fi
+            '';
           };
         in
         {
