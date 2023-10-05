@@ -104,7 +104,7 @@ defmodule NextLS do
       if caps.workspace.workspace_folders do
         workspace_folders
       else
-        %{name: Path.basename(root_uri), uri: root_uri}
+        [%{name: Path.basename(root_uri), uri: root_uri}]
       end
 
     {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
