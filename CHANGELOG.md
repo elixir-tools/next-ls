@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.4](https://github.com/elixir-tools/next-ls/compare/v0.13.3...v0.13.4) (2023-10-05)
+
+
+### Bug Fixes
+
+* add defensive logging in runtime ([#276](https://github.com/elixir-tools/next-ls/issues/276)) ([913e8d6](https://github.com/elixir-tools/next-ls/commit/913e8d6312cea37e83fac10f8c04ef4b0a6b8504))
+* check capabilities before registering didChangeWatchedFiles ([#272](https://github.com/elixir-tools/next-ls/issues/272)) ([a0af2dc](https://github.com/elixir-tools/next-ls/commit/a0af2dcf8f36387b1b432350ed20dcb35b5a42d8))
+* correctly coerce root_uri into workspace folders ([#275](https://github.com/elixir-tools/next-ls/issues/275)) ([960c9aa](https://github.com/elixir-tools/next-ls/commit/960c9aa528e2aaebd3a848e3f6053d9345277861))
+
 ## [0.13.3](https://github.com/elixir-tools/next-ls/compare/v0.13.2...v0.13.3) (2023-10-04)
 
 
