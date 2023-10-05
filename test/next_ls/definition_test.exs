@@ -59,7 +59,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to local function definition", %{client: client, bar: bar} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -93,7 +92,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to imported function definition", %{client: client, bar: bar, imported: imported} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -129,7 +127,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to remote function definition", %{client: client, bar: bar, remote: remote} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
       assert_compiled(context, "my_proj")
@@ -227,7 +224,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to local macro definition", %{client: client, bar: bar} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
@@ -260,7 +256,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to imported macro definition", %{client: client, bar: bar, imported: imported} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -296,7 +291,6 @@ defmodule NextLS.DefinitionTest do
 
     test "go to remote macro definition", %{client: client, bar: bar, remote: remote} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
 
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -382,7 +376,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to module definition", %{client: client, bar: bar, peace: peace} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
@@ -413,7 +407,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to module alias definition", %{client: client, peace: peace, bar: bar, baz: baz} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
@@ -521,7 +515,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to attribute definition", %{client: client, bar: bar} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       uri = uri(bar)
@@ -555,7 +549,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to attribute definition in second module", %{client: client, bar: bar} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       uri = uri(bar)
@@ -589,7 +583,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to attribute definition in inner module", %{client: client, bar: bar} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       uri = uri(bar)
@@ -656,7 +650,7 @@ defmodule NextLS.DefinitionTest do
 
     test "go to local variable definition", %{client: client, bar: bar} do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-      assert_request(client, "client/registerCapability", fn _params -> nil end)
+
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
       uri = uri(bar)

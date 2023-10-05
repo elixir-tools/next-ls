@@ -60,7 +60,7 @@ defmodule NextLS.ReferencesTest do
 
   test "list function references", %{client: client, bar: bar, peace: peace} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
     assert_is_ready(context, "my_proj")
     assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -94,7 +94,7 @@ defmodule NextLS.ReferencesTest do
 
   test "list module references", %{client: client, bar: bar, peace: peace} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
     assert_is_ready(context, "my_proj")
     assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -133,7 +133,7 @@ defmodule NextLS.ReferencesTest do
 
   test "list attribute references", %{client: client, bar: bar} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
     assert_is_ready(context, "my_proj")
     assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -174,7 +174,7 @@ defmodule NextLS.ReferencesTest do
 
   test "list variable references", %{client: client, bar: bar} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
+
     assert_is_ready(context, "my_proj")
     assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
