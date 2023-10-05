@@ -131,13 +131,13 @@ The extension will automatically install the latest version of Next LS and will 
 ### Homebrew
 
 ```bash
-$ brew install elixir-tools/tap/next-ls
+brew install elixir-tools/tap/next-ls
 ```
 
 ### Nix
 
 ```bash
-$ nix profile install github:elixir-tools/next-ls
+nix profile install github:elixir-tools/next-ls
 ```
 
 ### GitHub Releases
