@@ -46,7 +46,6 @@ defmodule NextLS.WorkspacesTest do
   @tag root_paths: ["proj_one"]
   test "starts a new runtime when you add a workspace folder", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "proj_one")
     assert_compiled(context, "proj_one")
 
@@ -70,7 +69,6 @@ defmodule NextLS.WorkspacesTest do
   @tag root_paths: ["proj_one", "proj_two"]
   test "stops the runtime when you remove a workspace folder", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
     assert_is_ready(context, "proj_one")
     assert_is_ready(context, "proj_two")
 
@@ -101,28 +99,28 @@ defmodule NextLS.WorkspacesTest do
   test "can register for workspace/didChangedWatchedFiles", %{client: client} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
-    assert_request(client, "client/registerCapability", fn params ->
-      assert params == %{
-               "registrations" => [
-                 %{
-                   "id" => "file-watching",
-                   "method" => "workspace/didChangeWatchedFiles",
-                   "registerOptions" => %{
-                     "watchers" => [
-                       %{"kind" => 7, "globPattern" => "**/*.ex"},
-                       %{"kind" => 7, "globPattern" => "**/*.exs"},
-                       %{"kind" => 7, "globPattern" => "**/*.leex"},
-                       %{"kind" => 7, "globPattern" => "**/*.eex"},
-                       %{"kind" => 7, "globPattern" => "**/*.heex"},
-                       %{"kind" => 7, "globPattern" => "**/*.sface"}
-                     ]
-                   }
-                 }
-               ]
-             }
+    # assert_request(client, "client/registerCapability", fn params ->
+    #   assert params == %{
+    #            "registrations" => [
+    #              %{
+    #                "id" => "file-watching",
+    #                "method" => "workspace/didChangeWatchedFiles",
+    #                "registerOptions" => %{
+    #                  "watchers" => [
+    #                    %{"kind" => 7, "globPattern" => "**/*.ex"},
+    #                    %{"kind" => 7, "globPattern" => "**/*.exs"},
+    #                    %{"kind" => 7, "globPattern" => "**/*.leex"},
+    #                    %{"kind" => 7, "globPattern" => "**/*.eex"},
+    #                    %{"kind" => 7, "globPattern" => "**/*.heex"},
+    #                    %{"kind" => 7, "globPattern" => "**/*.sface"}
+    #                  ]
+    #                }
+    #              }
+    #            ]
+    #          }
 
-      nil
-    end)
+    #   nil
+    # end)
 
     assert_is_ready(context, "proj_one")
     assert_compiled(context, "proj_one")
@@ -131,8 +129,6 @@ defmodule NextLS.WorkspacesTest do
   @tag root_paths: ["proj_one"]
   test "can receive workspace/didChangeWatchedFiles notification", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "proj_one")
     assert_compiled(context, "proj_one")

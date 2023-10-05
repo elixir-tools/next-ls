@@ -539,24 +539,26 @@ defmodule NextLS do
         )
     end
 
-    nil =
-      GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
-        id: System.unique_integer([:positive]),
-        params: %GenLSP.Structures.RegistrationParams{
-          registrations: [
-            %GenLSP.Structures.Registration{
-              id: "file-watching",
-              method: "workspace/didChangeWatchedFiles",
-              register_options: %GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
-                watchers:
-                  for ext <- ~W|ex exs leex eex heex sface| do
-                    %GenLSP.Structures.FileSystemWatcher{kind: 7, glob_pattern: "**/*.#{ext}"}
-                  end
+    with %{dynamic_registration: true} <- lsp.assigns.client_capabilities.workspace.did_change_watched_files do
+      nil =
+        GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
+          id: System.unique_integer([:positive]),
+          params: %GenLSP.Structures.RegistrationParams{
+            registrations: [
+              %GenLSP.Structures.Registration{
+                id: "file-watching",
+                method: "workspace/didChangeWatchedFiles",
+                register_options: %GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
+                  watchers:
+                    for ext <- ~W|ex exs leex eex heex sface| do
+                      %GenLSP.Structures.FileSystemWatcher{kind: 7, glob_pattern: "**/*.#{ext}"}
+                    end
+                }
               }
-            }
-          ]
-        }
-      })
+            ]
+          }
+        })
+    end
 
     GenLSP.log(lsp, "[NextLS] Booting runtimes...")
 

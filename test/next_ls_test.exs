@@ -57,7 +57,6 @@ defmodule NextLSTest do
 
   test "responds correctly to a shutdown request", %{client: client} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
 
@@ -75,7 +74,6 @@ defmodule NextLSTest do
     id = System.unique_integer([:positive])
 
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert :ok ==
              request(client, %{
@@ -113,7 +111,6 @@ defmodule NextLSTest do
 
   test "formats", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     notify client, %{
       method: "textDocument/didOpen",
@@ -188,7 +185,6 @@ defmodule NextLSTest do
 
   test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     notify client, %{
       method: "textDocument/didOpen",
@@ -233,7 +229,6 @@ defmodule NextLSTest do
 
   test "workspace symbols", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -324,7 +319,6 @@ defmodule NextLSTest do
 
   test "workspace symbols with query", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -357,7 +351,6 @@ defmodule NextLSTest do
 
   test "workspace symbols with query fuzzy search", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -390,7 +383,6 @@ defmodule NextLSTest do
 
   test "workspace symbols with query case sensitive fuzzy search", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
@@ -434,7 +426,6 @@ defmodule NextLSTest do
 
   test "deletes symbols when a file is deleted", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}

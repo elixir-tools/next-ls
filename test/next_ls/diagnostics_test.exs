@@ -56,7 +56,6 @@ defmodule NextLS.DiagnosticsTest do
 
   test "publishes diagnostics once the client has initialized", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
-    assert_request(client, "client/registerCapability", fn _params -> nil end)
 
     assert_notification "window/logMessage", %{
       "message" => "[NextLS] NextLS v" <> _,
