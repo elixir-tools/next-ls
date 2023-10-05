@@ -19,6 +19,10 @@ Still in heavy development, currently supporting the following features:
   - Credo
 - Hover
 
+## Supported Elixir Versions
+
+Currently it supports 1.13 and newer, but this could be lowered potentially.
+
 ## Editor Support
 
 <ul>
