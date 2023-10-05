@@ -30,9 +30,7 @@ Currently it supports 1.13 and newer, but this could be lowered potentially.
 <li>VSCode: <a href="https://github.com/elixir-tools/elixir-tools.vscode">elixir-tools.vscode</a></li>
 <li>
 <details>
-<summary>Emacs</summary>
-
-Using eglot:
+<summary>Emacs - eglot</summary>
 
 ```elisp
 (require 'eglot)
