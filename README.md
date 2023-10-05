@@ -75,6 +75,49 @@ args = ["--stdio=true"]
 
 </details>
 </li>
+<li>
+<details>
+<summary>Zed</summary>
+
+[Zed](https://zed.dev)
+
+Add the following settings (tested with [Zed Preview v0.106.2](https://zed.dev/releases/preview)):
+
+```json
+{
+  "elixir": {
+    "lsp": "next_ls"
+  }
+}
+```
+
+</details>
+</li>
+<li>
+<details>
+<summary>Vim - vim-lsp</summary>
+
+[vim-lsp](https://github.com/prabirshrestha/vim-lsp)
+
+Install Next LS somewhere on your PATH, or instead use an absolute path to the Next LS executable.
+
+```vim
+if executable('nextls')
+    au User lsp_setup call lsp#register_server({
+        \ 'name': 'next_ls',
+        \ 'cmd': ["nextls", "--stdio"],
+        \ 'root_uri':{server_info->lsp#utils#path_to_uri(
+        \	lsp#utils#find_nearest_parent_file_directory(
+        \		lsp#utils#get_buffer_path(),
+        \		['mix.exs']
+        \	))},
+        \ 'allowlist': ['elixir'],
+        \ })
+endif
+```
+
+</details>
+</li>
 </ul>
 
 ## Installation
@@ -88,13 +131,13 @@ The extension will automatically install the latest version of Next LS and will 
 ### Homebrew
 
 ```bash
-$ brew install elixir-tools/tap/next-ls
+brew install elixir-tools/tap/next-ls
 ```
 
 ### Nix
 
 ```bash
-$ nix profile install github:elixir-tools/next-ls
+nix profile install github:elixir-tools/next-ls
 ```
 
 ### GitHub Releases

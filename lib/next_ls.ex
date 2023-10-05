@@ -91,7 +91,12 @@ defmodule NextLS do
   @impl true
   def handle_request(
         %Initialize{
-          params: %InitializeParams{root_uri: root_uri, workspace_folders: workspace_folders, capabilities: caps}
+          params: %InitializeParams{
+            root_uri: root_uri,
+            workspace_folders: workspace_folders,
+            capabilities: caps,
+            initialization_options: init_opts
+          }
         },
         lsp
       ) do
@@ -99,8 +104,10 @@ defmodule NextLS do
       if caps.workspace.workspace_folders do
         workspace_folders
       else
-        %{name: Path.basename(root_uri), uri: root_uri}
+        [%{name: Path.basename(root_uri), uri: root_uri}]
       end
+
+    {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
 
     {:reply,
      %InitializeResult{
@@ -124,7 +131,13 @@ defmodule NextLS do
          }
        },
        server_info: %{name: "Next LS"}
-     }, assign(lsp, root_uri: root_uri, workspace_folders: workspace_folders, client_capabilities: caps)}
+     },
+     assign(lsp,
+       root_uri: root_uri,
+       workspace_folders: workspace_folders,
+       client_capabilities: caps,
+       init_opts: init_opts
+     )}
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
@@ -133,7 +146,28 @@ defmodule NextLS do
         for {pid, _} <- entries do
           case Definition.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid) do
             nil ->
-              nil
+              case NextLS.ASTHelpers.Variables.get_variable_definition(
+                     URI.parse(uri).path,
+                     {position.line + 1, position.character + 1}
+                   ) do
+                {_name, {startl..endl, startc..endc}} ->
+                  %Location{
+                    uri: "file://#{URI.parse(uri).path}",
+                    range: %Range{
+                      start: %Position{
+                        line: startl - 1,
+                        character: startc - 1
+                      },
+                      end: %Position{
+                        line: endl - 1,
+                        character: endc - 1
+                      }
+                    }
+                  }
+
+                _other ->
+                  nil
+              end
 
             [] ->
               nil
@@ -232,7 +266,11 @@ defmodule NextLS do
                 )
 
               :unknown ->
-                []
+                file
+                |> NextLS.ASTHelpers.Variables.list_variable_references({line, col})
+                |> Enum.map(fn {_name, {startl..endl, startc..endc}} ->
+                  [file, startl, endl, startc, endc]
+                end)
             end
 
           for [file, startl, endl, startc, endc] <- references, match?({:ok, _}, File.stat(file)) do
@@ -413,41 +451,52 @@ defmodule NextLS do
     document = lsp.assigns.documents[uri]
 
     [resp] =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-          with {:ok, {formatter, _}} <-
-                 Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
-               {:ok, response} when is_binary(response) or is_list(response) <-
-                 Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
-            {:reply,
-             [
-               %TextEdit{
-                 new_text: IO.iodata_to_binary(response),
-                 range: %Range{
-                   start: %Position{line: 0, character: 0},
-                   end: %Position{
-                     line: length(document),
-                     character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+      if is_list(document) do
+        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+            with {:ok, {formatter, _}} <-
+                   Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
+                 {:ok, response} when is_binary(response) or is_list(response) <-
+                   Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
+              {:reply,
+               [
+                 %TextEdit{
+                   new_text: IO.iodata_to_binary(response),
+                   range: %Range{
+                     start: %Position{line: 0, character: 0},
+                     end: %Position{
+                       line: length(document),
+                       character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+                     }
                    }
                  }
-               }
-             ], lsp}
-          else
-            {:error, :not_ready} ->
-              GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
-                params: %GenLSP.Structures.ShowMessageParams{
-                  type: GenLSP.Enumerations.MessageType.info(),
-                  message: "The NextLS runtime is still initializing!"
-                }
-              })
+               ], lsp}
+            else
+              {:error, :not_ready} ->
+                GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
+                  params: %GenLSP.Structures.ShowMessageParams{
+                    type: GenLSP.Enumerations.MessageType.info(),
+                    message: "The NextLS runtime is still initializing!"
+                  }
+                })
 
-              {:reply, nil, lsp}
+                {:reply, nil, lsp}
 
-            _ ->
-              {:reply, nil, lsp}
+              _ ->
+                GenLSP.warning(lsp, "[Next LS] Failed to format the file: #{uri}")
+
+                {:reply, nil, lsp}
+            end
           end
-        end
-      end)
+        end)
+      else
+        GenLSP.warning(
+          lsp,
+          "[Next LS] The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+        )
+
+        [{:reply, nil, lsp}]
+      end
 
     resp
   end
@@ -490,24 +539,26 @@ defmodule NextLS do
         )
     end
 
-    nil =
-      GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
-        id: System.unique_integer([:positive]),
-        params: %GenLSP.Structures.RegistrationParams{
-          registrations: [
-            %GenLSP.Structures.Registration{
-              id: "file-watching",
-              method: "workspace/didChangeWatchedFiles",
-              register_options: %GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
-                watchers:
-                  for ext <- ~W|ex exs leex eex heex sface| do
-                    %GenLSP.Structures.FileSystemWatcher{kind: 7, glob_pattern: "**/*.#{ext}"}
-                  end
+    with %{dynamic_registration: true} <- lsp.assigns.client_capabilities.workspace.did_change_watched_files do
+      nil =
+        GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
+          id: System.unique_integer([:positive]),
+          params: %GenLSP.Structures.RegistrationParams{
+            registrations: [
+              %GenLSP.Structures.Registration{
+                id: "file-watching",
+                method: "workspace/didChangeWatchedFiles",
+                register_options: %GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
+                  watchers:
+                    for ext <- ~W|ex exs leex eex heex sface| do
+                      %GenLSP.Structures.FileSystemWatcher{kind: 7, glob_pattern: "**/*.#{ext}"}
+                    end
+                }
               }
-            }
-          ]
-        }
-      })
+            ]
+          }
+        })
+    end
 
     GenLSP.log(lsp, "[NextLS] Booting runtimes...")
 
@@ -530,6 +581,8 @@ defmodule NextLS do
              task_supervisor: lsp.assigns.runtime_task_supervisor,
              working_dir: working_dir,
              uri: uri,
+             mix_env: lsp.assigns.init_opts.mix_env,
+             mix_target: lsp.assigns.init_opts.mix_target,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -643,6 +696,8 @@ defmodule NextLS do
                task_supervisor: lsp.assigns.runtime_task_supervisor,
                working_dir: working_dir,
                uri: uri,
+               mix_env: lsp.assigns.init_opts.mix_env,
+               mix_target: lsp.assigns.init_opts.mix_target,
                on_initialized: fn status ->
                  if status == :ready do
                    Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -960,4 +1015,25 @@ defmodule NextLS do
 
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
+
+  defmodule InitOpts do
+    @moduledoc false
+    import Schematic
+
+    defstruct mix_target: "host", mix_env: "dev"
+
+    def validate(opts) do
+      schematic =
+        nullable(
+          schema(__MODULE__, %{
+            optional(:mix_target) => str(),
+            optional(:mix_env) => str()
+          })
+        )
+
+      with {:ok, nil} <- unify(schematic, opts) do
+        {:ok, %__MODULE__{}}
+      end
+    end
+  end
 end

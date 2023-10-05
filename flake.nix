@@ -14,7 +14,7 @@
       ];
 
       pname = "next-ls";
-      version = "0.12.6"; # x-release-please-version
+      version = "0.13.4"; # x-release-please-version
       src = ./.;
 
       # Helper to provide system-specific attributes
@@ -54,12 +54,12 @@
             erlang = beamPackages.erlang;
             elixir = beamPackages.elixir_1_15;
 
-            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_10 pkgs._7zz ];
+            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
 
             mixFodDeps = beamPackages.fetchMixDeps {
               inherit src version;
               pname = "${pname}-deps";
-              hash = "sha256-jUkz/pu3iyizpHkMYgmbYfalFv10t11b6SmLVEXAJ30=";
+              hash = "sha256-ekB71eDfcFqC3JojFMnlGRQ/XiPwbUqFVor7ndpUd90=";
             };
 
             preConfigure = ''
@@ -73,15 +73,26 @@
               export PATH="$bindir:$PATH"
             '';
 
+            preBuild = ''
+              export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
+            '';
+
             preInstall =
               if type == "local" then ''
                 export BURRITO_TARGET="${burritoExe(system)}"
               ''
               else "";
 
-            postInstall = ''
-              cp -r ./burrito_out "$out"
-            '';
+            postInstall =
+              if system == "x86_64-linux" then ''
+                chmod +x ./burrito_out/*
+                cp -r ./burrito_out "$out"
+
+                patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 "$out/burrito_out/next_ls_linux_amd64"
+              '' else ''
+                chmod +x ./burrito_out/*
+                cp -r ./burrito_out "$out"
+              '';
           };
         in
         {

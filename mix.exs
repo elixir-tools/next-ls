@@ -1,7 +1,7 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
-  @version "0.12.6" # x-release-please-version
+  @version "0.13.4" # x-release-please-version
 
   def project do
     [
@@ -40,7 +40,7 @@ defmodule NextLS.MixProject do
       next_ls: [
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
-          targets: [
+          targets: inject_custom_erts([
             darwin_arm64: [os: :darwin, cpu: :aarch64],
             darwin_amd64: [os: :darwin, cpu: :x86_64],
             linux_arm64: [os: :linux, cpu: :aarch64, libc: :gnu],
@@ -48,7 +48,7 @@ defmodule NextLS.MixProject do
             linux_arm64_musl: [os: :linux, cpu: :aarch64, libc: :musl],
             linux_amd64_musl: [os: :linux, cpu: :x86_64, libc: :musl],
             windows_amd64: [os: :windows, cpu: :x86_64]
-          ]
+          ])
         ]
       ]
     ]
@@ -64,6 +64,7 @@ defmodule NextLS.MixProject do
       {:exqlite, "~> 0.13.14"},
       {:gen_lsp, "~> 0.6"},
       {:req, "~> 0.3.11"},
+      {:schematic, "~> 0.2"},
 
       {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
@@ -84,5 +85,20 @@ defmodule NextLS.MixProject do
       },
       files: ~w(lib LICENSE mix.exs priv README.md .formatter.exs)
     ]
+  end
+
+  defp inject_custom_erts(targets) do
+    # By default, Burrito downloads ERTS from https://burrito-otp.b-cdn.net.
+    # When building with Nix, side-effects like network access are not allowed,
+    # so we need to inject our own ERTS path.
+
+    erts_path = System.get_env("BURRITO_ERTS_PATH", "")
+
+    Enum.map(targets, fn {target_name, target_conf} ->
+      case erts_path do
+        "" -> {target_name, target_conf}
+        path -> {target_name, [{:custom_erts, path} | target_conf]}
+      end
+    end)
   end
 end

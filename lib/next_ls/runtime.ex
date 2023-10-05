@@ -49,6 +49,8 @@ defmodule NextLS.Runtime do
     registry = Keyword.fetch!(opts, :registry)
     on_initialized = Keyword.fetch!(opts, :on_initialized)
     db = Keyword.fetch!(opts, :db)
+    mix_env = Keyword.fetch!(opts, :mix_env)
+    mix_target = Keyword.fetch!(opts, :mix_target)
 
     Registry.register(registry, :runtimes, %{name: name, uri: uri, path: working_dir, db: db})
 
@@ -68,11 +70,14 @@ defmodule NextLS.Runtime do
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
 
-    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
+    with dir when is_list(dir) <- :code.priv_dir(:next_ls),
+         elixir_exe when is_binary(elixir_exe) <- System.find_executable("elixir") do
       exe =
         dir
         |> Path.join("cmd")
         |> Path.absname()
+
+      NextLS.Logger.log(logger, "Using `elixir` found at: #{elixir_exe}")
 
       port =
         Port.open(
@@ -86,7 +91,8 @@ defmodule NextLS.Runtime do
             env: [
               {~c"LSP", ~c"nextls"},
               {~c"NEXTLS_PARENT_PID", parent},
-              {~c"MIX_ENV", ~c"dev"},
+              {~c"MIX_ENV", ~c"#{mix_env}"},
+              {~c"MIX_TARGET", ~c"#{mix_target}"},
               {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
               {~c"ROOTDIR", false},
               {~c"BINDIR", false},
@@ -95,7 +101,7 @@ defmodule NextLS.Runtime do
               {~c"PATH", String.to_charlist(new_path)}
             ],
             args:
-              [System.find_executable("elixir")] ++
+              [elixir_exe] ++
                 if @env == :test do
                   ["--erl", "-kernel prevent_overlapping_partitions false"]
                 else
@@ -164,7 +170,7 @@ defmodule NextLS.Runtime do
        %{
          name: name,
          working_dir: working_dir,
-         compiler_ref: nil,
+         compiler_refs: %{},
          port: port,
          task_supervisor: task_supervisor,
          logger: logger,
@@ -175,6 +181,11 @@ defmodule NextLS.Runtime do
        }}
     else
       _ ->
+        NextLS.Logger.error(
+          logger,
+          "Either failed to find the private cmd wrapper script or an `elixir`exe on your PATH"
+        )
+
         {:stop, :failed_to_boot}
     end
   end
@@ -198,6 +209,8 @@ defmodule NextLS.Runtime do
   end
 
   def handle_call({:compile, opts}, from, %{node: node} = state) do
+    for {_ref, {task_pid, _from}} <- state.compiler_refs, do: Process.exit(task_pid, :kill)
+
     task =
       Task.Supervisor.async_nolink(state.task_supervisor, fn ->
         if opts[:force] do
@@ -224,21 +237,22 @@ defmodule NextLS.Runtime do
         end
       end)
 
-    {:noreply, %{state | compiler_ref: %{task.ref => from}}}
+    {:noreply, %{state | compiler_refs: Map.put(state.compiler_refs, task.ref, {task.pid, from})}}
   end
 
   @impl GenServer
-  def handle_info({ref, errors}, %{compiler_ref: compiler_ref} = state) when is_map_key(compiler_ref, ref) do
+  def handle_info({ref, errors}, %{compiler_refs: compiler_refs} = state) when is_map_key(compiler_refs, ref) do
     Process.demonitor(ref, [:flush])
 
-    GenServer.reply(compiler_ref[ref], errors)
+    orig = elem(compiler_refs[ref], 1)
+    GenServer.reply(orig, errors)
 
-    {:noreply, %{state | compiler_ref: nil}}
+    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_ref: compiler_ref} = state)
-      when is_map_key(compiler_ref, ref) do
-    {:noreply, %{state | compiler_ref: nil}}
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_refs: compiler_refs} = state)
+      when is_map_key(compiler_refs, ref) do
+    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
   end
 
   def handle_info({:DOWN, _, :port, port, _}, %{port: port} = state) do

@@ -25,11 +25,19 @@ jobs:
         with:
           release-type: elixir
           package-name: next_ls
-          draft: true
           extra-files: |
             flake.nix
-  build:
+  draft:
     needs: release
+    if: ${{ needs.release.outputs.release_created }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=true --repo='elixir-tools/next-ls'
+
+  build:
+    needs: [release, draft]
     if: ${{ needs.release.outputs.release_created }}
     uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
     with:
@@ -45,4 +53,4 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'

@@ -67,6 +67,8 @@ defmodule NextLs.RuntimeTest do
          parent: self(),
          logger: logger,
          db: :some_db,
+         mix_env: "dev",
+         mix_target: "host",
          registry: RuntimeTest.Registry},
         restart: :temporary
       )
@@ -97,6 +99,8 @@ defmodule NextLs.RuntimeTest do
            parent: self(),
            logger: logger,
            db: :some_db,
+           mix_env: "dev",
+           mix_target: "host",
            registry: RuntimeTest.Registry},
           restart: :temporary
         )
@@ -127,6 +131,8 @@ defmodule NextLs.RuntimeTest do
            parent: self(),
            logger: logger,
            db: :some_db,
+           mix_env: "dev",
+           mix_target: "host",
            registry: RuntimeTest.Registry}
         )
 
@@ -153,6 +159,8 @@ defmodule NextLs.RuntimeTest do
            parent: self(),
            logger: logger,
            db: :some_db,
+           mix_env: "dev",
+           mix_target: "host",
            registry: RuntimeTest.Registry}
         )
 
@@ -180,6 +188,8 @@ defmodule NextLs.RuntimeTest do
            parent: self(),
            logger: logger,
            db: :some_db,
+           mix_env: "dev",
+           mix_target: "host",
            registry: RuntimeTest.Registry}
         )
 
@@ -232,6 +242,8 @@ defmodule NextLs.RuntimeTest do
            parent: self(),
            logger: logger,
            db: :some_db,
+           mix_env: "dev",
+           mix_target: "host",
            registry: RuntimeTest.Registry}
         )
 

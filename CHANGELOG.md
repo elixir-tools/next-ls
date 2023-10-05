@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.13.4](https://github.com/elixir-tools/next-ls/compare/v0.13.3...v0.13.4) (2023-10-05)
+
+
+### Bug Fixes
+
+* add defensive logging in runtime ([#276](https://github.com/elixir-tools/next-ls/issues/276)) ([913e8d6](https://github.com/elixir-tools/next-ls/commit/913e8d6312cea37e83fac10f8c04ef4b0a6b8504))
+* check capabilities before registering didChangeWatchedFiles ([#272](https://github.com/elixir-tools/next-ls/issues/272)) ([a0af2dc](https://github.com/elixir-tools/next-ls/commit/a0af2dcf8f36387b1b432350ed20dcb35b5a42d8))
+* correctly coerce root_uri into workspace folders ([#275](https://github.com/elixir-tools/next-ls/issues/275)) ([960c9aa](https://github.com/elixir-tools/next-ls/commit/960c9aa528e2aaebd3a848e3f6053d9345277861))
+
+## [0.13.3](https://github.com/elixir-tools/next-ls/compare/v0.13.2...v0.13.3) (2023-10-04)
+
+
+### Bug Fixes
+
+* don't fail when document is missing ([#266](https://github.com/elixir-tools/next-ls/issues/266)) ([8ec5c7b](https://github.com/elixir-tools/next-ls/commit/8ec5c7b17ee51729c7b1b9cae962536968ea10e4))
+
+## [0.13.2](https://github.com/elixir-tools/next-ls/compare/v0.13.1...v0.13.2) (2023-10-04)
+
+
+### Bug Fixes
+
+* build release on macOS 14 ([#263](https://github.com/elixir-tools/next-ls/issues/263)) ([8656ab5](https://github.com/elixir-tools/next-ls/commit/8656ab57cb23242baae929d696d317fda4c6690e)), closes [#249](https://github.com/elixir-tools/next-ls/issues/249)
+
+## [0.13.1](https://github.com/elixir-tools/next-ls/compare/v0.13.0...v0.13.1) (2023-10-02)
+
+
+### Bug Fixes
+
+* **document_symbols:** handle struct which is last expression in a block ([d4ea0b2](https://github.com/elixir-tools/next-ls/commit/d4ea0b2b3d72321718596cf0ae9434441e8a01d4)), closes [#111](https://github.com/elixir-tools/next-ls/issues/111)
+
+## [0.13.0](https://github.com/elixir-tools/next-ls/compare/v0.12.7...v0.13.0) (2023-10-02)
+
+
+### Features
+
+* configureable MIX_ENV and MIX_TARGET ([#246](https://github.com/elixir-tools/next-ls/issues/246)) ([c56518a](https://github.com/elixir-tools/next-ls/commit/c56518a297afd4bb3cd3ad86ebc32f3bf5a70ab4))
+* **definition,references:** local variables ([#253](https://github.com/elixir-tools/next-ls/issues/253)) ([7099370](https://github.com/elixir-tools/next-ls/commit/7099370f445de3aee48dfc03481f434536b8ae44))
+
+## [0.12.7](https://github.com/elixir-tools/next-ls/compare/v0.12.6...v0.12.7) (2023-09-30)
+
+
+### Bug Fixes
+
+* cancel previous compile requests ([#242](https://github.com/elixir-tools/next-ls/issues/242)) ([0a2f8fe](https://github.com/elixir-tools/next-ls/commit/0a2f8fe7666f741d9063be4e7d0522f4e7f11fd1))
+* nix build ([#247](https://github.com/elixir-tools/next-ls/issues/247)) ([17c41db](https://github.com/elixir-tools/next-ls/commit/17c41dbc33a395f654194bdc956b9eabbddb12f4))
+
 ## [0.12.6](https://github.com/elixir-tools/next-ls/compare/v0.12.5...v0.12.6) (2023-09-21)
 
 

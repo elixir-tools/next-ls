@@ -123,8 +123,8 @@ defmodule NextLS.DocumentSymbol do
           character: meta[:column] - 1
         },
         end: %Position{
-          line: meta[:end_of_expression][:line] - 1,
-          character: meta[:end_of_expression][:column] - 1
+          line: (meta[:end_of_expression][:line] || meta[:line]) - 1,
+          character: (meta[:end_of_expression][:column] || meta[:column]) - 1
         }
       },
       selection_range: %Range{
