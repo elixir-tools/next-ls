@@ -163,10 +163,6 @@ let lspServers = [#{
 	\	  filetype: ['elixir'],
 	\	  path: 'nextls',
 	\	  args: ['--stdio'],
-  \   features: #{
-  \     documentFormatting: v:true,
-  \
-  \   },
   \   rootSearchFiles: ['mix.exs']
 	\ }]
 autocmd VimEnter * call LspAddServer(lspServers)
