@@ -153,6 +153,8 @@ endif
 <details>
 <summary>Vim - ALE</summary>
 
+Valid once https://github.com/dense-analysis/ale/pull/4626 is merged.
+
 [ALE](https://github.com/dense-analysis/ale)
 
 Install Next LS somewhere on your PATH, or instead use an absolute path to the Next LS executable.
