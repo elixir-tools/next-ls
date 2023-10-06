@@ -51,6 +51,35 @@ Currently it supports 1.13 and newer, but this could be lowered potentially.
 </li>
 <li>
 <details>
+<summary>Doom Emacs - eglot</summary>
+
+Install
+
+1. Install `nextls` somewhere on your `PATH`
+2. Enable `lsp` with eglot in `$DOOMDIR/init.el`
+
+   ```diff
+   - ;; lsp
+   + (lsp +eglot)
+   ```
+
+2. Enable the Elixir layer with lsp in `$DOOMDIR/init.el`
+
+   ```diff
+   - ;; elixir
+   + (elixir +lsp)
+   ```
+
+2. Configure the eglot client in `$DOOMDIR/config.el`
+
+   ```elisp
+   (set-eglot-client! 'elixir-mode '("nextls" "--stdio"))
+   ```
+
+</details>
+</li>
+<li>
+<details>
 <summary>Helix</summary>
 
 Add the following config to your `~/.config/helix/languages.toml`.
@@ -116,6 +145,21 @@ if executable('nextls')
         \ 'allowlist': ['elixir'],
         \ })
 endif
+```
+
+</details>
+</li>
+<li>
+<details>
+<summary>Vim - ALE</summary>
+
+[ALE](https://github.com/dense-analysis/ale)
+
+Install Next LS somewhere on your PATH, or instead use an absolute path to the Next LS executable.
+
+```vim
+let g:ale_elixir_next_ls_executable = 'path/to/nextls' " optional, if you want to change the executable that is used
+let g:ale_linters = {'elixir': ['next_ls']}
 ```
 
 </details>
