@@ -126,7 +126,7 @@ Add the following settings (tested with [Zed Preview v0.106.2](https://zed.dev/r
 </li>
 <li>
 <details>
-<summary>Vim - vim-lsp</summary>
+<summary>Vim - prabirshrestha/vim-lsp</summary>
 
 [vim-lsp](https://github.com/prabirshrestha/vim-lsp)
 
@@ -145,6 +145,31 @@ if executable('nextls')
         \ 'allowlist': ['elixir'],
         \ })
 endif
+```
+
+</details>
+</li>
+<li>
+<details>
+<summary>Vim - yegappan/lsp</summary>
+
+[yegappan/lsp](https://github.com/yegappan/lsp) - requires Vim 9
+
+Install Next LS somewhere on your PATH, or instead use an absolute path to the Next LS executable.
+
+```vim
+let lspServers = [#{
+	\	  name: 'next_ls',
+	\	  filetype: ['elixir'],
+	\	  path: 'nextls',
+	\	  args: ['--stdio'],
+  \   features: #{
+  \     documentFormatting: v:true,
+  \
+  \   },
+  \   rootSearchFiles: ['mix.exs']
+	\ }]
+autocmd VimEnter * call LspAddServer(lspServers)
 ```
 
 </details>
