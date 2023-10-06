@@ -53,8 +53,6 @@ Currently it supports 1.13 and newer, but this could be lowered potentially.
 <details>
 <summary>Doom Emacs - eglot</summary>
 
-Install
-
 1. Install `nextls` somewhere on your `PATH`
 2. Enable `lsp` with eglot in `$DOOMDIR/init.el`
 
