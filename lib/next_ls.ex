@@ -359,6 +359,9 @@ defmodule NextLS do
                     _ ->
                       nil
                   end
+
+                nil ->
+                  nil
               end
             else
               _ -> nil
