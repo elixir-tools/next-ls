@@ -348,7 +348,7 @@ defmodule NextLS.ASTHelpers.VariablesTest do
       assert {:var, {127..127, 17..19}} in refs3
     end
 
-    test "returns nil when source code is broken", %{broken: broken} do
+    test "returns empty list when source code is broken", %{broken: broken} do
       symbol = Variables.list_variable_references(broken, {2, 10})
       assert Enum.empty?(symbol)
     end
