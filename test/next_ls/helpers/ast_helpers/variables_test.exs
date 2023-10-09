@@ -143,7 +143,17 @@ defmodule NextLS.ASTHelpers.VariablesTest do
     end
     """)
 
-    [source: source]
+    broken = Path.join(tmp_dir, "my_proj/lib/broken.ex")
+
+    File.write!(broken, """
+    defmodule Broken do
+      def foo(bar) do
+        {:ok, bar}
+      end
+    # end
+    """)
+
+    [source: source, broken: broken]
   end
 
   describe "get_variable_definition/2" do
@@ -154,12 +164,17 @@ defmodule NextLS.ASTHelpers.VariablesTest do
 
     test "returns nil when position is not a variable reference", %{source: source} do
       symbol = Variables.get_variable_definition(source, {7, 6})
-      assert symbol == nil
+      refute symbol
     end
 
     test "returns nil when position is a variable symbol", %{source: source} do
       symbol = Variables.get_variable_definition(source, {5, 5})
-      assert symbol == nil
+      refute symbol
+    end
+
+    test "returns nil when source code is broken", %{broken: broken} do
+      symbol = Variables.get_variable_definition(broken, {1, 10})
+      refute symbol
     end
   end
 
@@ -331,6 +346,11 @@ defmodule NextLS.ASTHelpers.VariablesTest do
       refs3 = Variables.list_variable_references(source, {123, 7})
       assert length(refs3) == 1
       assert {:var, {127..127, 17..19}} in refs3
+    end
+
+    test "returns nil when source code is broken", %{broken: broken} do
+      symbol = Variables.list_variable_references(broken, {2, 10})
+      assert Enum.empty?(symbol)
     end
   end
 end
