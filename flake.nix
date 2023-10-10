@@ -90,11 +90,9 @@
                   patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 "$out/burrito_out/next_ls_linux_amd64"
                 '';
                 afterCommand = ''
-                  mkdir -p "$out/bin"
-                  mv "$out/burrito_out/next_ls_${
-                    burritoExe (system)
-                  }" "$out/bin/nextls"
-                  rm -rf "$out/burrito_out"
+                  rm -rf "$out/bin"
+                  mv "$out/burrito_out" "$out/bin"
+                  mv "$out/bin/next_ls_${burritoExe (system)}" "$out/bin/nextls"
                 '';
               in beforeCommand
               + lib.optionalString (system == "x86_64-linux") patchCommand
