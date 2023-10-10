@@ -1,7 +1,5 @@
 {
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
-  };
+  inputs = { nixpkgs.url = "github:NixOS/nixpkgs"; };
 
   outputs = { self, nixpkgs }:
     let
@@ -20,20 +18,19 @@
       src = ./.;
 
       # Helper to provide system-specific attributes
-      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-        in
-        f {
-          inherit pkgs;
-          # src = pkgs.fetchFromGitHub {
-          #   owner = "elixir-tools";
-          #   repo = "next-ls";
-          #  rev = "v${version}";
-          #  sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
-          # };
-          system = system;
-        });
+      forAllSystems = f:
+        nixpkgs.lib.genAttrs allSystems (system:
+          let pkgs = import nixpkgs { inherit system; };
+          in f {
+            inherit pkgs;
+            # src = pkgs.fetchFromGitHub {
+            #   owner = "elixir-tools";
+            #   repo = "next-ls";
+            #  rev = "v${version}";
+            #  sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
+            # };
+            system = system;
+          });
 
       burritoExe = system:
         if system == "aarch64-darwin" then
@@ -46,47 +43,45 @@
           "linux_arm64"
         else
           "";
-    in
-    {
+    in {
       packages = forAllSystems ({ pkgs, system }:
         let
           beamPackages = pkgs.beam.packages.erlang_26;
-          build = type: beamPackages.mixRelease {
-            inherit pname version src;
-            erlang = beamPackages.erlang;
-            elixir = beamPackages.elixir_1_15;
+          build = type:
+            beamPackages.mixRelease {
+              inherit pname version src;
+              erlang = beamPackages.erlang;
+              elixir = beamPackages.elixir_1_15;
 
-            nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
+              nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
 
-            mixFodDeps = beamPackages.fetchMixDeps {
-              inherit src version;
-              pname = "${pname}-deps";
-              hash = "sha256-ekB71eDfcFqC3JojFMnlGRQ/XiPwbUqFVor7ndpUd90=";
-            };
+              mixFodDeps = beamPackages.fetchMixDeps {
+                inherit src version;
+                pname = "${pname}-deps";
+                hash = "sha256-ekB71eDfcFqC3JojFMnlGRQ/XiPwbUqFVor7ndpUd90=";
+              };
 
-            preConfigure = ''
-              bindir="$(pwd)/bin"
-              mkdir -p "$bindir"
-              echo '#!/usr/bin/env bash
-              7zz "$@"' > "$bindir/7z"
-              chmod +x "$bindir/7z"
+              preConfigure = ''
+                bindir="$(pwd)/bin"
+                mkdir -p "$bindir"
+                echo '#!/usr/bin/env bash
+                7zz "$@"' > "$bindir/7z"
+                chmod +x "$bindir/7z"
 
-              export HOME="$(pwd)"
-              export PATH="$bindir:$PATH"
-            '';
+                export HOME="$(pwd)"
+                export PATH="$bindir:$PATH"
+              '';
 
-            preBuild = ''
-              export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
-            '';
+              preBuild = ''
+                export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
+              '';
 
-            preInstall =
-              if type == "local" then ''
-                export BURRITO_TARGET="${burritoExe(system)}"
-              ''
-              else "";
+              preInstall = if type == "local" then ''
+                export BURRITO_TARGET="${burritoExe (system)}"
+              '' else
+                "";
 
-            postInstall =
-              let
+              postInstall = let
                 beforeCommand = ''
                   chmod +x ./burrito_out/*
                   cp -r ./burrito_out "$out"
@@ -96,14 +91,16 @@
                 '';
                 afterCommand = ''
                   mkdir -p "$out/bin"
-                  mv "$out/burrito_out/next_ls_${burritoExe (system)}" "$out/bin/nextls"
+                  mv "$out/burrito_out/next_ls_${
+                    burritoExe (system)
+                  }" "$out/bin/nextls"
                   rm -rf "$out/burrito_out"
                 '';
-              in
-                beforeCommand + lib.optionalString (system == "x86_64-linux") patchCommand + afterCommand;
-          };
-        in
-        {
+              in beforeCommand
+              + lib.optionalString (system == "x86_64-linux") patchCommand
+              + afterCommand;
+            };
+        in {
           default = build ("local");
           ci = build ("ci");
         });
@@ -111,21 +108,18 @@
       apps = forAllSystems ({ pkgs, system, ... }: {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/burrito_out/next_ls_${burritoExe(system)}";
+          program = "${self.packages.${system}.default}/burrito_out/next_ls_${
+              burritoExe (system)
+            }";
         };
       });
 
       devShells = forAllSystems ({ pkgs, ... }:
-        let
-          beamPackages = pkgs.beam.packages.erlang_26;
-        in
-        {
+        let beamPackages = pkgs.beam.packages.erlang_26;
+        in {
           default = pkgs.mkShell {
             # The Nix packages provided in the environment
-            packages = [
-              beamPackages.erlang
-              beamPackages.elixir_1_15
-            ];
+            packages = [ beamPackages.erlang beamPackages.elixir_1_15 ];
           };
         });
     };
