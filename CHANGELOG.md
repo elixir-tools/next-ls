@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.5](https://github.com/elixir-tools/next-ls/compare/v0.13.4...v0.13.5) (2023-10-16)
+
+
+### Bug Fixes
+
+* correctly process broken code when searching local variables ([#282](https://github.com/elixir-tools/next-ls/issues/282)) ([d1f3876](https://github.com/elixir-tools/next-ls/commit/d1f3876e8c00a5d43a1fb02b4b2e92cab373068f))
+* fallback when hovering of a non-function,module reference ([#281](https://github.com/elixir-tools/next-ls/issues/281)) ([04b9b7e](https://github.com/elixir-tools/next-ls/commit/04b9b7e362bc2f7099baabaeaae02ffe38a70b30))
+
 ## [0.13.4](https://github.com/elixir-tools/next-ls/compare/v0.13.3...v0.13.4) (2023-10-05)
 
 
