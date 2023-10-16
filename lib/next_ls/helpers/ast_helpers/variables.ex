@@ -9,52 +9,62 @@ defmodule NextLS.ASTHelpers.Variables do
   @spec get_variable_definition(String.t(), {integer(), integer()}) :: {atom(), {Range.t(), Range.t()}} | nil
   def get_variable_definition(file, position) do
     file = File.read!(file)
-    ast = Code.string_to_quoted!(file, columns: true)
 
-    {_ast, %{vars: vars}} =
-      Macro.traverse(
-        ast,
-        %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
-        &prewalk/2,
-        &postwalk/2
-      )
+    case Code.string_to_quoted(file, columns: true) do
+      {:ok, ast} ->
+        {_ast, %{vars: vars}} =
+          Macro.traverse(
+            ast,
+            %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
+            &prewalk/2,
+            &postwalk/2
+          )
 
-    Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
-      if position_in_range?(position, ref_range), do: {name, range}, else: nil
-    end)
+        Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
+          if position_in_range?(position, ref_range), do: {name, range}, else: nil
+        end)
+
+      _error ->
+        nil
+    end
   end
 
   @spec list_variable_references(String.t(), {integer(), integer()}) :: [{atom(), {Range.t(), Range.t()}}]
   def list_variable_references(file, position) do
     file = File.read!(file)
-    ast = Code.string_to_quoted!(file, columns: true)
 
-    {_ast, %{vars: vars}} =
-      Macro.traverse(
-        ast,
-        %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
-        &prewalk/2,
-        &postwalk/2
-      )
+    case Code.string_to_quoted(file, columns: true) do
+      {:ok, ast} ->
+        {_ast, %{vars: vars}} =
+          Macro.traverse(
+            ast,
+            %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
+            &prewalk/2,
+            &postwalk/2
+          )
 
-    symbol =
-      Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
-        if position_in_range?(position, ref_range), do: {name, range}, else: nil
-      end)
+        symbol =
+          Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
+            if position_in_range?(position, ref_range), do: {name, range}, else: nil
+          end)
 
-    position =
-      case symbol do
-        nil -> position
-        {_, {line.._, column.._}} -> {line, column}
-      end
+        position =
+          case symbol do
+            nil -> position
+            {_, {line.._, column.._}} -> {line, column}
+          end
 
-    Enum.reduce(vars, [], fn val, acc ->
-      if position_in_range?(position, val.sym_range) do
-        [{val.name, val.ref_range} | acc]
-      else
-        acc
-      end
-    end)
+        Enum.reduce(vars, [], fn val, acc ->
+          if position_in_range?(position, val.sym_range) do
+            [{val.name, val.ref_range} | acc]
+          else
+            acc
+          end
+        end)
+
+      _error ->
+        []
+    end
   end
 
   # search symbols in function and macro definition args and increase scope
