@@ -141,7 +141,8 @@ defmodule NextLS.Autocomplete do
       NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__info__, 1))
 
     if ensure_loaded?(mod, shell) and exported? do
-      NextLS.Runtime.execute!(shell, do: mod.__info__(:macros)) ++ (NextLS.Runtime.execute!(shell, do: mod.__info__(:functions)) -- [__info__: 1])
+      NextLS.Runtime.execute!(shell, do: mod.__info__(:macros)) ++
+        (NextLS.Runtime.execute!(shell, do: mod.__info__(:functions)) -- [__info__: 1])
     else
       NextLS.Runtime.execute!(shell, do: mod.module_info(:exports)) -- [module_info: 0, module_info: 1]
     end
@@ -194,7 +195,7 @@ defmodule NextLS.Autocomplete do
   defp expand_signatures([_ | _] = signatures, _shell) do
     [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
     if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
-    yes("", [head])
+    yes([head])
   end
 
   defp expand_signatures([], shell), do: expand_local_or_var("", "", shell)
@@ -243,7 +244,7 @@ defmodule NextLS.Autocomplete do
   defp expand_map_field_access(map, hint) do
     case match_map_fields(map, hint) do
       [%{kind: :map_key, name: ^hint, value_is_map: false}] -> no()
-      map_fields when is_list(map_fields) -> format_expansion(map_fields, hint)
+      map_fields when is_list(map_fields) -> format_expansion(map_fields)
     end
   end
 
@@ -252,24 +253,24 @@ defmodule NextLS.Autocomplete do
       match_elixir_modules(mod, "", shell) ++
         match_module_funs(shell, mod, get_module_funs(mod, shell), "", false)
 
-    format_expansion(all, "")
+    format_expansion(all)
   end
 
   defp expand_require(mod, hint, exact?, shell) do
     mod
     |> get_module_funs(shell)
     |> then(&match_module_funs(shell, mod, &1, hint, exact?))
-    |> format_expansion(hint)
+    |> format_expansion()
   end
 
   ## Expand local or var
 
   defp expand_local_or_var(code, hint, shell) do
-    format_expansion(match_var(code, hint, shell) ++ match_local(code, false, shell), hint)
+    format_expansion(match_var(code, hint, shell) ++ match_local(code, false, shell))
   end
 
   defp expand_local(hint, exact?, shell) do
-    format_expansion(match_local(hint, exact?, shell), hint)
+    format_expansion(match_local(hint, exact?, shell))
   end
 
   defp expand_sigil(shell) do
@@ -278,7 +279,7 @@ defmodule NextLS.Autocomplete do
       |> match_local(false, shell)
       |> Enum.map(fn %{name: "sigil_" <> rest} -> %{kind: :sigil, name: rest} end)
 
-    format_expansion(match_local("~", false, shell) ++ sigils, "~")
+    format_expansion(match_local("~", false, shell) ++ sigils)
   end
 
   defp match_local(hint, exact?, shell) do
@@ -300,7 +301,7 @@ defmodule NextLS.Autocomplete do
   ## Erlang modules
 
   defp expand_erlang_modules(hint, shell) do
-    format_expansion(match_erlang_modules(hint, shell), hint)
+    format_expansion(match_erlang_modules(hint, shell))
   end
 
   defp match_erlang_modules(hint, shell) do
@@ -338,7 +339,7 @@ defmodule NextLS.Autocomplete do
           is_struct and not is_exception,
           do: %{kind: :struct, name: name}
 
-    format_expansion(refs, hint)
+    format_expansion(refs)
   end
 
   defp expand_container_context(code, context, hint, shell) do
@@ -360,7 +361,7 @@ defmodule NextLS.Autocomplete do
 
         @bitstring_modifiers
         |> Enum.filter(&(String.starts_with?(&1.name, hint) and &1.name not in existing))
-        |> format_expansion(hint)
+        |> format_expansion()
 
       _ ->
         nil
@@ -382,7 +383,7 @@ defmodule NextLS.Autocomplete do
           ),
           do: %{kind: :keyword, name: name}
 
-    format_expansion(entries, hint)
+    format_expansion(entries)
   end
 
   defp container_context(code, shell) do
@@ -465,7 +466,7 @@ defmodule NextLS.Autocomplete do
     case String.split(all, ".") do
       [hint] ->
         all = match_aliases(hint, shell) ++ match_elixir_modules(Elixir, hint, shell)
-        format_expansion(all, hint)
+        format_expansion(all)
 
       parts ->
         hint = List.last(parts)
@@ -474,7 +475,7 @@ defmodule NextLS.Autocomplete do
         list
         |> value_from_alias(shell)
         |> match_elixir_modules(hint, shell)
-        |> format_expansion(hint)
+        |> format_expansion()
     end
   end
 
@@ -524,35 +525,24 @@ defmodule NextLS.Autocomplete do
 
   ## Formatting
 
-  defp format_expansion([], _) do
+  defp format_expansion([]) do
     no()
   end
 
-  defp format_expansion([uniq], hint) do
-    case to_hint(uniq, hint) do
-      "" -> yes("", [uniq])
-      hint -> yes(hint, [uniq])
-    end
+  defp format_expansion([uniq]) do
+    yes([uniq])
   end
 
-  defp format_expansion([first | _] = entries, hint) do
-    binary = Enum.map(entries, & &1.name)
-    length = byte_size(hint)
-    prefix = :binary.longest_common_prefix(binary)
-
-    if prefix in [0, length] do
-      yes("", entries)
-    else
-      yes(binary_part(first.name, prefix, length - prefix), entries)
-    end
+  defp format_expansion(entries) do
+    yes(entries)
   end
 
-  defp yes(hint, entries) do
-    {:yes, String.to_charlist(hint), entries}
+  defp yes(entries) do
+    {:yes, entries}
   end
 
   defp no do
-    {:no, ~c"", []}
+    {:no, []}
   end
 
   ## Helpers
@@ -763,43 +753,6 @@ defmodule NextLS.Autocomplete do
     value
   end
 
-  ## Ad-hoc conversions
-
-  # Add extra character only if pressing tab when done
-  defp to_hint(%{kind: :module, name: hint}, hint) do
-    "."
-  end
-
-  defp to_hint(%{kind: :map_key, name: hint, value_is_map: true}, hint) do
-    "."
-  end
-
-  defp to_hint(%{kind: :file, name: hint}, hint) do
-    "\""
-  end
-
-  # Add extra character whenever possible
-  defp to_hint(%{kind: :dir, name: name}, hint) do
-    format_hint(name, hint) <> "/"
-  end
-
-  defp to_hint(%{kind: :struct, name: name}, hint) do
-    format_hint(name, hint) <> "{"
-  end
-
-  defp to_hint(%{kind: :keyword, name: name}, hint) do
-    format_hint(name, hint) <> ": "
-  end
-
-  defp to_hint(%{kind: _, name: name}, hint) do
-    format_hint(name, hint)
-  end
-
-  defp format_hint(name, hint) do
-    hint_size = byte_size(hint)
-    binary_part(name, hint_size, byte_size(name) - hint_size)
-  end
-
   ## Evaluator interface
 
   defp imports_from_env(_runtime) do
@@ -861,19 +814,11 @@ defmodule NextLS.Autocomplete do
     |> Enum.map(fn path ->
       kind = if(File.dir?(path), do: :dir, else: :file)
       name = Path.basename(path)
-      name = if(kind == :dir, do: "#{name}/", else: name)
+      name = if(kind == :dir and not String.ends_with?(name, "/"), do: "#{name}/", else: name)
 
       %{kind: kind, name: name}
     end)
-    |> format_expansion(path_hint(path))
-  end
-
-  defp path_hint(path) do
-    if List.last(path) in [?/, ?\\] do
-      ""
-    else
-      Path.basename(path)
-    end
+    |> format_expansion()
   end
 
   defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
