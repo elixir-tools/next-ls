@@ -1,4 +1,5 @@
 defmodule NextLS.Autocomplete do
+  # Based on `IEx.Autocomplete` from github.com/elixir-lang/elixir from 10/17/2023
   @moduledoc false
 
   require NextLS.Runtime
@@ -12,8 +13,8 @@ defmodule NextLS.Autocomplete do
     %{kind: :variable, name: "little"},
     %{kind: :variable, name: "native"},
     %{kind: :variable, name: "signed"},
-    %{kind: :function, name: "size", arity: 1},
-    %{kind: :function, name: "unit", arity: 1},
+    %{kind: :function, name: "size", arity: 1, docs: nil},
+    %{kind: :function, name: "unit", arity: 1, docs: nil},
     %{kind: :variable, name: "unsigned"},
     %{kind: :variable, name: "utf8"},
     %{kind: :variable, name: "utf16"},
@@ -38,7 +39,7 @@ defmodule NextLS.Autocomplete do
 
   defp expand_code(code, shell) do
     code = Enum.reverse(code)
-    helper = get_helper(code)
+    # helper = get_helper(code)
 
     case Code.Fragment.cursor_context(code) do
       {:alias, alias} ->
@@ -47,18 +48,16 @@ defmodule NextLS.Autocomplete do
       {:unquoted_atom, unquoted_atom} ->
         expand_erlang_modules(List.to_string(unquoted_atom), shell)
 
-      expansion when helper == ?b ->
-        expand_typespecs(expansion, shell, &get_module_callbacks(&1, shell))
+      # expansion when helper == ?b ->
+      #   expand_typespecs(expansion, shell, &get_module_callbacks(&1, shell))
 
-      expansion when helper == ?t ->
-        expand_typespecs(expansion, shell, &get_module_types(&1, shell))
+      # expansion when helper == ?t ->
+      #   expand_typespecs(expansion, shell, &get_module_types(&1, shell))
 
       {:dot, path, hint} ->
         if alias = alias_only(path, hint, code, shell) do
-          dbg(alias)
           expand_aliases(List.to_string(alias), shell)
         else
-          dbg(hint)
           expand_dot(path, List.to_string(hint), false, shell)
         end
 
@@ -66,13 +65,13 @@ defmodule NextLS.Autocomplete do
         expand_dot(path, List.to_string(hint), true, shell)
 
       {:dot_call, path, hint} ->
-        path |> expand_dot_call(List.to_atom(hint), shell) |> dbg()
+        expand_dot_call(path, List.to_atom(hint), shell)
 
       :expr ->
         expand_container_context(code, :expr, "", shell) || expand_local_or_var("", "", shell)
 
       {:local_or_var, local_or_var} ->
-        hint = List.to_string(code)
+        hint = List.to_string(local_or_var)
 
         expand_container_context(code, :expr, hint, shell) ||
           expand_local_or_var(hint, List.to_string(local_or_var), shell)
@@ -121,50 +120,51 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp get_helper(expr) do
-    with [helper | rest] when helper in ~c"bt" <- expr,
-         [space_or_paren, char | _] <- squeeze_spaces(rest),
-         true <-
-           space_or_paren in ~c" (" and
-             (char in ?A..?Z or char in ?a..?z or char in ?0..?9 or char in ~c"_:") do
-      helper
-    else
-      _ -> nil
-    end
-  end
+  # defp get_helper(expr) do
+  #   with [helper | rest] when helper in ~c"bt" <- expr,
+  #        [space_or_paren, char | _] <- squeeze_spaces(rest),
+  #        true <-
+  #          space_or_paren in ~c" (" and
+  #            (char in ?A..?Z or char in ?a..?z or char in ?0..?9 or char in ~c"_:") do
+  #     helper
+  #   else
+  #     _ -> nil
+  #   end
+  # end
 
-  defp squeeze_spaces(~c"  " ++ rest), do: squeeze_spaces([?\s | rest])
-  defp squeeze_spaces(rest), do: rest
+  # defp squeeze_spaces(~c"  " ++ rest), do: squeeze_spaces([?\s | rest])
+  # defp squeeze_spaces(rest), do: rest
 
   @doc false
   def exports(mod, shell) do
-    {:ok, exported?} = NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__info__, 1))
+    {:ok, exported?} =
+      NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__info__, 1))
 
     if ensure_loaded?(mod, shell) and exported? do
-      mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
+      NextLS.Runtime.execute!(shell, do: mod.__info__(:macros)) ++ (NextLS.Runtime.execute!(shell, do: mod.__info__(:functions)) -- [__info__: 1])
     else
-      mod.module_info(:exports) -- [module_info: 0, module_info: 1]
+      NextLS.Runtime.execute!(shell, do: mod.module_info(:exports)) -- [module_info: 0, module_info: 1]
     end
   end
 
   ## Typespecs
 
-  defp expand_typespecs({:dot, path, hint}, shell, fun) do
-    hint = List.to_string(hint)
+  # defp expand_typespecs({:dot, path, hint}, shell, fun) do
+  #   hint = List.to_string(hint)
 
-    case expand_dot_path(path, shell) do
-      {:ok, mod} when is_atom(mod) ->
-        mod
-        |> fun.()
-        |> then(&match_module_funs(shell, mod, &1, hint, false))
-        |> format_expansion(hint)
+  #   case expand_dot_path(path, shell) do
+  #     {:ok, mod} when is_atom(mod) ->
+  #       mod
+  #       |> fun.()
+  #       |> then(&match_module_funs(shell, mod, &1, hint, false))
+  #       |> format_expansion(hint)
 
-      _ ->
-        no()
-    end
-  end
+  #     _ ->
+  #       no()
+  #   end
+  # end
 
-  defp expand_typespecs(_, _, _), do: no()
+  # defp expand_typespecs(_, _, _), do: no()
 
   ## Expand call
 
@@ -248,7 +248,10 @@ defmodule NextLS.Autocomplete do
   end
 
   defp expand_dot_aliases(mod, shell) do
-    all = match_elixir_modules(mod, "", shell) ++ match_module_funs(shell, mod, get_module_funs(mod, shell), "", false)
+    all =
+      match_elixir_modules(mod, "", shell) ++
+        match_module_funs(shell, mod, get_module_funs(mod, shell), "", false)
+
     format_expansion(all, "")
   end
 
@@ -281,7 +284,9 @@ defmodule NextLS.Autocomplete do
   defp match_local(hint, exact?, shell) do
     imports = shell |> imports_from_env() |> Enum.flat_map(&elem(&1, 1))
     module_funs = get_module_funs(Kernel.SpecialForms, shell)
-    match_module_funs(shell, nil, imports ++ module_funs, hint, exact?)
+
+    match_module_funs(shell, Kernel.SpecialForms, module_funs, hint, exact?) ++
+      match_module_funs(shell, nil, imports, hint, exact?)
   end
 
   defp match_var(code, hint, shell) do
@@ -320,11 +325,17 @@ defmodule NextLS.Autocomplete do
           do: {mod, name}
 
     all = aliases ++ modules
-    {:ok, _} = NextLS.Runtime.execute(shell, do: Code.ensure_all_loaded(Enum.map(all, &elem(&1, 0))))
+
+    {:ok, _} =
+      NextLS.Runtime.execute(shell, do: Code.ensure_all_loaded(Enum.map(all, &elem(&1, 0))))
 
     refs =
       for {mod, name} <- all,
-          function_exported?(mod, :__struct__, 1) and not function_exported?(mod, :exception, 1),
+          {:ok, is_struct} =
+            NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__struct__, 1)),
+          {:ok, is_exception} =
+            NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :exception, 1)),
+          is_struct and not is_exception,
           do: %{kind: :struct, name: name}
 
     format_expansion(refs, hint)
@@ -555,6 +566,11 @@ defmodule NextLS.Autocomplete do
   defp match_modules(hint, elixir_root?, shell) do
     elixir_root?
     |> get_modules(shell)
+    |> Enum.reject(fn mod ->
+      Enum.any?(["Elixir.NextLSPrivate", "_next_ls_private_compiler"], fn prefix ->
+        String.starts_with?(mod, prefix)
+      end)
+    end)
     |> Enum.sort()
     |> Enum.dedup()
     |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
@@ -585,7 +601,9 @@ defmodule NextLS.Autocomplete do
   defp get_modules_from_applications(shell) do
     for [app] <- loaded_applications(shell),
         {:ok, modules} =
-          then(NextLS.Runtime.execute(shell, do: :application.get_key(app, :modules)), fn {:ok, result} -> result end),
+          then(NextLS.Runtime.execute(shell, do: :application.get_key(app, :modules)), fn {:ok, result} ->
+            result
+          end),
         module <- modules do
       Atom.to_string(module)
     end
@@ -675,40 +693,40 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp get_module_types(mod, shell) do
-    if ensure_loaded?(mod, shell) do
-      case Code.Typespec.fetch_types(mod) do
-        {:ok, types} ->
-          for {kind, {name, _, args}} <- types,
-              kind in [:type, :opaque] do
-            {name, length(args)}
-          end
+  # defp get_module_types(mod, shell) do
+  #   if ensure_loaded?(mod, shell) do
+  #     case Code.Typespec.fetch_types(mod) do
+  #       {:ok, types} ->
+  #         for {kind, {name, _, args}} <- types,
+  #             kind in [:type, :opaque] do
+  #           {name, length(args)}
+  #         end
 
-        :error ->
-          []
-      end
-    else
-      []
-    end
-  end
+  #       :error ->
+  #         []
+  #     end
+  #   else
+  #     []
+  #   end
+  # end
 
-  defp get_module_callbacks(mod, shell) do
-    if ensure_loaded?(mod, shell) do
-      case Code.Typespec.fetch_callbacks(mod) do
-        {:ok, callbacks} ->
-          for {name_arity, _} <- callbacks do
-            {_kind, name, arity} = IEx.Introspection.translate_callback_name_arity(name_arity)
+  # defp get_module_callbacks(mod, shell) do
+  #   if ensure_loaded?(mod, shell) do
+  #     case Code.Typespec.fetch_callbacks(mod) do
+  #       {:ok, callbacks} ->
+  #         for {name_arity, _} <- callbacks do
+  #           {_kind, name, arity} = IEx.Introspection.translate_callback_name_arity(name_arity)
 
-            {name, arity}
-          end
+  #           {name, arity}
+  #         end
 
-        :error ->
-          []
-      end
-    else
-      []
-    end
-  end
+  #       :error ->
+  #         []
+  #     end
+  #   else
+  #     []
+  #   end
+  # end
 
   defp get_docs(mod, kinds, fun \\ nil) do
     case Code.fetch_docs(mod) do
@@ -808,9 +826,7 @@ defmodule NextLS.Autocomplete do
   defp variables_from_binding(hint, _runtime) do
     {:ok, ast} = Code.Fragment.container_cursor_to_quoted(hint, columns: true)
 
-    ast |> Macro.to_string() |> IO.puts()
-
-    dbg(ast, limit: :infinity)
+    # ast |> Macro.to_string() |> IO.puts()
 
     NextLS.ASTHelpers.Variables.collect(ast)
   end
@@ -843,10 +859,11 @@ defmodule NextLS.Autocomplete do
     |> List.to_string()
     |> ls_prefix()
     |> Enum.map(fn path ->
-      %{
-        kind: if(File.dir?(path), do: :dir, else: :file),
-        name: Path.basename(path)
-      }
+      kind = if(File.dir?(path), do: :dir, else: :file)
+      name = Path.basename(path)
+      name = if(kind == :dir, do: "#{name}/", else: name)
+
+      %{kind: kind, name: name}
     end)
     |> format_expansion(path_hint(path))
   end

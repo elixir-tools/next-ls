@@ -38,6 +38,13 @@ defmodule NextLS.Runtime do
     GenServer.call(server, {:compile, opts}, :infinity)
   end
 
+  defmacro execute!(runtime, block) do
+    quote do
+      {:ok, result} = NextLS.Runtime.execute(unquote_splicing([runtime, block]))
+      result
+    end
+  end
+
   defmacro execute(runtime, do: block) do
     exprs =
       case block do

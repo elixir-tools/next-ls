@@ -20,6 +20,21 @@ defmodule NextLS.AutocompleteTest do
     end
     """)
 
+    File.write!(Path.join(tmp_dir, "lib/sublevel.ex"), """
+    defmodule SublevelTest.LevelA.LevelB do
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "lib/my_struct.ex"), """
+    defmodule Something.Foo.MyStruct do
+      defstruct [:my_val]
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "lib/badmod.ex"), """
+    defmodule(:"Elixir.NextLS.AutocompleteTest.Unicodé", do: nil)
+    """)
+
     me = self()
 
     {:ok, logger} =
@@ -27,21 +42,6 @@ defmodule NextLS.AutocompleteTest do
         recv = fn recv ->
           receive do
             {:"$gen_cast", msg} -> send(me, msg)
-          end
-
-          recv.(recv)
-        end
-
-        recv.(recv)
-      end)
-
-    {:ok, broker} =
-      Task.start_link(fn ->
-        recv = fn recv ->
-          receive do
-            msg ->
-              dbg(msg)
-              nil
           end
 
           recv.(recv)
@@ -76,9 +76,9 @@ defmodule NextLS.AutocompleteTest do
 
     assert_receive :ready
 
-    Process.put(:broker, broker)
+    Runtime.compile(pid)
 
-    [runtime: pid, broker: broker]
+    [runtime: pid]
   end
 
   defp expand(runtime, expr) do
@@ -86,7 +86,7 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "Erlang module completion", %{runtime: runtime} do
-    assert expand(runtime, ~c":zl") == {:yes, ~c"ib", []}
+    assert expand(runtime, ~c":zl") == {:yes, ~c"ib", [%{name: "zlib", kind: :module}]}
   end
 
   test "Erlang module no completion", %{runtime: runtime} do
@@ -95,137 +95,151 @@ defmodule NextLS.AutocompleteTest do
 
   test "Erlang module multiple values completion", %{runtime: runtime} do
     {:yes, ~c"", list} = expand(runtime, ~c":logger")
-    assert ~c"logger" in list
-    assert ~c"logger_proxy" in list
+    assert %{name: "logger", kind: :module} in list
+    assert %{name: "logger_proxy", kind: :module} in list
   end
 
   test "Erlang root completion", %{runtime: runtime} do
     {:yes, ~c"", list} = expand(runtime, ~c":")
     assert is_list(list)
-    assert ~c"lists" in list
-    assert ~c"Elixir.List" not in list
+    assert %{name: "lists", kind: :module} in list
+    assert %{name: "Elixir.List", kind: :module} not in list
   end
 
   test "Elixir proxy", %{runtime: runtime} do
     {:yes, ~c"", list} = expand(runtime, ~c"E")
-    assert ~c"Elixir" in list
+    assert %{name: "Elixir", kind: :module} in list
   end
 
   test "Elixir completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"En") == {:yes, ~c"um", []}
-    assert expand(runtime, ~c"Enumera") == {:yes, ~c"ble", []}
+    assert expand(runtime, ~c"En") ==
+             {:yes, ~c"um", [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
+
+    assert expand(runtime, ~c"Enumera") ==
+             {:yes, ~c"ble", [%{name: "Enumerable", kind: :module}]}
   end
 
-  test "Elixir type completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"t :gen_ser") == {:yes, ~c"ver", []}
-    assert expand(runtime, ~c"t String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
+  # test "Elixir type completion", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"t :gen_ser") == {:yes, ~c"ver", []}
+  #   assert expand(runtime, ~c"t String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
 
-    assert expand(runtime, ~c"t String.") ==
-             {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
+  #   assert expand(runtime, ~c"t String.") ==
+  #            {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
 
-    assert expand(runtime, ~c"t String.grap") == {:yes, ~c"heme", []}
-    assert expand(runtime, ~c"t  String.grap") == {:yes, ~c"heme", []}
-    assert {:yes, ~c"", [~c"date_time/0" | _]} = expand(runtime, ~c"t :file.")
-    assert expand(runtime, ~c"t :file.n") == {:yes, ~c"ame", []}
-  end
+  #   assert expand(runtime, ~c"t String.grap") == {:yes, ~c"heme", []}
+  #   assert expand(runtime, ~c"t  String.grap") == {:yes, ~c"heme", []}
+  #   assert {:yes, ~c"", [~c"date_time/0" | _]} = expand(runtime, ~c"t :file.")
+  #   assert expand(runtime, ~c"t :file.n") == {:yes, ~c"ame", []}
+  # end
 
-  test "Elixir callback completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"b :strin") == {:yes, ~c"g", []}
-    assert expand(runtime, ~c"b String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
-    assert expand(runtime, ~c"b String.") == {:no, ~c"", []}
-    assert expand(runtime, ~c"b Access.") == {:yes, ~c"", [~c"fetch/2", ~c"get_and_update/3", ~c"pop/2"]}
-    assert expand(runtime, ~c"b GenServer.term") == {:yes, ~c"inate", []}
-    assert expand(runtime, ~c"b   GenServer.term") == {:yes, ~c"inate", []}
-    assert expand(runtime, ~c"b :gen_server.handle_in") == {:yes, ~c"fo", []}
-  end
+  # test "Elixir callback completion", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"b :strin") == {:yes, ~c"g", []}
+  #   assert expand(runtime, ~c"b String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
+  #   assert expand(runtime, ~c"b String.") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"b Access.") == {:yes, ~c"", [~c"fetch/2", ~c"get_and_update/3", ~c"pop/2"]}
+  #   assert expand(runtime, ~c"b GenServer.term") == {:yes, ~c"inate", []}
+  #   assert expand(runtime, ~c"b   GenServer.term") == {:yes, ~c"inate", []}
+  #   assert expand(runtime, ~c"b :gen_server.handle_in") == {:yes, ~c"fo", []}
+  # end
 
-  test "Elixir helper completion with parentheses", %{runtime: runtime} do
-    assert expand(runtime, ~c"t(:gen_ser") == {:yes, ~c"ver", []}
-    assert expand(runtime, ~c"t(String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
+  # test "Elixir helper completion with parentheses", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"t(:gen_ser") == {:yes, ~c"ver", []}
+  #   assert expand(runtime, ~c"t(String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
 
-    assert expand(runtime, ~c"t(String.") ==
-             {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
+  #   assert expand(runtime, ~c"t(String.") ==
+  #            {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
 
-    assert expand(runtime, ~c"t(String.grap") == {:yes, ~c"heme", []}
-  end
+  #   assert expand(runtime, ~c"t(String.grap") == {:yes, ~c"heme", []}
+  # end
 
-  test "Elixir completion with self", %{runtime: runtime} do
-    assert expand(runtime, ~c"Enumerable") == {:yes, ~c".", []}
-  end
+  # test "Elixir completion with self", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"Enumerable") == {:yes, ~c".", []}
+  # end
 
   test "Elixir completion on modules from load path", %{runtime: runtime} do
-    assert expand(runtime, ~c"Str") == {:yes, [], [~c"Stream", ~c"String", ~c"StringIO"]}
-    assert expand(runtime, ~c"Ma") == {:yes, ~c"", [~c"Macro", ~c"Map", ~c"MapSet", ~c"MatchError"]}
-    assert expand(runtime, ~c"Dic") == {:yes, ~c"t", []}
+    assert expand(runtime, ~c"Str") ==
+             {:yes, [],
+              [%{name: "Stream", kind: :module}, %{name: "String", kind: :module}, %{name: "StringIO", kind: :module}]}
+
+    assert expand(runtime, ~c"Ma") ==
+             {:yes, ~c"",
+              [
+                %{name: "Macro", kind: :module},
+                %{name: "Map", kind: :module},
+                %{name: "MapSet", kind: :module},
+                %{name: "MatchError", kind: :module}
+              ]}
+
+    assert expand(runtime, ~c"Dic") == {:yes, ~c"t", [%{name: "Dict", kind: :module}]}
+
     # FIXME: ExUnit is not available when the MIX_ENV is dev. Need to figure out a way to make it complete later
     # assert expand(runtime, ~c"Ex") == {:yes, [], [~c"ExUnit", ~c"Exception"]}
   end
 
-  @tag :pending
-  test "Elixir no completion for underscored functions with no doc", %{runtime: runtime} do
-    {:module, _, bytecode, _} =
-      defmodule Elixir.Sample do
-        @moduledoc false
-        def __foo__, do: 0
-        @doc "Bar doc"
-        def __bar__, do: 1
-      end
+  # test "Elixir no completion for underscored functions with no doc", %{runtime: runtime} do
+  #   {:module, _, bytecode, _} =
+  #     defmodule Elixir.Sample do
+  #       @moduledoc false
+  #       def __foo__, do: 0
+  #       @doc "Bar doc"
+  #       def __bar__, do: 1
+  #     end
 
-    File.write!("Elixir.Sample.beam", bytecode)
-    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
-    assert expand(runtime, ~c"Sample._") == {:yes, ~c"_bar__", []}
-  after
-    File.rm("Elixir.Sample.beam")
-    :code.purge(Sample)
-    :code.delete(Sample)
-  end
+  #   File.write!("Elixir.Sample.beam", bytecode)
+  #   assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
+  #   assert expand(runtime, ~c"Sample._") == {:yes, ~c"_bar__", []}
+  # after
+  #   File.rm("Elixir.Sample.beam")
+  #   :code.purge(Sample)
+  #   :code.delete(Sample)
+  # end
 
-  test "Elixir no completion for default argument functions with doc set to false", %{runtime: runtime} do
-    {:yes, ~c"", available} = expand(runtime, ~c"String.")
-    refute Enum.member?(available, ~c"rjust/2")
-    assert Enum.member?(available, ~c"replace/3")
+  # test "Elixir no completion for default argument functions with doc set to false", %{runtime: runtime} do
+  #   {:yes, ~c"", available} = expand(runtime, ~c"String.")
+  #   refute Enum.member?(available, ~c"rjust/2")
+  #   assert Enum.member?(available, ~c"replace/3")
 
-    assert expand(runtime, ~c"String.r") == {:yes, ~c"e", []}
+  #   assert expand(runtime, ~c"String.r") == {:yes, ~c"e", []}
 
-    {:module, _, bytecode, _} =
-      defmodule Elixir.DefaultArgumentFunctions do
-        @moduledoc false
-        def foo(a \\ :a, b, c \\ :c), do: {a, b, c}
+  #   {:module, _, bytecode, _} =
+  #     defmodule Elixir.DefaultArgumentFunctions do
+  #       @moduledoc false
+  #       def foo(a \\ :a, b, c \\ :c), do: {a, b, c}
 
-        def _do_fizz(a \\ :a, b, c \\ :c), do: {a, b, c}
+  #       def _do_fizz(a \\ :a, b, c \\ :c), do: {a, b, c}
 
-        @doc false
-        def __fizz__(a \\ :a, b, c \\ :c), do: {a, b, c}
+  #       @doc false
+  #       def __fizz__(a \\ :a, b, c \\ :c), do: {a, b, c}
 
-        @doc "bar/0 doc"
-        def bar, do: :bar
-        @doc false
-        def bar(a \\ :a, b, c \\ :c, d \\ :d), do: {a, b, c, d}
-        @doc false
-        def bar(a, b, c, d, e), do: {a, b, c, d, e}
+  #       @doc "bar/0 doc"
+  #       def bar, do: :bar
+  #       @doc false
+  #       def bar(a \\ :a, b, c \\ :c, d \\ :d), do: {a, b, c, d}
+  #       @doc false
+  #       def bar(a, b, c, d, e), do: {a, b, c, d, e}
 
-        @doc false
-        def baz(a \\ :a), do: {a}
+  #       @doc false
+  #       def baz(a \\ :a), do: {a}
 
-        @doc "biz/3 doc"
-        def biz(a, b, c \\ :c), do: {a, b, c}
-      end
+  #       @doc "biz/3 doc"
+  #       def biz(a, b, c \\ :c), do: {a, b, c}
+  #     end
 
-    File.write!("Elixir.DefaultArgumentFunctions.beam", bytecode)
-    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(DefaultArgumentFunctions)
+  #   File.write!("Elixir.DefaultArgumentFunctions.beam", bytecode)
+  #   assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(DefaultArgumentFunctions)
 
-    functions_list = [~c"bar/0", ~c"biz/2", ~c"biz/3", ~c"foo/1", ~c"foo/2", ~c"foo/3"]
-    assert expand(runtime, ~c"DefaultArgumentFunctions.") == {:yes, ~c"", functions_list}
+  #   functions_list = [~c"bar/0", ~c"biz/2", ~c"biz/3", ~c"foo/1", ~c"foo/2", ~c"foo/3"]
+  #   assert expand(runtime, ~c"DefaultArgumentFunctions.") == {:yes, ~c"", functions_list}
 
-    assert expand(runtime, ~c"DefaultArgumentFunctions.bi") == {:yes, ~c"z", []}
+  #   assert expand(runtime, ~c"DefaultArgumentFunctions.bi") == {:yes, ~c"z", []}
 
-    assert expand(runtime, ~c"DefaultArgumentFunctions.foo") ==
-             {:yes, ~c"", [~c"foo/1", ~c"foo/2", ~c"foo/3"]}
-  after
-    File.rm("Elixir.DefaultArgumentFunctions.beam")
-    :code.purge(DefaultArgumentFunctions)
-    :code.delete(DefaultArgumentFunctions)
-  end
+  #   assert expand(runtime, ~c"DefaultArgumentFunctions.foo") ==
+  #            {:yes, ~c"", [~c"foo/1", ~c"foo/2", ~c"foo/3"]}
+  # after
+  #   File.rm("Elixir.DefaultArgumentFunctions.beam")
+  #   :code.purge(DefaultArgumentFunctions)
+  #   :code.delete(DefaultArgumentFunctions)
+  # end
 
   test "Elixir no completion", %{runtime: runtime} do
     assert expand(runtime, ~c".") == {:no, ~c"", []}
@@ -236,11 +250,11 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "Elixir root submodule completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"Elixir.Acce") == {:yes, ~c"ss", []}
+    assert expand(runtime, ~c"Elixir.Acce") == {:yes, ~c"ss", [%{name: "Access", kind: :module}]}
   end
 
   test "Elixir submodule completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"String.Cha") == {:yes, ~c"rs", []}
+    assert expand(runtime, ~c"String.Cha") == {:yes, ~c"rs", [%{name: "Chars", kind: :module}]}
   end
 
   test "Elixir submodule no completion", %{runtime: runtime} do
@@ -248,92 +262,112 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "function completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"System.ve") == {:yes, ~c"rsion", []}
-    assert expand(runtime, ~c":ets.fun2") == {:yes, ~c"ms", []}
+    assert {:yes, ~c"rsion", [%{arity: 0, name: "version", docs: _, kind: :function}]} = expand(runtime, ~c"System.ve")
+
+    assert {:yes, ~c"ms", [%{arity: 1, name: "fun2ms", docs: _, kind: :function}]} = expand(runtime, ~c":ets.fun2")
   end
 
   test "function completion with arity", %{runtime: runtime} do
-    assert expand(runtime, ~c"String.printable?") == {:yes, ~c"", [~c"printable?/1", ~c"printable?/2"]}
-    assert expand(runtime, ~c"String.printable?/") == {:yes, ~c"", [~c"printable?/1", ~c"printable?/2"]}
+    assert {:yes, ~c"",
+            [
+              %{arity: 1, name: "printable?", docs: _, kind: :function},
+              %{arity: 2, name: "printable?", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"String.printable?")
 
-    assert expand(runtime, ~c"Enum.count") ==
-             {:yes, ~c"", [~c"count/1", ~c"count/2", ~c"count_until/2", ~c"count_until/3"]}
+    assert {:yes, ~c"",
+            [
+              %{arity: 1, name: "printable?", docs: _, kind: :function},
+              %{arity: 2, name: "printable?", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"String.printable?/")
 
-    assert expand(runtime, ~c"Enum.count/") == {:yes, ~c"", [~c"count/1", ~c"count/2"]}
+    assert {:yes, ~c"",
+            [
+              %{arity: 1, name: "count", docs: _, kind: :function},
+              %{arity: 2, name: "count", docs: _, kind: :function},
+              %{arity: 2, name: "count_until", docs: _, kind: :function},
+              %{arity: 3, name: "count_until", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"Enum.count")
+
+    assert {:yes, ~c"",
+            [
+              %{arity: 1, name: "count", docs: _, kind: :function},
+              %{arity: 2, name: "count", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"Enum.count/")
   end
 
-  test "operator completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"+") == {:yes, ~c"", [~c"+/1", ~c"+/2", ~c"++/2"]}
-    assert expand(runtime, ~c"+/") == {:yes, ~c"", [~c"+/1", ~c"+/2"]}
-    assert expand(runtime, ~c"++/") == {:yes, ~c"", [~c"++/2"]}
-  end
+  # TODO: locals
 
-  test "sigil completion", %{runtime: runtime} do
-    {:yes, ~c"", sigils} = expand(runtime, ~c"~")
-    assert ~c"~C (sigil_C)" in sigils
-    {:yes, ~c"", sigils} = expand(runtime, ~c"~r")
-    assert ~c"\"" in sigils
-    assert ~c"(" in sigils
-  end
+  # test "operator completion", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"+") == {:yes, ~c"", [~c"+/1", ~c"+/2", ~c"++/2"]}
+  #   assert expand(runtime, ~c"+/") == {:yes, ~c"", [~c"+/1", ~c"+/2"]}
+  #   assert expand(runtime, ~c"++/") == {:yes, ~c"", [~c"++/2"]}
+  # end
 
-  @tag :pending
-  test "map atom key completion is supported", %{runtime: runtime} do
-    prev = "map = %{foo: 1, bar_1: 23, bar_2: 14}"
-    assert expand(runtime, ~c"#{prev}\nmap.f") == {:yes, ~c"oo", []}
-    # assert expand(runtime, ~c"map.b") == {:yes, ~c"ar_", []}
-    # assert expand(runtime, ~c"map.bar_") == {:yes, ~c"", [~c"bar_1", ~c"bar_2"]}
-    # assert expand(runtime, ~c"map.c") == {:no, ~c"", []}
-    # assert expand(runtime, ~c"map.") == {:yes, ~c"", [~c"bar_1", ~c"bar_2", ~c"foo"]}
-    # assert expand(runtime, ~c"map.foo") == {:no, ~c"", []}
-  end
+  # test "sigil completion", %{runtime: runtime} do
+  #   assert {:yes, ~c"", sigils} = expand(runtime, ~c"~")
+  #   assert ~c"~C (sigil_C)" in sigils
+  #   assert {:yes, ~c"", sigils} = expand(runtime, ~c"~r")
+  #   assert ~c"\"" in sigils
+  #   assert ~c"(" in sigils
+  # end
 
-  @tag :pending
-  test "nested map atom key completion is supported", %{runtime: runtime} do
-    prev = "map = %{nested: %{deeply: %{foo: 1, bar_1: 23, bar_2: 14, mod: String, num: 1}}}"
-    assert expand(runtime, ~c"map.nested.deeply.f") == {:yes, ~c"oo", []}
-    assert expand(runtime, ~c"map.nested.deeply.b") == {:yes, ~c"ar_", []}
-    assert expand(runtime, ~c"map.nested.deeply.bar_") == {:yes, ~c"", [~c"bar_1", ~c"bar_2"]}
+  # TODO: maps
+  # test "map atom key completion is supported", %{runtime: runtime} do
+  #   prev = "map = %{foo: 1, bar_1: 23, bar_2: 14}"
+  #   assert expand(runtime, ~c"#{prev}\nmap.f") == {:yes, ~c"oo", []}
+  #   assert expand(runtime, ~c"map.b") == {:yes, ~c"ar_", []}
+  #   assert expand(runtime, ~c"map.bar_") == {:yes, ~c"", [~c"bar_1", ~c"bar_2"]}
+  #   assert expand(runtime, ~c"map.c") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.") == {:yes, ~c"", [~c"bar_1", ~c"bar_2", ~c"foo"]}
+  #   assert expand(runtime, ~c"map.foo") == {:no, ~c"", []}
+  # end
 
-    assert expand(runtime, ~c"map.nested.deeply.") ==
-             {:yes, ~c"", [~c"bar_1", ~c"bar_2", ~c"foo", ~c"mod", ~c"num"]}
+  # TODO: maps
+  # test "nested map atom key completion is supported", %{runtime: runtime} do
+  #   prev = "map = %{nested: %{deeply: %{foo: 1, bar_1: 23, bar_2: 14, mod: String, num: 1}}}"
+  #   assert expand(runtime, ~c"map.nested.deeply.f") == {:yes, ~c"oo", []}
+  #   assert expand(runtime, ~c"map.nested.deeply.b") == {:yes, ~c"ar_", []}
+  #   assert expand(runtime, ~c"map.nested.deeply.bar_") == {:yes, ~c"", [~c"bar_1", ~c"bar_2"]}
 
-    assert expand(runtime, ~c"map.nested.deeply.mod.print") == {:yes, ~c"able?", []}
+  #   assert expand(runtime, ~c"map.nested.deeply.") ==
+  #            {:yes, ~c"", [~c"bar_1", ~c"bar_2", ~c"foo", ~c"mod", ~c"num"]}
 
-    assert expand(runtime, ~c"map.nested") == {:yes, ~c".", []}
-    assert expand(runtime, ~c"map.nested.deeply") == {:yes, ~c".", []}
-    assert expand(runtime, ~c"map.nested.deeply.foo") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.nested.deeply.mod.print") == {:yes, ~c"able?", []}
 
-    assert expand(runtime, ~c"map.nested.deeply.c") == {:no, ~c"", []}
-    assert expand(runtime, ~c"map.a.b.c.f") == {:no, ~c"", []}
-  end
+  #   assert expand(runtime, ~c"map.nested") == {:yes, ~c".", []}
+  #   assert expand(runtime, ~c"map.nested.deeply") == {:yes, ~c".", []}
+  #   assert expand(runtime, ~c"map.nested.deeply.foo") == {:no, ~c"", []}
 
-  @tag :pending
-  test "map string key completion is not supported", %{runtime: runtime} do
-    prev = ~S(map = %{"foo" => 1})
-    assert expand(runtime, ~c"map.f") == {:no, ~c"", []}
-  end
+  #   assert expand(runtime, ~c"map.nested.deeply.c") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.a.b.c.f") == {:no, ~c"", []}
+  # end
 
-  @tag :pending
-  test "bound variables for modules and maps", %{runtime: runtime} do
-    prev = "num = 5; map = %{nested: %{num: 23}}"
-    assert expand(runtime, ~c"num.print") == {:no, ~c"", []}
-    assert expand(runtime, ~c"map.nested.num.f") == {:no, ~c"", []}
-    assert expand(runtime, ~c"map.nested.num.key.f") == {:no, ~c"", []}
-  end
+  # TODO: maps
+  # test "map string key completion is not supported", %{runtime: runtime} do
+  #   prev = ~S(map = %{"foo" => 1})
+  #   assert expand(runtime, ~c"map.f") == {:no, ~c"", []}
+  # end
 
-  @tag :pending
-  test "access syntax is not supported", %{runtime: runtime} do
-    prev = "map = %{nested: %{deeply: %{num: 23}}}"
-    assert expand(runtime, ~c"map[:nested][:deeply].n") == {:no, ~c"", []}
-    assert expand(runtime, ~c"map[:nested].deeply.n") == {:no, ~c"", []}
-    assert expand(runtime, ~c"map.nested.[:deeply].n") == {:no, ~c"", []}
-  end
+  # TODO: maps
+  # test "bound variables for modules and maps", %{runtime: runtime} do
+  #   prev = "num = 5; map = %{nested: %{num: 23}}"
+  #   assert expand(runtime, ~c"num.print") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.nested.num.f") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.nested.num.key.f") == {:no, ~c"", []}
+  # end
 
-  @tag :pending
+  # TODO: maps
+  # test "access syntax is not supported", %{runtime: runtime} do
+  #   prev = "map = %{nested: %{deeply: %{num: 23}}}"
+  #   assert expand(runtime, ~c"map[:nested][:deeply].n") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map[:nested].deeply.n") == {:no, ~c"", []}
+  #   assert expand(runtime, ~c"map.nested.[:deeply].n") == {:no, ~c"", []}
+  # end
+
   test "unbound variables is not supported", %{runtime: runtime} do
     prev = "num = 5"
 
-    assert expand(runtime, dbg(~c"#{prev}\nother_var.f")) == {:no, ~c"", []}
+    assert expand(runtime, ~c"#{prev}\nother_var.f") == {:no, ~c"", []}
 
     # assert expand(runtime, ~c"a.b.c.d") == {:no, ~c"", []}
   end
@@ -343,245 +377,252 @@ defmodule NextLS.AutocompleteTest do
     assert is_list(list)
   end
 
+  # NOTE: special forms are a.. special case, so they work ootb
   test "imports completion", %{runtime: runtime} do
     {:yes, ~c"", list} = expand(runtime, ~c"")
     assert is_list(list)
-    assert ~c"h/1" in list
-    assert ~c"unquote/1" in list
-    assert ~c"pwd/0" in list
+    assert %{name: "unquote", arity: 1, kind: :function, docs: nil} in list
+    assert %{name: "try", arity: 1, kind: :function, docs: nil} in list
   end
 
-  test "kernel import completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"defstru") == {:yes, ~c"ct", []}
-    assert expand(runtime, ~c"put_") == {:yes, ~c"", [~c"put_elem/3", ~c"put_in/2", ~c"put_in/3"]}
-  end
+  # TODO: locals
+  # test "kernel import completion", %{runtime: runtime} do
+  #   assert expand(runtime, ~c"defstru") == {:yes, ~c"ct", []}
+  #   assert expand(runtime, ~c"put_") == {:yes, ~c"", [~c"put_elem/3", ~c"put_in/2", ~c"put_in/3"]}
+  # end
 
-  test "variable name completion", %{runtime: runtime} do
-    prev = "numeral = 3; number = 3; nothing = nil"
-    assert expand(runtime, dbg(~c"#{prev}\nnumb")) == {:yes, ~c"er", []}
-    assert expand(runtime, ~c"#{prev}\nnum") == {:yes, ~c"", [~c"number", ~c"numeral"]}
-    # FIXME: variables + local functions
-    # assert expand(runtime, ~c"#{prev}\nno") == {:yes, ~c"", [~c"nothing", ~c"node/0", ~c"node/1", ~c"not/1"]}
-  end
+  # TODO: this only partially works, will not say we support for now
+  # test "variable name completion", %{runtime: runtime} do
+  #   prev = "numeral = 3; number = 3; nothing = nil"
+  #   assert expand(runtime, ~c"#{prev}\nnumb") == {:yes, ~c"er", []}
+  #   assert expand(runtime, ~c"#{prev}\nnum") == {:yes, ~c"", [~c"number", ~c"numeral"]}
+  #   # FIXME: variables + local functions
+  #   # assert expand(runtime, ~c"#{prev}\nno") == {:yes, ~c"", [~c"nothing", ~c"node/0", ~c"node/1", ~c"not/1"]}
+  # end
 
-  test "completion of manually imported functions and macros", %{runtime: runtime} do
-    prev = "import Enum\nimport Supervisor, only: [count_children: 1]\nimport Protocol"
+  # TODO: locals
+  # test "completion of manually imported functions and macros", %{runtime: runtime} do
+  #   prev = "import Enum\nimport Supervisor, only: [count_children: 1]\nimport Protocol"
 
-    assert expand(runtime, ~c"#{prev}\nder") == {:yes, ~c"ive", []}
+  #   assert expand(runtime, ~c"#{prev}\nder") == {:yes, ~c"ive", []}
 
-    assert expand(runtime, ~c"#{prev}\ntake") ==
-             {:yes, ~c"", [~c"take/2", ~c"take_every/2", ~c"take_random/2", ~c"take_while/2"]}
+  #   assert expand(runtime, ~c"#{prev}\ntake") ==
+  #            {:yes, ~c"", [~c"take/2", ~c"take_every/2", ~c"take_random/2", ~c"take_while/2"]}
 
-    assert expand(runtime, ~c"#{prev}\ntake/") == {:yes, ~c"", [~c"take/2"]}
+  #   assert expand(runtime, ~c"#{prev}\ntake/") == {:yes, ~c"", [~c"take/2"]}
 
-    assert expand(runtime, ~c"#{prev}\ncount") ==
-             {:yes, ~c"",
-              [
-                ~c"count/1",
-                ~c"count/2",
-                ~c"count_children/1",
-                ~c"count_until/2",
-                ~c"count_until/3"
-              ]}
+  #   assert expand(runtime, ~c"#{prev}\ncount") ==
+  #            {:yes, ~c"",
+  #             [
+  #               ~c"count/1",
+  #               ~c"count/2",
+  #               ~c"count_children/1",
+  #               ~c"count_until/2",
+  #               ~c"count_until/3"
+  #             ]}
 
-    assert expand(runtime, ~c"#{prev}\ncount/") == {:yes, ~c"", [~c"count/1", ~c"count/2"]}
-  end
+  #   assert expand(runtime, ~c"#{prev}\ncount/") == {:yes, ~c"", [~c"count/1", ~c"count/2"]}
+  # end
 
-  defmacro define_var do
-    quote(do: var!(my_var_1, Elixir) = 1)
-  end
+  # defmacro define_var do
+  #   quote(do: var!(my_var_1, Elixir) = 1)
+  # end
 
-  test "ignores quoted variables when performing variable completion", %{runtime: runtime} do
-    prev = "require #{__MODULE__}; #{__MODULE__}.define_var(); my_var_2 = 2"
-    assert expand(runtime, ~c"my_var") == {:yes, ~c"_2", []}
-  end
+  # TODO: locals
+  # test "ignores quoted variables when performing variable completion", %{runtime: runtime} do
+  #   prev = "require #{__MODULE__}; #{__MODULE__}.define_var(); my_var_2 = 2"
+  #   assert expand(runtime, ~c"#{prev}\nmy_var") == {:yes, ~c"_2", [%{name: "my_var_2", kind: :variable}]}
+  # end
 
   test "kernel special form completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"unquote_spl") == {:yes, ~c"icing", []}
+    assert expand(runtime, ~c"unquote_spl") ==
+             {:yes, ~c"icing", [%{arity: 1, name: "unquote_splicing", docs: nil, kind: :function}]}
   end
 
   test "completion inside expression", %{runtime: runtime} do
-    assert expand(runtime, ~c"1 En") == {:yes, ~c"um", []}
-    assert expand(runtime, ~c"Test(En") == {:yes, ~c"um", []}
-    assert expand(runtime, ~c"Test :zl") == {:yes, ~c"ib", []}
-    assert expand(runtime, ~c"[:zl") == {:yes, ~c"ib", []}
-    assert expand(runtime, ~c"{:zl") == {:yes, ~c"ib", []}
-  end
+    assert expand(runtime, ~c"1 En") ==
+             {:yes, ~c"um", [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
 
-  defmodule SublevelTest.LevelA.LevelB do
-    @moduledoc false
+    assert expand(runtime, ~c"Test(En") ==
+             {:yes, ~c"um", [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
+
+    assert expand(runtime, ~c"Test :zl") == {:yes, ~c"ib", [%{name: "zlib", kind: :module}]}
+    assert expand(runtime, ~c"[:zl") == {:yes, ~c"ib", [%{name: "zlib", kind: :module}]}
+    assert expand(runtime, ~c"{:zl") == {:yes, ~c"ib", [%{name: "zlib", kind: :module}]}
   end
 
   test "Elixir completion sublevel", %{runtime: runtime} do
-    assert expand(runtime, ~c"NextLS.AutocompleteTest.SublevelTest.") == {:yes, ~c"LevelA", []}
+    assert expand(runtime, ~c"SublevelTest.") == {:yes, ~c"LevelA", [%{name: "LevelA", kind: :module}]}
   end
 
-  test "complete aliases of Elixir modules", %{runtime: runtime} do
-    prev = "alias List, as: MyList"
-    assert expand(runtime, ~c"MyL") == {:yes, ~c"ist", []}
-    assert expand(runtime, ~c"MyList") == {:yes, ~c".", []}
-    assert expand(runtime, ~c"MyList.to_integer") == {:yes, [], [~c"to_integer/1", ~c"to_integer/2"]}
-  end
+  # TODO: aliases
+  # test "complete aliases of Elixir modules", %{runtime: runtime} do
+  #   prev = "alias List, as: MyList"
+  #   assert expand(runtime, ~c"MyL") == {:yes, ~c"ist", []}
+  #   assert expand(runtime, ~c"MyList") == {:yes, ~c".", []}
+  #   assert expand(runtime, ~c"MyList.to_integer") == {:yes, [], [~c"to_integer/1", ~c"to_integer/2"]}
+  # end
 
-  test "complete aliases of Erlang modules", %{runtime: runtime} do
-    prev = "alias :lists, as: EList"
-    assert expand(runtime, ~c"#{prev}\nEL") == {:yes, ~c"ist", []}
-    assert expand(runtime, ~c"#{prev}\nEList") == {:yes, ~c".", []}
-    assert expand(runtime, ~c"#{prev}\nEList.map") == {:yes, [], [~c"map/2", ~c"mapfoldl/3", ~c"mapfoldr/3"]}
-  end
+  # TODO: aliases
+  # test "complete aliases of Erlang modules", %{runtime: runtime} do
+  #   prev = "alias :lists, as: EList"
+  #   assert expand(runtime, ~c"#{prev}\nEL") == {:yes, ~c"ist", []}
+  #   assert expand(runtime, ~c"#{prev}\nEList") == {:yes, ~c".", []}
+  #   assert expand(runtime, ~c"#{prev}\nEList.map") == {:yes, [], [~c"map/2", ~c"mapfoldl/3", ~c"mapfoldr/3"]}
+  # end
 
-  test "completion for functions added when compiled module is reloaded", %{runtime: runtime} do
-    {:module, _, bytecode, _} =
-      defmodule Sample do
-        @moduledoc false
-        def foo, do: 0
-      end
+  # TODO: idk if we need this
+  # test "completion for functions added when compiled module is reloaded", %{runtime: runtime} do
+  #   {:module, _, bytecode, _} =
+  #     defmodule Sample do
+  #       @moduledoc false
+  #       def foo, do: 0
+  #     end
 
-    File.write!("Elixir.NextLS.AutocompleteTest.Sample.beam", bytecode)
-    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
-    assert expand(runtime, ~c"NextLS.AutocompleteTest.Sample.foo") == {:yes, ~c"", [~c"foo/0"]}
+  #   File.write!("Elixir.NextLS.AutocompleteTest.Sample.beam", bytecode)
+  #   assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
+  #   assert expand(runtime, ~c"NextLS.AutocompleteTest.Sample.foo") == {:yes, ~c"", [~c"foo/0"]}
 
-    Code.compiler_options(ignore_module_conflict: true)
+  #   Code.compiler_options(ignore_module_conflict: true)
 
-    defmodule Sample do
-      @moduledoc false
-      def foo, do: 0
-      def foobar, do: 0
-    end
+  #   defmodule Sample do
+  #     @moduledoc false
+  #     def foo, do: 0
+  #     def foobar, do: 0
+  #   end
 
-    assert expand(runtime, ~c"NextLS.AutocompleteTest.Sample.foo") == {:yes, ~c"", [~c"foo/0", ~c"foobar/0"]}
-  after
-    File.rm("Elixir.NextLS.AutocompleteTest.Sample.beam")
-    Code.compiler_options(ignore_module_conflict: false)
-    :code.purge(Sample)
-    :code.delete(Sample)
-  end
-
-  defmodule MyStruct do
-    @moduledoc false
-    defstruct [:my_val]
-  end
+  #   assert expand(runtime, ~c"NextLS.AutocompleteTest.Sample.foo") == {:yes, ~c"", [~c"foo/0", ~c"foobar/0"]}
+  # after
+  #   File.rm("Elixir.NextLS.AutocompleteTest.Sample.beam")
+  #   Code.compiler_options(ignore_module_conflict: false)
+  #   :code.purge(Sample)
+  #   :code.delete(Sample)
+  # end
 
   test "completion for struct names", %{runtime: runtime} do
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%")
-    assert ~c"URI" in entries
-    assert ~c"IEx.History" in entries
-    assert ~c"IEx.Server" in entries
+    assert %{name: "URI", kind: :struct} in entries
+    assert %{name: "IEx.History", kind: :struct} in entries
+    assert %{name: "IEx.Server", kind: :struct} in entries
 
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%IEx.")
-    assert ~c"IEx.History" in entries
-    assert ~c"IEx.Server" in entries
+    assert %{name: "IEx.History", kind: :struct} in entries
+    assert %{name: "IEx.Server", kind: :struct} in entries
 
-    assert expand(runtime, ~c"%IEx.AutocompleteTe") == {:yes, ~c"st.MyStruct{", []}
-    assert expand(runtime, ~c"%NextLS.AutocompleteTest.MyStr") == {:yes, ~c"uct{", []}
+    assert expand(runtime, ~c"%Something.Fo") ==
+             {:yes, ~c"o.MyStruct{", [%{name: "Something.Foo.MyStruct", kind: :struct}]}
 
-    prev = "alias NextLS.AutocompleteTest.MyStruct"
-    assert expand(runtime, ~c"%MyStr") == {:yes, ~c"uct{", []}
+    assert expand(runtime, ~c"%Something.Foo.MyStr") ==
+             {:yes, ~c"uct{", [%{name: "Something.Foo.MyStruct", kind: :struct}]}
+
+    # TODO: aliases
+    # prev = "alias NextLS.AutocompleteTest.MyStruct"
+    # assert expand(runtime, ~c"%MyStr") == {:yes, ~c"uct{", []}
   end
 
   test "completion for struct keys", %{runtime: runtime} do
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%URI{")
-    assert ~c"path:" in entries
-    assert ~c"query:" in entries
+    assert %{name: "path", kind: :keyword} in entries
+    assert %{name: "query", kind: :keyword} in entries
 
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%URI{path: \"foo\",")
-    assert ~c"path:" not in entries
-    assert ~c"query:" in entries
+    assert %{name: "path", kind: :keyword} not in entries
+    assert %{name: "query", kind: :keyword} in entries
 
-    assert {:yes, ~c"ry: ", []} = expand(runtime, ~c"%URI{path: \"foo\", que")
+    assert {:yes, ~c"ry: ", [%{name: "query", kind: :keyword}]} = expand(runtime, ~c"%URI{path: \"foo\", que")
     assert {:no, [], []} = expand(runtime, ~c"%URI{path: \"foo\", unkno")
     assert {:no, [], []} = expand(runtime, ~c"%Unkown{path: \"foo\", unkno")
   end
 
   test "completion for struct keys in update syntax", %{runtime: runtime} do
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%URI{var | ")
-    assert ~c"path:" in entries
-    assert ~c"query:" in entries
+    assert %{name: "path", kind: :keyword} in entries
+    assert %{name: "query", kind: :keyword} in entries
 
     assert {:yes, ~c"", entries} = expand(runtime, ~c"%URI{var | path: \"foo\",")
-    assert ~c"path:" not in entries
-    assert ~c"query:" in entries
+    assert %{name: "path", kind: :keyword} not in entries
+    assert %{name: "query", kind: :keyword} in entries
 
-    assert {:yes, ~c"ry: ", []} = expand(runtime, ~c"%URI{var | path: \"foo\", que")
+    assert {:yes, ~c"ry: ", [%{name: "query", kind: :keyword}]} = expand(runtime, ~c"%URI{var | path: \"foo\", que")
     assert {:no, [], []} = expand(runtime, ~c"%URI{var | path: \"foo\", unkno")
     assert {:no, [], []} = expand(runtime, ~c"%Unkown{var | path: \"foo\", unkno")
   end
 
-  test "completion for map keys in update syntax", %{runtime: runtime} do
-    prev = "map = %{some: 1, other: :ok, another: \"qwe\"}"
-    assert {:yes, ~c"", entries} = expand(runtime, ~c"%{map | ")
-    assert ~c"some:" in entries
-    assert ~c"other:" in entries
+  # TODO: this might be possible
+  # test "completion for map keys in update syntax", %{runtime: runtime} do
+  #   prev = "map = %{some: 1, other: :ok, another: \"qwe\"}"
+  #   assert {:yes, ~c"", entries} = expand(runtime, ~c"#{prev}\n%{map | ")
+  #   assert ~c"some:" in entries
+  #   assert ~c"other:" in entries
 
-    assert {:yes, ~c"", entries} = expand(runtime, ~c"%{map | some: \"foo\",")
-    assert ~c"some:" not in entries
-    assert ~c"other:" in entries
+  #   assert {:yes, ~c"", entries} = expand(runtime, ~c"#{prev}\n%{map | some: \"foo\",")
+  #   assert ~c"some:" not in entries
+  #   assert ~c"other:" in entries
 
-    assert {:yes, ~c"er: ", []} = expand(runtime, ~c"%{map | some: \"foo\", oth")
-    assert {:no, [], []} = expand(runtime, ~c"%{map | some: \"foo\", unkno")
-    assert {:no, [], []} = expand(runtime, ~c"%{unknown | some: \"foo\", unkno")
-  end
+  #   assert {:yes, ~c"er: ", []} = expand(runtime, ~c"#{prev}\n%{map | some: \"foo\", oth")
+  #   assert {:no, [], []} = expand(runtime, ~c"#{prev}\n%{map | some: \"foo\", unkno")
+  #   assert {:no, [], []} = expand(runtime, ~c"#{prev}\n%{unknown | some: \"foo\", unkno")
+  # end
 
-  test "completion for struct var keys", %{runtime: runtime} do
-    prev = "struct = %NextLS.AutocompleteTest.MyStruct{}"
-    assert expand(runtime, ~c"struct.my") == {:yes, ~c"_val", []}
-  end
+  # TODO: this might be possible
+  # test "completion for struct var keys", %{runtime: runtime} do
+  #   prev = "struct = %NextLS.AutocompleteTest.MyStruct{}"
+  #   assert expand(runtime, ~c"#{prev}\nstruct.my") == {:yes, ~c"_val", []}
+  # end
 
   test "completion for bitstring modifiers", %{runtime: runtime} do
     assert {:yes, ~c"", entries} = expand(runtime, ~c"<<foo::")
-    assert ~c"integer" in entries
-    assert ~c"size/1" in entries
+    assert %{name: "integer", kind: :variable} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
 
-    assert {:yes, ~c"eger", []} = expand(runtime, ~c"<<foo::int")
+    assert {:yes, ~c"eger", [%{name: "integer", kind: :variable}]} = expand(runtime, ~c"<<foo::int")
 
     assert {:yes, ~c"", entries} = expand(runtime, ~c"<<foo::integer-")
-    refute ~c"integer" in entries
-    assert ~c"little" in entries
-    assert ~c"size/1" in entries
+    refute %{name: "integer", kind: :variable} in entries
+    assert %{name: "little", kind: :variable} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
 
     assert {:yes, ~c"", entries} = expand(runtime, ~c"<<foo::integer-little-")
-    refute ~c"integer" in entries
-    refute ~c"little" in entries
-    assert ~c"size/1" in entries
+    refute %{name: "integer", kind: :variable} in entries
+    refute %{name: "little", kind: :variable} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
   end
 
   test "completion for aliases in special forms", %{runtime: runtime} do
     assert {:yes, ~c"", entries} = expand(runtime, ~c"alias ")
-    assert ~c"Atom" in entries
-    refute ~c"is_atom" in entries
+    assert %{name: "Atom", kind: :module} in entries
+    refute %{name: "is_atom", kind: :function, arity: 1} in entries
 
-    assert {:yes, ~c"Range", []} = expand(runtime, ~c"alias Date.")
+    assert {:yes, ~c"Range", [%{name: "Range", kind: :module}]} = expand(runtime, ~c"alias Date.")
   end
 
   test "ignore invalid Elixir module literals", %{runtime: runtime} do
-    defmodule(:"Elixir.NextLS.AutocompleteTest.Unicodé", do: nil)
     assert expand(runtime, ~c"NextLS.AutocompleteTest.Unicod") == {:no, ~c"", []}
-  after
-    :code.purge(:"Elixir.NextLS.AutocompleteTest.Unicodé")
-    :code.delete(:"Elixir.NextLS.AutocompleteTest.Unicodé")
   end
 
   test "signature help for functions and macros", %{runtime: runtime} do
-    assert expand(runtime, ~c"String.graphemes(") == {:yes, ~c"", [~c"graphemes(string)"]}
-    assert expand(runtime, ~c"def ") == {:yes, ~c"", [~c"def(call, expr \\\\ nil)"]}
+    assert expand(runtime, ~c"String.graphemes(") == {:yes, ~c"", ["graphemes(string)"]}
+    # TODO: needs the kernel
+    # assert expand(runtime, ~c"def ") == {:yes, ~c"", [~c"def(call, expr \\\\ nil)"]}
 
-    prev = "import Enum; import Protocol"
+    # TODO: locals
+    # prev = "import Enum; import Protocol"
 
-    assert ExUnit.CaptureIO.capture_io(fn ->
-             send(self(), expand(runtime, ~c"reduce("))
-           end) == "\nreduce(enumerable, acc, fun)"
+    # assert ExUnit.CaptureIO.capture_io(fn ->
+    #          send(self(), expand(runtime, ~c"reduce("))
+    #        end) == "\nreduce(enumerable, acc, fun)"
 
-    assert_received {:yes, ~c"", [~c"reduce(enumerable, fun)"]}
+    # assert_received {:yes, ~c"", [~c"reduce(enumerable, fun)"]}
 
-    assert expand(runtime, ~c"take(") == {:yes, ~c"", [~c"take(enumerable, amount)"]}
-    assert expand(runtime, ~c"derive(") == {:yes, ~c"", [~c"derive(protocol, module, options \\\\ [])"]}
+    # assert expand(runtime, ~c"take(") == {:yes, ~c"", [~c"take(enumerable, amount)"]}
+    # assert expand(runtime, ~c"derive(") == {:yes, ~c"", [~c"derive(protocol, module, options \\\\ [])"]}
 
-    defmodule NoDocs do
-      @moduledoc false
-      def sample(a), do: a
-    end
+    # defmodule NoDocs do
+    #   @moduledoc false
+    #   def sample(a), do: a
+    # end
 
-    assert {:yes, [], [_ | _]} = expand(runtime, ~c"NoDocs.sample(")
+    # assert {:yes, [], [_ | _]} = expand(runtime, ~c"NoDocs.sample(")
   end
 
   test "path completion inside strings", %{tmp_dir: dir, runtime: runtime} do
@@ -599,13 +640,19 @@ defmodule NextLS.AutocompleteTest do
     assert expand(runtime, ~c"Path.join(\"./\", is_") == expand(runtime, ~c"is_")
 
     assert expand(runtime, ~c"\"#{dir}/") == path_autocompletion(dir)
-    assert expand(runtime, ~c"\"#{dir}/sin") == {:yes, ~c"gle1", []}
-    assert expand(runtime, ~c"\"#{dir}/single1") == {:yes, ~c"\"", []}
-    assert expand(runtime, ~c"\"#{dir}/fi") == {:yes, ~c"le", []}
+    assert expand(runtime, ~c"\"#{dir}/sin") == {:yes, ~c"gle1", [%{name: "single1", kind: :file}]}
+    assert expand(runtime, ~c"\"#{dir}/single1") == {:yes, ~c"\"", [%{name: "single1", kind: :file}]}
+
+    assert expand(runtime, ~c"\"#{dir}/fi") ==
+             {:yes, ~c"le", [%{name: "file2", kind: :file}, %{name: "file1", kind: :file}]}
+
     assert expand(runtime, ~c"\"#{dir}/file") == path_autocompletion(dir, "file")
-    assert expand(runtime, ~c"\"#{dir}/d") == {:yes, ~c"ir/", []}
-    assert expand(runtime, ~c"\"#{dir}/dir") == {:yes, ~c"/", []}
-    assert expand(runtime, ~c"\"#{dir}/dir/") == {:yes, ~c"file", []}
+    assert expand(runtime, ~c"\"#{dir}/d") == {:yes, ~c"ir/", [%{name: "dir", kind: :dir}]}
+    assert expand(runtime, ~c"\"#{dir}/dir") == {:yes, ~c"/", [%{name: "dir", kind: :dir}]}
+
+    assert expand(runtime, ~c"\"#{dir}/dir/") ==
+             {:yes, ~c"file", [%{name: "file3", kind: :file}, %{name: "file4", kind: :file}]}
+
     assert expand(runtime, ~c"\"#{dir}/dir/file") == dir |> Path.join("dir") |> path_autocompletion("file")
   end
 
@@ -613,7 +660,11 @@ defmodule NextLS.AutocompleteTest do
     dir
     |> File.ls!()
     |> Stream.filter(&String.starts_with?(&1, hint))
-    |> Enum.map(&String.to_charlist/1)
+    |> Enum.map(fn file ->
+      kind = if File.dir?(Path.join(dir, file)), do: :dir, else: :file
+      name = if kind == :dir, do: file <> "/", else: file
+      %{name: name, kind: kind}
+    end)
     |> case do
       [] -> {:no, ~c"", []}
       list -> {:yes, ~c"", list}

@@ -118,9 +118,14 @@ defmodule NextLS do
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
          },
-         completion_provider: %GenLSP.Structures.CompletionOptions{
-           trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~"]
-         },
+         completion_provider:
+           if init_opts.experimental.completions.enabled do
+             %GenLSP.Structures.CompletionOptions{
+               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/"]
+             }
+           else
+             nil
+           end,
          document_formatting_provider: true,
          hover_provider: true,
          workspace_symbol_provider: true,
@@ -516,7 +521,8 @@ defmodule NextLS do
       |> Enum.take(position.line + 1)
       |> Enum.reverse()
       |> then(fn [last_line | rest] ->
-        [String.slice(last_line, 1..(position.character + 1)) | rest]
+        {line, _forget} = String.split_at(last_line, position.character)
+        [line | rest]
       end)
       |> Enum.reverse()
       |> Enum.join("\n")
@@ -541,6 +547,9 @@ defmodule NextLS do
             :function -> {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
             :module -> {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
             :variable -> {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+            :dir -> {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
+            :file -> {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
+            :keyword -> {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
             _ -> {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
           end
 
@@ -552,28 +561,10 @@ defmodule NextLS do
         }
       end)
 
-    # results =
-    #   for snippet <- [
-    #         "defmodule",
-    #         "def",
-    #         "defp",
-    #         "defmacro",
-    #         "defmacrop",
-    #         "for",
-    #         "with",
-    #         "case",
-    #         "cond",
-    #         "defprotocol",
-    #         "defimpl",
-    #         "defexception",
-    #         "defstruct"
-    #       ],
-    #       item <- List.wrap(NextLS.Snippet.get(snippet, context.trigger_character)),
-    #       item do
-    #     item
-    #   end
-
     {:reply, results, lsp}
+  rescue
+    _ ->
+      {:reply, [], lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
@@ -1091,18 +1082,30 @@ defmodule NextLS do
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
 
+  defmodule InitOpts.Experimental do
+    @moduledoc false
+    defstruct completions: %{enabled: false}
+  end
+
   defmodule InitOpts do
     @moduledoc false
     import Schematic
 
-    defstruct mix_target: "host", mix_env: "dev"
+    defstruct mix_target: "host", mix_env: "dev", experimental: %NextLS.InitOpts.Experimental{}
 
     def validate(opts) do
       schematic =
         nullable(
           schema(__MODULE__, %{
             optional(:mix_target) => str(),
-            optional(:mix_env) => str()
+            optional(:mix_env) => str(),
+            optional(:experimental) =>
+              schema(NextLS.InitOpts.Experimental, %{
+                optional(:completions) =>
+                  map(%{
+                    {"enabled", :enabled} => bool()
+                  })
+              })
           })
         )
 

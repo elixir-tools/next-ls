@@ -19,7 +19,6 @@ defmodule NextLS.ASTHelpers.Variables do
             &prewalk/2,
             &postwalk/2
           )
-          |> dbg(limit: :infinity)
 
         Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
           if position_in_range?(position, ref_range), do: {name, range}, else: nil
@@ -34,7 +33,6 @@ defmodule NextLS.ASTHelpers.Variables do
     {_, %{cursor: cursor, symbols: symbols}} =
       ast
       |> Macro.traverse(%{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
-      # |> dbg(limit: :infinity)
 
     cscope = Enum.reverse(cursor.scope)
 
