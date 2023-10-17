@@ -342,6 +342,7 @@ defmodule NextLS.Autocomplete do
     format_expansion(refs)
   end
 
+  @dialyzer {:nowarn_function, expand_container_context: 4}
   defp expand_container_context(code, context, hint, shell) do
     case container_context(code, shell) do
       {:map, map, pairs} when context == :expr ->
@@ -440,6 +441,8 @@ defmodule NextLS.Autocomplete do
     end
   end
 
+
+  @dialyzer {:nowarn_function, container_context_map: 4}
   defp container_context_map(cursor, pairs, variable, shell) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          {:ok, map} when is_map(map) <- value_from_binding([variable], shell),
