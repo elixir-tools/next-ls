@@ -31,8 +31,7 @@ defmodule NextLS.ASTHelpers.Variables do
 
   def collect(ast) do
     {_, %{cursor: cursor, symbols: symbols}} =
-      ast
-      |> Macro.traverse(%{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
+      Macro.traverse(ast, %{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
 
     cscope = Enum.reverse(cursor.scope)
 
