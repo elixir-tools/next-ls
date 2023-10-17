@@ -24,94 +24,88 @@ defmodule NextLS.Autocomplete do
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
-  @doc """
-  The expansion logic.
-
-  Some of the expansion has to be use the current shell
-  environment, which is found via the broker.
-  """
-  def expand(code, shell) do
+  def expand(code, runtime) do
     case path_fragment(code) do
-      [] -> expand_code(code, shell)
+      [] -> expand_code(code, runtime)
       path -> expand_path(path)
     end
   end
 
-  defp expand_code(code, shell) do
+  defp expand_code(code, runtime) do
     code = Enum.reverse(code)
     # helper = get_helper(code)
 
     case Code.Fragment.cursor_context(code) do
       {:alias, alias} ->
-        expand_aliases(List.to_string(alias), shell)
+        expand_aliases(List.to_string(alias), runtime)
 
       {:unquoted_atom, unquoted_atom} ->
-        expand_erlang_modules(List.to_string(unquoted_atom), shell)
+        expand_erlang_modules(List.to_string(unquoted_atom), runtime)
 
       # expansion when helper == ?b ->
-      #   expand_typespecs(expansion, shell, &get_module_callbacks(&1, shell))
+      #   expand_typespecs(expansion, runtime, &get_module_callbacks(&1, runtime))
 
       # expansion when helper == ?t ->
-      #   expand_typespecs(expansion, shell, &get_module_types(&1, shell))
+      #   expand_typespecs(expansion, runtime, &get_module_types(&1, runtime))
 
       {:dot, path, hint} ->
-        if alias = alias_only(path, hint, code, shell) do
-          expand_aliases(List.to_string(alias), shell)
+        if alias = alias_only(path, hint, code, runtime) do
+          expand_aliases(List.to_string(alias), runtime)
         else
-          expand_dot(path, List.to_string(hint), false, shell)
+          expand_dot(path, List.to_string(hint), false, runtime)
         end
 
       {:dot_arity, path, hint} ->
-        expand_dot(path, List.to_string(hint), true, shell)
+        expand_dot(path, List.to_string(hint), true, runtime)
 
       {:dot_call, path, hint} ->
-        expand_dot_call(path, List.to_atom(hint), shell)
+        expand_dot_call(path, List.to_atom(hint), runtime)
 
       :expr ->
-        expand_container_context(code, :expr, "", shell) || expand_local_or_var("", "", shell)
+        expand_container_context(code, :expr, "", runtime) || expand_local_or_var("", "", runtime)
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
 
-        expand_container_context(code, :expr, hint, shell) ||
-          expand_local_or_var(hint, List.to_string(local_or_var), shell)
+        expand_container_context(code, :expr, hint, runtime) ||
+          expand_local_or_var(hint, List.to_string(local_or_var), runtime)
 
       {:local_arity, local} ->
-        expand_local(List.to_string(local), true, shell)
+        expand_local(List.to_string(local), true, runtime)
 
       {:local_call, local} when local in @alias_only_charlists ->
-        expand_aliases("", shell)
+        expand_aliases("", runtime)
 
       {:local_call, local} ->
-        expand_local_call(List.to_atom(local), shell)
+        expand_local_call(List.to_atom(local), runtime)
 
       {:operator, operator} when operator in ~w(:: -)c ->
-        expand_container_context(code, :operator, "", shell) ||
-          expand_local(List.to_string(operator), false, shell)
+        expand_container_context(code, :operator, "", runtime) ||
+          expand_local(List.to_string(operator), false, runtime)
 
       {:operator, operator} ->
-        expand_local(List.to_string(operator), false, shell)
+        expand_local(List.to_string(operator), false, runtime)
 
       {:operator_arity, operator} ->
-        expand_local(List.to_string(operator), true, shell)
+        expand_local(List.to_string(operator), true, runtime)
 
       {:operator_call, operator} when operator in ~w(|)c ->
-        expand_container_context(code, :expr, "", shell) || expand_local_or_var("", "", shell)
+        expand_container_context(code, :expr, "", runtime) || expand_local_or_var("", "", runtime)
 
       {:operator_call, _operator} ->
-        expand_local_or_var("", "", shell)
+        expand_local_or_var("", "", runtime)
 
       {:sigil, []} ->
-        expand_sigil(shell)
+        expand_sigil(runtime)
 
       {:sigil, [_]} ->
         {:yes, [], ~w|" """ ' ''' \( / < [ { \||c}
 
       {:struct, struct} when is_list(struct) ->
-        expand_structs(List.to_string(struct), shell)
+        expand_structs(List.to_string(struct), runtime)
 
       {:struct, {:dot, {:alias, struct}, ~c""}} when is_list(struct) ->
-        expand_structs(List.to_string(struct ++ ~c"."), shell)
+        expand_structs(List.to_string(struct ++ ~c"."), runtime)
 
       # {:module_attribute, charlist}
       # :none
@@ -136,28 +130,28 @@ defmodule NextLS.Autocomplete do
   # defp squeeze_spaces(rest), do: rest
 
   @doc false
-  def exports(mod, shell) do
+  def exports(mod, runtime) do
     {:ok, exported?} =
-      NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__info__, 1))
+      NextLS.Runtime.execute(runtime, do: Kernel.function_exported?(mod, :__info__, 1))
 
-    if ensure_loaded?(mod, shell) and exported? do
-      NextLS.Runtime.execute!(shell, do: mod.__info__(:macros)) ++
-        (NextLS.Runtime.execute!(shell, do: mod.__info__(:functions)) -- [__info__: 1])
+    if ensure_loaded?(mod, runtime) and exported? do
+      NextLS.Runtime.execute!(runtime, do: mod.__info__(:macros)) ++
+        (NextLS.Runtime.execute!(runtime, do: mod.__info__(:functions)) -- [__info__: 1])
     else
-      NextLS.Runtime.execute!(shell, do: mod.module_info(:exports)) -- [module_info: 0, module_info: 1]
+      NextLS.Runtime.execute!(runtime, do: mod.module_info(:exports)) -- [module_info: 0, module_info: 1]
     end
   end
 
   ## Typespecs
 
-  # defp expand_typespecs({:dot, path, hint}, shell, fun) do
+  # defp expand_typespecs({:dot, path, hint}, runtime, fun) do
   #   hint = List.to_string(hint)
 
-  #   case expand_dot_path(path, shell) do
+  #   case expand_dot_path(path, runtime) do
   #     {:ok, mod} when is_atom(mod) ->
   #       mod
   #       |> fun.()
-  #       |> then(&match_module_funs(shell, mod, &1, hint, false))
+  #       |> then(&match_module_funs(runtime, mod, &1, hint, false))
   #       |> format_expansion(hint)
 
   #     _ ->
@@ -169,17 +163,17 @@ defmodule NextLS.Autocomplete do
 
   ## Expand call
 
-  defp expand_local_call(fun, shell) do
-    shell
+  defp expand_local_call(fun, runtime) do
+    runtime
     |> imports_from_env()
     |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
     |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
-    |> expand_signatures(shell)
+    |> expand_signatures(runtime)
   end
 
-  defp expand_dot_call(path, fun, shell) do
-    case expand_dot_path(path, shell) do
-      {:ok, mod} when is_atom(mod) -> fun |> get_signatures(mod) |> expand_signatures(shell)
+  defp expand_dot_call(path, fun, runtime) do
+    case expand_dot_path(path, runtime) do
+      {:ok, mod} when is_atom(mod) -> fun |> get_signatures(mod) |> expand_signatures(runtime)
       _ -> no()
     end
   end
@@ -192,52 +186,52 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp expand_signatures([_ | _] = signatures, _shell) do
+  defp expand_signatures([_ | _] = signatures, _runtime) do
     [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
     if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
     yes([head])
   end
 
-  defp expand_signatures([], shell), do: expand_local_or_var("", "", shell)
+  defp expand_signatures([], runtime), do: expand_local_or_var("", "", runtime)
 
   ## Expand dot
 
-  defp expand_dot(path, hint, exact?, shell) do
-    case expand_dot_path(path, shell) do
-      {:ok, mod} when is_atom(mod) and hint == "" -> expand_dot_aliases(mod, shell)
-      {:ok, mod} when is_atom(mod) -> expand_require(mod, hint, exact?, shell)
+  defp expand_dot(path, hint, exact?, runtime) do
+    case expand_dot_path(path, runtime) do
+      {:ok, mod} when is_atom(mod) and hint == "" -> expand_dot_aliases(mod, runtime)
+      {:ok, mod} when is_atom(mod) -> expand_require(mod, hint, exact?, runtime)
       {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
       _ -> no()
     end
   end
 
-  defp expand_dot_path({:unquoted_atom, var}, _shell) do
+  defp expand_dot_path({:unquoted_atom, var}, _runtime) do
     {:ok, List.to_atom(var)}
   end
 
-  defp expand_dot_path(path, shell) do
-    case recur_expand_dot_path(path, shell) do
-      {:ok, [_ | _] = path} -> value_from_binding(Enum.reverse(path), shell)
+  defp expand_dot_path(path, runtime) do
+    case recur_expand_dot_path(path, runtime) do
+      {:ok, [_ | _] = path} -> value_from_binding(Enum.reverse(path), runtime)
       other -> other
     end
   end
 
-  defp recur_expand_dot_path({:var, var}, _shell) do
+  defp recur_expand_dot_path({:var, var}, _runtime) do
     {:ok, [List.to_atom(var)]}
   end
 
-  defp recur_expand_dot_path({:alias, var}, shell) do
-    {:ok, var |> List.to_string() |> String.split(".") |> value_from_alias(shell)}
+  defp recur_expand_dot_path({:alias, var}, runtime) do
+    {:ok, var |> List.to_string() |> String.split(".") |> value_from_alias(runtime)}
   end
 
-  defp recur_expand_dot_path({:dot, parent, call}, shell) do
-    case recur_expand_dot_path(parent, shell) do
+  defp recur_expand_dot_path({:dot, parent, call}, runtime) do
+    case recur_expand_dot_path(parent, runtime) do
       {:ok, [_ | _] = path} -> {:ok, [List.to_atom(call) | path]}
       _ -> :error
     end
   end
 
-  defp recur_expand_dot_path(_, _shell) do
+  defp recur_expand_dot_path(_, _runtime) do
     :error
   end
 
@@ -248,51 +242,51 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp expand_dot_aliases(mod, shell) do
+  defp expand_dot_aliases(mod, runtime) do
     all =
-      match_elixir_modules(mod, "", shell) ++
-        match_module_funs(shell, mod, get_module_funs(mod, shell), "", false)
+      match_elixir_modules(mod, "", runtime) ++
+        match_module_funs(runtime, mod, get_module_funs(mod, runtime), "", false)
 
     format_expansion(all)
   end
 
-  defp expand_require(mod, hint, exact?, shell) do
+  defp expand_require(mod, hint, exact?, runtime) do
     mod
-    |> get_module_funs(shell)
-    |> then(&match_module_funs(shell, mod, &1, hint, exact?))
+    |> get_module_funs(runtime)
+    |> then(&match_module_funs(runtime, mod, &1, hint, exact?))
     |> format_expansion()
   end
 
   ## Expand local or var
 
-  defp expand_local_or_var(code, hint, shell) do
-    format_expansion(match_var(code, hint, shell) ++ match_local(code, false, shell))
+  defp expand_local_or_var(code, hint, runtime) do
+    format_expansion(match_var(code, hint, runtime) ++ match_local(code, false, runtime))
   end
 
-  defp expand_local(hint, exact?, shell) do
-    format_expansion(match_local(hint, exact?, shell))
+  defp expand_local(hint, exact?, runtime) do
+    format_expansion(match_local(hint, exact?, runtime))
   end
 
-  defp expand_sigil(shell) do
+  defp expand_sigil(runtime) do
     sigils =
       "sigil_"
-      |> match_local(false, shell)
+      |> match_local(false, runtime)
       |> Enum.map(fn %{name: "sigil_" <> rest} -> %{kind: :sigil, name: rest} end)
 
-    format_expansion(match_local("~", false, shell) ++ sigils)
+    format_expansion(match_local("~", false, runtime) ++ sigils)
   end
 
-  defp match_local(hint, exact?, shell) do
-    imports = shell |> imports_from_env() |> Enum.flat_map(&elem(&1, 1))
-    module_funs = get_module_funs(Kernel.SpecialForms, shell)
+  defp match_local(hint, exact?, runtime) do
+    imports = runtime |> imports_from_env() |> Enum.flat_map(&elem(&1, 1))
+    module_funs = get_module_funs(Kernel.SpecialForms, runtime)
 
-    match_module_funs(shell, Kernel.SpecialForms, module_funs, hint, exact?) ++
-      match_module_funs(shell, nil, imports, hint, exact?)
+    match_module_funs(runtime, Kernel.SpecialForms, module_funs, hint, exact?) ++
+      match_module_funs(runtime, nil, imports, hint, exact?)
   end
 
-  defp match_var(code, hint, shell) do
+  defp match_var(code, hint, runtime) do
     code
-    |> variables_from_binding(shell)
+    |> variables_from_binding(runtime)
     |> Enum.filter(&String.starts_with?(&1, hint))
     |> Enum.sort()
     |> Enum.map(&%{kind: :variable, name: &1})
@@ -300,27 +294,27 @@ defmodule NextLS.Autocomplete do
 
   ## Erlang modules
 
-  defp expand_erlang_modules(hint, shell) do
-    format_expansion(match_erlang_modules(hint, shell))
+  defp expand_erlang_modules(hint, runtime) do
+    format_expansion(match_erlang_modules(hint, runtime))
   end
 
-  defp match_erlang_modules(hint, shell) do
-    for mod <- match_modules(hint, false, shell), usable_as_unquoted_module?(mod) do
+  defp match_erlang_modules(hint, runtime) do
+    for mod <- match_modules(hint, false, runtime), usable_as_unquoted_module?(mod) do
       %{kind: :module, name: mod}
     end
   end
 
   ## Structs
 
-  defp expand_structs(hint, shell) do
+  defp expand_structs(hint, runtime) do
     aliases =
-      for {alias, mod} <- aliases_from_env(shell),
+      for {alias, mod} <- aliases_from_env(runtime),
           [name] = Module.split(alias),
           String.starts_with?(name, hint),
           do: {mod, name}
 
     modules =
-      for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true, shell),
+      for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true, runtime),
           String.starts_with?(name, hint),
           mod = String.to_atom(full_name),
           do: {mod, name}
@@ -328,14 +322,14 @@ defmodule NextLS.Autocomplete do
     all = aliases ++ modules
 
     {:ok, _} =
-      NextLS.Runtime.execute(shell, do: Code.ensure_all_loaded(Enum.map(all, &elem(&1, 0))))
+      NextLS.Runtime.execute(runtime, do: Code.ensure_all_loaded(Enum.map(all, &elem(&1, 0))))
 
     refs =
       for {mod, name} <- all,
           {:ok, is_struct} =
-            NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :__struct__, 1)),
+            NextLS.Runtime.execute(runtime, do: Kernel.function_exported?(mod, :__struct__, 1)),
           {:ok, is_exception} =
-            NextLS.Runtime.execute(shell, do: Kernel.function_exported?(mod, :exception, 1)),
+            NextLS.Runtime.execute(runtime, do: Kernel.function_exported?(mod, :exception, 1)),
           is_struct and not is_exception,
           do: %{kind: :struct, name: name}
 
@@ -343,8 +337,8 @@ defmodule NextLS.Autocomplete do
   end
 
   @dialyzer {:nowarn_function, expand_container_context: 4}
-  defp expand_container_context(code, context, hint, shell) do
-    case container_context(code, shell) do
+  defp expand_container_context(code, context, hint, runtime) do
+    case container_context(code, runtime) do
       {:map, map, pairs} when context == :expr ->
         container_context_map_fields(pairs, map, hint)
 
@@ -387,12 +381,12 @@ defmodule NextLS.Autocomplete do
     format_expansion(entries)
   end
 
-  defp container_context(code, shell) do
+  defp container_context(code, runtime) do
     case Code.Fragment.container_cursor_to_quoted(code, columns: true) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            container_context_struct(cursor, pairs, aliases, shell)
+            container_context_struct(cursor, pairs, aliases, runtime)
 
           [
             cursor,
@@ -401,10 +395,10 @@ defmodule NextLS.Autocomplete do
             {:%{}, _, _},
             {:%, _, [{:__aliases__, _, aliases}, _map]} | _
           ] ->
-            container_context_struct(cursor, pairs, aliases, shell)
+            container_context_struct(cursor, pairs, aliases, runtime)
 
           [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
-            container_context_map(cursor, pairs, variable, shell)
+            container_context_map(cursor, pairs, variable, runtime)
 
           [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
             :alias_only
@@ -429,11 +423,11 @@ defmodule NextLS.Autocomplete do
 
   defp remove_operators(tail, _previous), do: tail
 
-  defp container_context_struct(cursor, pairs, aliases, shell) do
+  defp container_context_struct(cursor, pairs, aliases, runtime) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         alias = value_from_alias(aliases, shell),
+         alias = value_from_alias(aliases, runtime),
          true <-
-           Keyword.keyword?(pairs) and ensure_loaded?(alias, shell) and
+           Keyword.keyword?(pairs) and ensure_loaded?(alias, runtime) and
              function_exported?(alias, :__struct__, 1) do
       {:struct, alias, pairs}
     else
@@ -441,11 +435,10 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-
   @dialyzer {:nowarn_function, container_context_map: 4}
-  defp container_context_map(cursor, pairs, variable, shell) do
+  defp container_context_map(cursor, pairs, variable, runtime) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         {:ok, map} when is_map(map) <- value_from_binding([variable], shell),
+         {:ok, map} when is_map(map) <- value_from_binding([variable], runtime),
          true <- Keyword.keyword?(pairs) do
       {:map, map, pairs}
     else
@@ -455,20 +448,20 @@ defmodule NextLS.Autocomplete do
 
   ## Aliases and modules
 
-  defp alias_only(path, hint, code, shell) do
+  defp alias_only(path, hint, code, runtime) do
     with {:alias, alias} <- path,
          [] <- hint,
-         :alias_only <- container_context(code, shell) do
+         :alias_only <- container_context(code, runtime) do
       alias ++ [?.]
     else
       _ -> nil
     end
   end
 
-  defp expand_aliases(all, shell) do
+  defp expand_aliases(all, runtime) do
     case String.split(all, ".") do
       [hint] ->
-        all = match_aliases(hint, shell) ++ match_elixir_modules(Elixir, hint, shell)
+        all = match_aliases(hint, runtime) ++ match_elixir_modules(Elixir, hint, runtime)
         format_expansion(all)
 
       parts ->
@@ -476,34 +469,34 @@ defmodule NextLS.Autocomplete do
         list = Enum.take(parts, length(parts) - 1)
 
         list
-        |> value_from_alias(shell)
-        |> match_elixir_modules(hint, shell)
+        |> value_from_alias(runtime)
+        |> match_elixir_modules(hint, runtime)
         |> format_expansion()
     end
   end
 
-  defp value_from_alias([name | rest], shell) do
-    case Keyword.fetch(aliases_from_env(shell), Module.concat(Elixir, name)) do
+  defp value_from_alias([name | rest], runtime) do
+    case Keyword.fetch(aliases_from_env(runtime), Module.concat(Elixir, name)) do
       {:ok, name} when rest == [] -> name
       {:ok, name} -> Module.concat([name | rest])
       :error -> Module.concat([name | rest])
     end
   end
 
-  defp match_aliases(hint, shell) do
-    for {alias, module} <- aliases_from_env(shell),
+  defp match_aliases(hint, runtime) do
+    for {alias, module} <- aliases_from_env(runtime),
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
       %{kind: :module, name: name, module: module}
     end
   end
 
-  defp match_elixir_modules(module, hint, shell) do
+  defp match_elixir_modules(module, hint, runtime) do
     name = Atom.to_string(module)
     depth = length(String.split(name, ".")) + 1
     base = name <> "." <> hint
 
-    for mod <- match_modules(base, module == Elixir, shell),
+    for mod <- match_modules(base, module == Elixir, runtime),
         parts = String.split(mod, "."),
         depth <= length(parts),
         name = Enum.at(parts, depth - 1),
@@ -556,9 +549,9 @@ defmodule NextLS.Autocomplete do
     Macro.classify_atom(String.to_atom(name)) in [:identifier, :unquoted]
   end
 
-  defp match_modules(hint, elixir_root?, shell) do
+  defp match_modules(hint, elixir_root?, runtime) do
     elixir_root?
-    |> get_modules(shell)
+    |> get_modules(runtime)
     |> Enum.reject(fn mod ->
       Enum.any?(["Elixir.NextLSPrivate", "_next_ls_private_compiler"], fn prefix ->
         String.starts_with?(mod, prefix)
@@ -570,31 +563,31 @@ defmodule NextLS.Autocomplete do
     |> Enum.take_while(&String.starts_with?(&1, hint))
   end
 
-  defp get_modules(true, shell) do
-    ["Elixir.Elixir"] ++ get_modules(false, shell)
+  defp get_modules(true, runtime) do
+    ["Elixir.Elixir"] ++ get_modules(false, runtime)
   end
 
-  defp get_modules(false, shell) do
+  defp get_modules(false, runtime) do
     {:ok, mods} =
-      NextLS.Runtime.execute shell do
+      NextLS.Runtime.execute runtime do
         :code.all_loaded()
       end
 
     modules =
       Enum.map(mods, &Atom.to_string(elem(&1, 0)))
 
-    {:ok, mode} = NextLS.Runtime.execute(shell, do: :code.get_mode())
+    {:ok, mode} = NextLS.Runtime.execute(runtime, do: :code.get_mode())
 
     case mode do
-      :interactive -> modules ++ get_modules_from_applications(shell)
+      :interactive -> modules ++ get_modules_from_applications(runtime)
       _otherwise -> modules
     end
   end
 
-  defp get_modules_from_applications(shell) do
-    for [app] <- loaded_applications(shell),
+  defp get_modules_from_applications(runtime) do
+    for [app] <- loaded_applications(runtime),
         {:ok, modules} =
-          then(NextLS.Runtime.execute(shell, do: :application.get_key(app, :modules)), fn {:ok, result} ->
+          then(NextLS.Runtime.execute(runtime, do: :application.get_key(app, :modules)), fn {:ok, result} ->
             result
           end),
         module <- modules do
@@ -602,14 +595,14 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp loaded_applications(shell) do
+  defp loaded_applications(runtime) do
     # If we invoke :application.loaded_applications/0,
     # it can error if we don't call safe_fixtable before.
     # Since in both cases we are reaching over the
     # application controller internals, we choose to match
     # for performance.
     {:ok, apps} =
-      NextLS.Runtime.execute shell do
+      NextLS.Runtime.execute runtime do
         :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
       end
 
@@ -670,24 +663,24 @@ defmodule NextLS.Autocomplete do
     Enum.sort_by(for_result, & &1.name)
   end
 
-  defp get_module_funs(mod, shell) do
+  defp get_module_funs(mod, runtime) do
     cond do
-      not ensure_loaded?(mod, shell) ->
+      not ensure_loaded?(mod, runtime) ->
         []
 
       docs = get_docs(mod, [:function, :macro]) ->
         mod
-        |> exports(shell)
+        |> exports(runtime)
         |> Kernel.--(default_arg_functions_with_doc_false(docs))
         |> Enum.reject(&hidden_fun?(&1, docs))
 
       true ->
-        exports(mod, shell)
+        exports(mod, runtime)
     end
   end
 
-  # defp get_module_types(mod, shell) do
-  #   if ensure_loaded?(mod, shell) do
+  # defp get_module_types(mod, runtime) do
+  #   if ensure_loaded?(mod, runtime) do
   #     case Code.Typespec.fetch_types(mod) do
   #       {:ok, types} ->
   #         for {kind, {name, _, args}} <- types,
@@ -703,8 +696,8 @@ defmodule NextLS.Autocomplete do
   #   end
   # end
 
-  # defp get_module_callbacks(mod, shell) do
-  #   if ensure_loaded?(mod, shell) do
+  # defp get_module_callbacks(mod, runtime) do
+  #   if ensure_loaded?(mod, runtime) do
   #     case Code.Typespec.fetch_callbacks(mod) do
   #       {:ok, callbacks} ->
   #         for {name_arity, _} <- callbacks do
@@ -749,17 +742,17 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp ensure_loaded?(Elixir, _shell), do: false
+  defp ensure_loaded?(Elixir, _runtime), do: false
 
-  defp ensure_loaded?(mod, shell) do
-    {:ok, value} = NextLS.Runtime.execute(shell, do: Code.ensure_loaded?(mod))
+  defp ensure_loaded?(mod, runtime) do
+    {:ok, value} = NextLS.Runtime.execute(runtime, do: Code.ensure_loaded?(mod))
     value
   end
 
   ## Evaluator interface
 
   defp imports_from_env(_runtime) do
-    # with {evaluator, server} <- IEx.Broker.evaluator(shell),
+    # with {evaluator, server} <- IEx.Broker.evaluator(runtime),
     #      env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
     #      %{functions: funs, macros: macros} <- env_fields do
     #   funs ++ macros
@@ -770,7 +763,7 @@ defmodule NextLS.Autocomplete do
   end
 
   defp aliases_from_env(_runtime) do
-    # with {evaluator, server} <- IEx.Broker.evaluator(shell),
+    # with {evaluator, server} <- IEx.Broker.evaluator(runtime),
     #      %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, server, [:aliases]) do
     #   aliases
     # else
@@ -788,7 +781,7 @@ defmodule NextLS.Autocomplete do
   end
 
   defp value_from_binding([_var | _path], _runtime) do
-    # with {evaluator, server} <- IEx.Broker.evaluator(shell) do
+    # with {evaluator, server} <- IEx.Broker.evaluator(runtime) do
     #   IEx.Evaluator.value_from_binding(evaluator, server, var, path)
     # else
     #   _ -> :error
