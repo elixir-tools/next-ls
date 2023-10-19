@@ -29,16 +29,18 @@ defmodule NextLS.ASTHelpers.Variables do
     end
   end
 
-  def collect(ast) do
-    {_, %{cursor: cursor, symbols: symbols}} =
-      Macro.traverse(ast, %{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
+  # TODO: Potentially use when adding local variables as completion candidates
 
-    cscope = Enum.reverse(cursor.scope)
+  # def collect(ast) do
+  #   {_, %{cursor: cursor, symbols: symbols}} =
+  #     Macro.traverse(ast, %{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
 
-    for {name, defs} <- symbols, def <- defs, List.starts_with?(cscope, Enum.reverse(def.scope)) do
-      to_string(name)
-    end
-  end
+  #   cscope = Enum.reverse(cursor.scope)
+
+  #   for {name, defs} <- symbols, def <- defs, List.starts_with?(cscope, Enum.reverse(def.scope)) do
+  #     to_string(name)
+  #   end
+  # end
 
   @spec list_variable_references(String.t(), {integer(), integer()}) :: [{atom(), {Range.t(), Range.t()}}]
   def list_variable_references(file, position) do
