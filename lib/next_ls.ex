@@ -317,7 +317,7 @@ defmodule NextLS do
         [reference] ->
           mod =
             if reference.module == String.downcase(reference.module) do
-              String.to_existing_atom(reference.module)
+              String.to_atom(reference.module)
             else
               Module.concat([reference.module])
             end
