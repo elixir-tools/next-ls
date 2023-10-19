@@ -121,7 +121,7 @@ defmodule NextLS do
          completion_provider:
            if init_opts.experimental.completions.enabled do
              %GenLSP.Structures.CompletionOptions{
-               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/"]
+               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"]
              }
            else
              nil
@@ -536,7 +536,7 @@ defmodule NextLS do
           end
 
         case result do
-          {:yes, _, entries} -> entries
+          {:yes, entries} -> entries
           _ -> []
         end
       end)
