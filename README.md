@@ -21,6 +21,7 @@ Still in heavy development, currently supporting the following features:
 - Completions †‡
 
 † - denotes an experimental feature, which can be toggled on/off.
+
 ‡ - denotes a partially implemented feature.
 
 ## Supported Elixir Versions
