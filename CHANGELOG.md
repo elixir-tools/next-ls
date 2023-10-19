@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/elixir-tools/next-ls/compare/v0.13.5...v0.14.0) (2023-10-19)
+
+
+### Features
+
+* completions ([#289](https://github.com/elixir-tools/next-ls/issues/289)) ([a7e9bc6](https://github.com/elixir-tools/next-ls/commit/a7e9bc6818aa9033f369215e607a46310fdfe4de))
+
+
+### Bug Fixes
+
+* **hover:** use String.to_atom/1 ([dace852](https://github.com/elixir-tools/next-ls/commit/dace8526919b1f9737b61ec37c408560322c4fdd))
+
 ## [0.13.5](https://github.com/elixir-tools/next-ls/compare/v0.13.4...v0.13.5) (2023-10-16)
 
 
