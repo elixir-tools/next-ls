@@ -186,7 +186,7 @@ defmodule NextLS.ASTHelpers.VariablesTest do
       assert {:charlie, {7..7, 25..31}} in refs
     end
 
-    test "symbol set in a match and corrctly processing ^", %{source: source} do
+    test "symbol set in a match and correctly processing ^", %{source: source} do
       refs = Variables.list_variable_references(source, {5, 5})
       assert length(refs) == 2
       assert {:charlie, {6..6, 17..23}} in refs

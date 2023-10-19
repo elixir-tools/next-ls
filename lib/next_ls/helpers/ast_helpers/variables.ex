@@ -29,6 +29,19 @@ defmodule NextLS.ASTHelpers.Variables do
     end
   end
 
+  # TODO: Potentially use when adding local variables as completion candidates
+
+  # def collect(ast) do
+  #   {_, %{cursor: cursor, symbols: symbols}} =
+  #     Macro.traverse(ast, %{vars: [], symbols: %{}, sym_ranges: [], scope: []}, &prewalk/2, &postwalk/2)
+
+  #   cscope = Enum.reverse(cursor.scope)
+
+  #   for {name, defs} <- symbols, def <- defs, List.starts_with?(cscope, Enum.reverse(def.scope)) do
+  #     to_string(name)
+  #   end
+  # end
+
   @spec list_variable_references(String.t(), {integer(), integer()}) :: [{atom(), {Range.t(), Range.t()}}]
   def list_variable_references(file, position) do
     file = File.read!(file)
@@ -122,6 +135,18 @@ defmodule NextLS.ASTHelpers.Variables do
     {nil, acc}
   end
 
+  defp prewalk({:__cursor__, meta, _} = ast, acc) do
+    range = {meta[:line]..meta[:line], meta[:column]..meta[:column]}
+
+    acc =
+      Map.put(acc, :cursor, %{
+        range: range,
+        scope: acc.scope
+      })
+
+    {ast, acc}
+  end
+
   # find variable
   defp prewalk({name, meta, nil} = ast, acc) do
     range = calculate_range(name, meta[:line], meta[:column])
@@ -133,7 +158,9 @@ defmodule NextLS.ASTHelpers.Variables do
     {ast, acc}
   end
 
-  defp prewalk(ast, acc), do: {ast, acc}
+  defp prewalk(ast, acc) do
+    {ast, acc}
+  end
 
   # decrease scope when exiting it
   defp postwalk({operation, _, _} = ast, acc) when operation in @scope_ends do

@@ -16,6 +16,7 @@ defmodule NextLS do
   alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
   alias GenLSP.Requests.Shutdown
+  alias GenLSP.Requests.TextDocumentCompletion
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
   alias GenLSP.Requests.TextDocumentFormatting
@@ -117,6 +118,14 @@ defmodule NextLS do
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
          },
+         completion_provider:
+           if init_opts.experimental.completions.enable do
+             %GenLSP.Structures.CompletionOptions{
+               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"]
+             }
+           else
+             nil
+           end,
          document_formatting_provider: true,
          hover_provider: true,
          workspace_symbol_provider: true,
@@ -502,6 +511,60 @@ defmodule NextLS do
       end
 
     resp
+  end
+
+  def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
+    document = lsp.assigns.documents[uri]
+
+    document_slice =
+      document
+      |> Enum.take(position.line + 1)
+      |> Enum.reverse()
+      |> then(fn [last_line | rest] ->
+        {line, _forget} = String.split_at(last_line, position.character)
+        [line | rest]
+      end)
+      |> Enum.reverse()
+      |> Enum.join("\n")
+
+    results =
+      lsp.assigns.registry
+      |> dispatch(:runtimes, fn entries ->
+        [result] =
+          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+            NextLS.Autocomplete.expand(document_slice |> String.to_charlist() |> Enum.reverse(), runtime)
+          end
+
+        case result do
+          {:yes, entries} -> entries
+          _ -> []
+        end
+      end)
+      |> Enum.map(fn %{name: name, kind: kind} = symbol ->
+        {label, kind, docs} =
+          case kind do
+            :struct -> {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
+            :function -> {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
+            :module -> {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
+            :variable -> {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+            :dir -> {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
+            :file -> {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
+            :keyword -> {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
+            _ -> {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
+          end
+
+        %GenLSP.Structures.CompletionItem{
+          label: label,
+          kind: kind,
+          insert_text: name,
+          documentation: docs
+        }
+      end)
+
+    {:reply, results, lsp}
+  rescue
+    _ ->
+      {:reply, [], lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
@@ -1019,18 +1082,30 @@ defmodule NextLS do
   # penalty for unmatched letter
   defp calc_unmatched_penalty(score, _traits), do: score - 1
 
+  defmodule InitOpts.Experimental do
+    @moduledoc false
+    defstruct completions: %{enable: false}
+  end
+
   defmodule InitOpts do
     @moduledoc false
     import Schematic
 
-    defstruct mix_target: "host", mix_env: "dev"
+    defstruct mix_target: "host", mix_env: "dev", experimental: %NextLS.InitOpts.Experimental{}
 
     def validate(opts) do
       schematic =
         nullable(
           schema(__MODULE__, %{
             optional(:mix_target) => str(),
-            optional(:mix_env) => str()
+            optional(:mix_env) => str(),
+            optional(:experimental) =>
+              schema(NextLS.InitOpts.Experimental, %{
+                optional(:completions) =>
+                  map(%{
+                    {"enable", :enable} => bool()
+                  })
+              })
           })
         )
 

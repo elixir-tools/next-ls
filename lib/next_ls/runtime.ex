@@ -33,8 +33,41 @@ defmodule NextLS.Runtime do
     end
   end
 
+  @spec compile(pid(), Keyword.t()) :: any()
   def compile(server, opts \\ []) do
     GenServer.call(server, {:compile, opts}, :infinity)
+  end
+
+  defmacro execute!(runtime, block) do
+    quote do
+      {:ok, result} = NextLS.Runtime.execute(unquote_splicing([runtime, block]))
+      result
+    end
+  end
+
+  defmacro execute(runtime, do: block) do
+    exprs =
+      case block do
+        {:__block__, _, exprs} -> exprs
+        expr -> [expr]
+      end
+
+    for expr <- exprs, reduce: quote(do: :ok) do
+      ast ->
+        mfa =
+          case expr do
+            {{:., _, [mod, func]}, _, args} ->
+              [mod, func, args]
+
+            {_func, _, _args} ->
+              raise "#{Macro.to_string(__MODULE__)}.execute/2 cannot be called with local functions"
+          end
+
+        quote do
+          unquote(ast)
+          NextLS.Runtime.call(unquote(runtime), {unquote_splicing(mfa)})
+        end
+    end
   end
 
   @impl GenServer
