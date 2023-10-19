@@ -119,7 +119,7 @@ defmodule NextLS do
            change: TextDocumentSyncKind.full()
          },
          completion_provider:
-           if init_opts.experimental.completions.enabled do
+           if init_opts.experimental.completions.enable do
              %GenLSP.Structures.CompletionOptions{
                trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"]
              }
@@ -1084,7 +1084,7 @@ defmodule NextLS do
 
   defmodule InitOpts.Experimental do
     @moduledoc false
-    defstruct completions: %{enabled: false}
+    defstruct completions: %{enable: false}
   end
 
   defmodule InitOpts do
@@ -1103,7 +1103,7 @@ defmodule NextLS do
               schema(NextLS.InitOpts.Experimental, %{
                 optional(:completions) =>
                   map(%{
-                    {"enabled", :enabled} => bool()
+                    {"enable", :enable} => bool()
                   })
               })
           })

@@ -356,21 +356,22 @@ defmodule NextLS.CompletionsTest do
       }
     }
 
-    assert_result 2, [
-      %{
-        "data" => nil,
-        "documentation" => "",
-        "insertText" => "next_ls.ex",
-        "kind" => 17,
-        "label" => "next_ls.ex"
-      },
-      %{
-        "data" => nil,
-        "documentation" => "",
-        "insertText" => "next_ls/",
-        "kind" => 19,
-        "label" => "next_ls/"
-      }
-    ]
+    assert_result 2, [_, _] = results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "next_ls.ex",
+             "kind" => 17,
+             "label" => "next_ls.ex"
+           } in results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "next_ls/",
+             "kind" => 19,
+             "label" => "next_ls/"
+           } in results
   end
 end
