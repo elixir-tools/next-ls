@@ -22,6 +22,14 @@ defmodule NextLS.CompletionsTest do
     end
     """)
 
+    bar = Path.join(cwd, "my_proj/lib/bar.ex")
+
+    File.write!(bar, """
+    defmodule Bar do
+      defstruct [:one, :two, :three]
+    end
+    """)
+
     [foo: foo, cwd: cwd]
   end
 
@@ -185,7 +193,7 @@ defmodule NextLS.CompletionsTest do
           text: """
           defmodule Foo do
             def run() do
-              IO.inspect([%URI{])
+              IO.inspect([%Bar{])
               :ok
             end
           end
@@ -210,14 +218,9 @@ defmodule NextLS.CompletionsTest do
     }
 
     assert_result 2, [
-      %{"data" => nil, "documentation" => "", "insertText" => "port", "kind" => 5, "label" => "port"},
-      %{"data" => nil, "documentation" => "", "insertText" => "scheme", "kind" => 5, "label" => "scheme"},
-      %{"data" => nil, "documentation" => "", "insertText" => "path", "kind" => 5, "label" => "path"},
-      %{"data" => nil, "documentation" => "", "insertText" => "host", "kind" => 5, "label" => "host"},
-      %{"data" => nil, "documentation" => "", "insertText" => "userinfo", "kind" => 5, "label" => "userinfo"},
-      %{"data" => nil, "documentation" => "", "insertText" => "fragment", "kind" => 5, "label" => "fragment"},
-      %{"data" => nil, "documentation" => "", "insertText" => "query", "kind" => 5, "label" => "query"},
-      %{"data" => nil, "documentation" => "", "insertText" => "authority", "kind" => 5, "label" => "authority"}
+      %{"data" => nil, "documentation" => "", "insertText" => "one", "kind" => 5, "label" => "one"},
+      %{"data" => nil, "documentation" => "", "insertText" => "two", "kind" => 5, "label" => "two"},
+      %{"data" => nil, "documentation" => "", "insertText" => "three", "kind" => 5, "label" => "three"}
     ]
   end
 

@@ -343,7 +343,7 @@ defmodule NextLS.Autocomplete do
         container_context_map_fields(pairs, map, hint)
 
       {:struct, alias, pairs} when context == :expr ->
-        map = Map.from_struct(alias.__struct__)
+        map = Map.from_struct(NextLS.Runtime.execute!(runtime, do: alias.__struct__))
         container_context_map_fields(pairs, map, hint)
 
       :bitstring_modifier ->
@@ -428,7 +428,7 @@ defmodule NextLS.Autocomplete do
          alias = value_from_alias(aliases, runtime),
          true <-
            Keyword.keyword?(pairs) and ensure_loaded?(alias, runtime) and
-             function_exported?(alias, :__struct__, 1) do
+             NextLS.Runtime.execute!(runtime, do: Kernel.function_exported?(alias, :__struct__, 1)) do
       {:struct, alias, pairs}
     else
       _ -> nil
@@ -619,7 +619,7 @@ defmodule NextLS.Autocomplete do
           {"text/markdown", []}
       end
 
-    for_result =
+    functions =
       for {fun, arity} <- funs,
           name = Atom.to_string(fun),
           if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
@@ -649,7 +649,7 @@ defmodule NextLS.Autocomplete do
         }
       end
 
-    Enum.sort_by(for_result, &{&1.name, &1.arity})
+    Enum.sort_by(functions, &{&1.name, &1.arity})
   end
 
   defp match_map_fields(map, hint) do
