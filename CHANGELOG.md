@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.1](https://github.com/elixir-tools/next-ls/compare/v0.14.0...v0.14.1) (2023-10-19)
+
+
+### Bug Fixes
+
+* **completions:** log warning when completion request fails ([0b7bd14](https://github.com/elixir-tools/next-ls/commit/0b7bd14c6c92a1e99fbbc7b342d327f9bfb26664))
+* **completions:** project local function calls ([d39ea23](https://github.com/elixir-tools/next-ls/commit/d39ea23536ce23d85ec901483e096f31d69058b6)), closes [#292](https://github.com/elixir-tools/next-ls/issues/292)
+
 ## [0.14.0](https://github.com/elixir-tools/next-ls/compare/v0.13.5...v0.14.0) (2023-10-19)
 
 
