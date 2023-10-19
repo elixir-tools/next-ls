@@ -772,12 +772,13 @@ defmodule NextLS.Autocomplete do
     []
   end
 
-  defp variables_from_binding(hint, _runtime) do
-    {:ok, ast} = Code.Fragment.container_cursor_to_quoted(hint, columns: true)
+  defp variables_from_binding(_hint, _runtime) do
+    # {:ok, ast} = Code.Fragment.container_cursor_to_quoted(hint, columns: true)
 
     # ast |> Macro.to_string() |> IO.puts()
 
-    NextLS.ASTHelpers.Variables.collect(ast)
+    # NextLS.ASTHelpers.Variables.collect(ast)
+    []
   end
 
   defp value_from_binding([_var | _path], _runtime) do

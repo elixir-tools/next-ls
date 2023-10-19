@@ -18,6 +18,9 @@ Still in heavy development, currently supporting the following features:
 - Extensions
   - Credo
 - Hover
+- Completions †
+
+† - denotes an experimental feature, which can be toggled on/off
 
 ## Supported Elixir Versions
 
