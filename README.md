@@ -125,6 +125,30 @@ Add the following settings (tested with [Zed Preview v0.106.2](https://zed.dev/r
 }
 ```
 
+If you would like to set initialization options, for example to enable an experimental feature, you can add the following to your settings.json file.
+
+Note the different between snake case and kebab case between the third and sixth lines.
+
+```json
+{
+  "elixir": {
+    "lsp": "next_ls"
+  },
+  "lsp": {
+     "next-ls": {
+         "initialization_options": {
+             "experimental": {
+               "completions": {
+                 "enable": true
+               }
+             }
+         }
+     }
+  }
+}
+```
+
+
 </details>
 </li>
 <li>
