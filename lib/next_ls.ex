@@ -563,7 +563,12 @@ defmodule NextLS do
 
     {:reply, results, lsp}
   rescue
-    _ ->
+    e ->
+      GenLSP.warning(
+        lsp,
+        "[NextLS] Failed to run completion request: #{Exception.format_banner(:error, e, __STACKTRACE__)}"
+      )
+
       {:reply, [], lsp}
   end
 
