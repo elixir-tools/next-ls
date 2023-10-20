@@ -195,12 +195,12 @@ defmodule NextLS.HoverTest do
                     "contents" => %{
                       "kind" => "markdown",
                       "value" =>
-                        "## :erlang.atom_to_binary/1\n\n" <>
+                        "## Atom.to_string/1\n\n" <>
                           _
                     },
                     "range" => %{
                       "start" => %{"character" => 14, "line" => 10},
-                      "end" => %{"character" => 27, "line" => 10}
+                      "end" => %{"character" => 22, "line" => 10}
                     }
                   },
                   500

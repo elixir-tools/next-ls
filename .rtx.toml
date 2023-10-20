@@ -1,4 +1,4 @@
 [tools]
-erlang = "26.0.2"
-elixir = "1.15.5-otp-26"
+erlang = "26.1.1"
+elixir = "1.15.7-otp-26"
 zig = "0.11.0"
