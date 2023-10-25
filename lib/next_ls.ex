@@ -961,7 +961,7 @@ defmodule NextLS do
     LIMIT 1
     """
 
-    case dbg(DB.query(database, definition_query, dbg([file, line, col]))) do
+    case DB.query(database, definition_query, [file, line, col]) do
       [[module, "defmodule", _]] ->
         {:module, module}
 
