@@ -85,9 +85,9 @@ defmodule NextLS.DB do
       {conn, s.logger},
       ~Q"""
       DELETE FROM symbols
-      WHERE module = ?;
+      WHERE module = ? OR file = ?;
       """,
-      [mod]
+      [mod, file]
     )
 
     __query__(
