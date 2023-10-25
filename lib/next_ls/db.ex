@@ -93,10 +93,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO symbols (module, file, type, name, line, 'column', source)
-          VALUES (?, ?, ?, ?, ?, ?, ?);
+      INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?);
       """,
-      [mod, file, "defmodule", mod, module_line, 1, source]
+      [mod, file, "defmodule", mod, module_line, 1, 1, source]
     )
 
     if struct do
@@ -105,21 +105,25 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, source]
+        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, 1, source]
       )
     end
 
     for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
+      # Elixir versions older than 1.16 did not provide column metadata
+      column_start = meta[:column] || 1
+      name = to_string(name)
+
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, meta[:line], meta[:column] || 1, source]
+        [mod, file, type, name, meta[:line], column_start, column_start + String.length(name), source]
       )
     end
 
@@ -127,10 +131,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, line, column, source]
+        [mod, file, type, name, line, column, column + String.length(name), source]
       )
     end
 
