@@ -946,6 +946,7 @@ defmodule NextLS do
     FROM "symbols" sym
     WHERE sym.file = ?
       AND sym.line = ?
+      AND (sym.type in ('defstruct', 'defmodule') OR ? BETWEEN sym.start_column AND sym.end_column)
     ORDER BY sym.id ASC
     LIMIT 1
     """
@@ -960,7 +961,7 @@ defmodule NextLS do
     LIMIT 1
     """
 
-    case DB.query(database, definition_query, [file, line]) do
+    case dbg(DB.query(database, definition_query, dbg([file, line, col]))) do
       [[module, "defmodule", _]] ->
         {:module, module}
 
