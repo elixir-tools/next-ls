@@ -43,6 +43,14 @@ defmodule NextLS.DB.Schema do
       []
     )
 
+    DB.__query__(
+      conn,
+      ~Q"""
+      PRAGMA synchronous = OFF
+      """,
+      []
+    )
+
     result =
       case DB.__query__(conn, ~Q"SELECT MAX(version) FROM schema;", []) do
         [[version]] when version == @version ->
