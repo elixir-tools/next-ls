@@ -90,17 +90,23 @@ defmodule NextLS.DB do
       [mod]
     )
 
+    {start_column, end_column} =
+      infer_columns_from_references(conn, s.logger, file, module_line, "defmodule")
+
     __query__(
       {conn, s.logger},
       ~Q"""
       INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?);
       """,
-      [mod, file, "defmodule", mod, module_line, 1, 1, source]
+      [mod, file, "defmodule", mod, module_line, start_column, end_column, source]
     )
 
     if struct do
       {_, _, meta, _} = defs[:__struct__]
+
+      {start_column, end_column} =
+        infer_columns_from_references(conn, s.logger, file, meta[:line], "defstruct")
 
       __query__(
         {conn, s.logger},
@@ -108,7 +114,7 @@ defmodule NextLS.DB do
         INSERT INTO symbols (module, file, type, name, line, start_column, end_column, source)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, 1, source]
+        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], start_column, end_column, source]
       )
     end
 
@@ -220,6 +226,24 @@ defmodule NextLS.DB do
 
       true ->
         arg
+    end
+  end
+
+  defp infer_columns_from_references(conn, logger, file, line, identifier) do
+    result =
+      __query__(
+        {conn, logger},
+        ~Q"""
+          SELECT start_column, end_column
+          FROM "references"
+          WHERE file = ? AND start_line = ? AND end_line = ? AND identifier = ?
+        """,
+        [file, line, line, identifier]
+      )
+
+    case result do
+      [[start_column, end_column]] -> {start_column, end_column}
+      _unknown -> {1, 1}
     end
   end
 end
