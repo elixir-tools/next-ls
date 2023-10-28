@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.2](https://github.com/elixir-tools/next-ls/compare/v0.14.1...v0.14.2) (2023-10-27)
+
+
+### Bug Fixes
+
+* make sqlite faster on Linux ([#307](https://github.com/elixir-tools/next-ls/issues/307)) ([b09e63e](https://github.com/elixir-tools/next-ls/commit/b09e63ef3fa85f33a0b5caf47783c81272994869))
+* shutdown when the transport closes ([#309](https://github.com/elixir-tools/next-ls/issues/309)) ([e8838bf](https://github.com/elixir-tools/next-ls/commit/e8838bf2b59a21ce5738b44c52ad0520ddda986e))
+
 ## [0.14.1](https://github.com/elixir-tools/next-ls/compare/v0.14.0...v0.14.1) (2023-10-19)
 
 
