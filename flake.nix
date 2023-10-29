@@ -95,11 +95,18 @@
                 afterCommand = ''
                   rm -rf "$out/bin"
                   mv "$out/burrito_out" "$out/bin"
-                  mv "$out/bin/next_ls_${burritoExe (system)}" "$out/bin/nextls"
+                  mv "$out/bin/next_ls_${burritoExe.${system}}" "$out/bin/nextls"
                 '';
               in beforeCommand
               + lib.optionalString (system == "x86_64-linux") patchCommand
               + afterCommand;
+
+              meta = with lib; {
+                license = licenses.mit;
+                homepage = "https://www.elixir-tools.dev/next-ls/";
+                description = "The language server for Elixir that just works";
+                mainProgram = "nextls";
+              };
             };
         in {
           default = build ("local");
