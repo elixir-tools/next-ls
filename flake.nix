@@ -63,9 +63,15 @@
               postInstall = ''
                 chmod +x ./burrito_out/*
                 cp -r ./burrito_out "$out"
-                ${lib.optionalString (system == "x86_64-linux") ''
-                  patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 \
-                    "$out/burrito_out/next_ls_linux_amd64"
+                ${lib.optionalString pkgs.stdenv.isLinux ''
+                  patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/${
+                    if system == "x86_64-linux"
+                    then "ld-linux-x86-64.so.2"
+                    else if system == "aarch64-linux"
+                    then "ld-linux-aarch64.so.1"
+                    else throw "unsupported Linux system"
+                  } \
+                  "$out/burrito_out/next_ls_${burritoExe.${system}}"
                 ''}
                 rm -rf "$out/bin"
                 mv "$out/burrito_out" "$out/bin"
