@@ -23,8 +23,8 @@
       };
     in {
       packages = forAllSystems ({ pkgs, system, beamPackages, elixir }:
-        let
-          build = type:
+        rec {
+          default = lib.makeOverridable ({ localBuild, beamPackages, elixir }:
             beamPackages.mixRelease rec {
               pname = "next-ls";
               version = "0.14.2"; # x-release-please-version
@@ -56,7 +56,7 @@
               '';
 
               preInstall =
-                lib.optionalString (type == "local") ''
+                lib.optionalString localBuild ''
                   export BURRITO_TARGET="${burritoExe.${system}}"
                 '';
 
@@ -78,10 +78,12 @@
                 description = "The language server for Elixir that just works";
                 mainProgram = "nextls";
               };
+            }) {
+              inherit beamPackages elixir;
+              localBuild = true;
             };
-        in {
-          default = build ("local");
-          ci = build ("ci");
+
+          ci = default.override { localBuild = false; };
         });
 
       devShells = forAllSystems ({ pkgs, beamPackages, elixir, ... }:
