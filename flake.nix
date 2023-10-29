@@ -106,15 +106,6 @@
           ci = build ("ci");
         });
 
-      apps = forAllSystems ({ pkgs, system, ... }: {
-        default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/burrito_out/next_ls_${
-              burritoExe (system)
-            }";
-        };
-      });
-
       devShells = forAllSystems ({ pkgs, ... }:
         let beamPackages = pkgs.beam.packages.${erlangVersion};
         in {
