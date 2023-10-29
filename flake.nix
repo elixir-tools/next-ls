@@ -5,6 +5,9 @@
     let
       lib = nixpkgs.lib;
 
+      erlangVersion = "erlang_26";
+      elixirVersion = "elixir_1_15";
+
       # Systems supported
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
@@ -46,12 +49,12 @@
     in {
       packages = forAllSystems ({ pkgs, system }:
         let
-          beamPackages = pkgs.beam.packages.erlang_26;
+          beamPackages = pkgs.beam.packages.${erlangVersion};
           build = type:
             beamPackages.mixRelease {
               inherit pname version src;
               erlang = beamPackages.erlang;
-              elixir = beamPackages.elixir_1_15;
+              elixir = beamPackages.${elixirVersion};
 
               nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
 
@@ -113,11 +116,11 @@
       });
 
       devShells = forAllSystems ({ pkgs, ... }:
-        let beamPackages = pkgs.beam.packages.erlang_26;
+        let beamPackages = pkgs.beam.packages.${erlangVersion};
         in {
           default = pkgs.mkShell {
             # The Nix packages provided in the environment
-            packages = [ beamPackages.erlang beamPackages.elixir_1_15 ];
+            packages = [ beamPackages.erlang beamPackages.${elixirVersion} ];
           };
         });
     };
