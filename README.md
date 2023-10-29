@@ -45,7 +45,7 @@ Currently it supports 1.13 and newer, but this could be lowered potentially.
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
                `((elixir-ts-mode heex-ts-mode elixir-mode) .
-                 ("nextls" "--stdio=true"))))
+                 ("next_ls" "--stdio=true"))))
 
 (add-hook 'elixir-mode-hook 'eglot-ensure)
 (add-hook 'elixir-ts-mode-hook 'eglot-ensure)
@@ -76,7 +76,7 @@ Currently it supports 1.13 and newer, but this could be lowered potentially.
 2. Configure the eglot client in `$DOOMDIR/config.el`
 
    ```elisp
-   (set-eglot-client! 'elixir-mode '("nextls" "--stdio"))
+   (set-eglot-client! 'elixir-mode '("next_ls" "--stdio"))
    ```
 
 </details>
@@ -160,10 +160,10 @@ Note the different between snake case and kebab case between the third and sixth
 Install Next LS somewhere on your PATH, or instead use an absolute path to the Next LS executable.
 
 ```vim
-if executable('nextls')
+if executable('next_ls')
     au User lsp_setup call lsp#register_server({
         \ 'name': 'next_ls',
-        \ 'cmd': ["nextls", "--stdio"],
+        \ 'cmd': ["next_ls", "--stdio"],
         \ 'root_uri':{server_info->lsp#utils#path_to_uri(
         \	lsp#utils#find_nearest_parent_file_directory(
         \		lsp#utils#get_buffer_path(),
@@ -188,7 +188,7 @@ Install Next LS somewhere on your PATH, or instead use an absolute path to the N
 let lspServers = [#{
 	\	  name: 'next_ls',
 	\	  filetype: ['elixir'],
-	\	  path: 'nextls',
+	\	  path: 'next_ls',
 	\	  args: ['--stdio'],
   \   rootSearchFiles: ['mix.exs']
 	\ }]
