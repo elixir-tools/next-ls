@@ -3,36 +3,16 @@
 
   outputs = { self, nixpkgs }:
     let
-      lib = nixpkgs.lib;
-
-      erlangVersion = "erlang_25";
-      elixirVersion = "elixir_1_15";
-
-      # Systems supported
-      allSystems = [
-        "x86_64-linux" # 64-bit Intel/AMD Linux
-        "aarch64-linux" # 64-bit ARM Linux
-        "x86_64-darwin" # 64-bit Intel macOS
-        "aarch64-darwin" # 64-bit ARM macOS
-      ];
-
-      pname = "next-ls";
-      version = "0.14.2"; # x-release-please-version
-      src = ./.;
+      inherit (nixpkgs) lib;
 
       # Helper to provide system-specific attributes
       forAllSystems = f:
-        nixpkgs.lib.genAttrs allSystems (system:
-          let pkgs = import nixpkgs { inherit system; };
-          in f {
-            inherit pkgs;
-            # src = pkgs.fetchFromGitHub {
-            #   owner = "elixir-tools";
-            #   repo = "next-ls";
-            #  rev = "v${version}";
-            #  sha256 = "sha256-jpOInsr7Le0fjJZToNNrlNyXNF1MtF1kQONXdC2VsV0=";
-            # };
-            system = system;
+        nixpkgs.lib.genAttrs (builtins.attrNames burritoExe) (system:
+          f rec {
+            inherit system;
+            pkgs = nixpkgs.legacyPackages.${system};
+            beamPackages = pkgs.beam.packages.erlang_25;
+            elixir = beamPackages.elixir_1_15;
           });
 
       burritoExe = {
@@ -42,14 +22,15 @@
         "aarch64-linux" = "linux_arm64";
       };
     in {
-      packages = forAllSystems ({ pkgs, system }:
+      packages = forAllSystems ({ pkgs, system, beamPackages, elixir }:
         let
-          beamPackages = pkgs.beam.packages.${erlangVersion};
           build = type:
-            beamPackages.mixRelease {
-              inherit pname version src;
-              erlang = beamPackages.erlang;
-              elixir = beamPackages.${elixirVersion};
+            beamPackages.mixRelease rec {
+              pname = "next-ls";
+              version = "0.14.2"; # x-release-please-version
+              src = self.outPath;
+              inherit (beamPackages) erlang;
+              inherit elixir;
 
               nativeBuildInputs = [ pkgs.xz pkgs.zig_0_11 pkgs._7zz ];
 
@@ -103,12 +84,11 @@
           ci = build ("ci");
         });
 
-      devShells = forAllSystems ({ pkgs, ... }:
-        let beamPackages = pkgs.beam.packages.${erlangVersion};
-        in {
+      devShells = forAllSystems ({ pkgs, beamPackages, elixir, ... }:
+        {
           default = pkgs.mkShell {
             # The Nix packages provided in the environment
-            packages = [ beamPackages.erlang beamPackages.${elixirVersion} ];
+            packages = [ beamPackages.erlang elixir ];
           };
         });
     };
