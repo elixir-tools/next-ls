@@ -35,17 +35,12 @@
             system = system;
           });
 
-      burritoExe = system:
-        if system == "aarch64-darwin" then
-          "darwin_arm64"
-        else if system == "x86_64-darwin" then
-          "darwin_amd64"
-        else if system == "x86_64-linux" then
-          "linux_amd64"
-        else if system == "aarch64-linux" then
-          "linux_arm64"
-        else
-          "";
+      burritoExe = {
+        "aarch64-darwin" = "darwin_arm64";
+        "x86_64-darwin" = "darwin_amd64";
+        "x86_64-linux" = "linux_amd64";
+        "aarch64-linux" = "linux_arm64";
+      };
     in {
       packages = forAllSystems ({ pkgs, system }:
         let
@@ -80,7 +75,7 @@
               '';
 
               preInstall = if type == "local" then ''
-                export BURRITO_TARGET="${burritoExe (system)}"
+                export BURRITO_TARGET="${burritoExe.${system}}"
               '' else
                 "";
 
