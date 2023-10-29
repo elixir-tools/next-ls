@@ -5,7 +5,7 @@
     let
       lib = nixpkgs.lib;
 
-      erlangVersion = "erlang_26";
+      erlangVersion = "erlang_25";
       elixirVersion = "elixir_1_15";
 
       # Systems supported
