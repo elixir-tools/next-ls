@@ -74,27 +74,22 @@
                 export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
               '';
 
-              preInstall = if type == "local" then ''
-                export BURRITO_TARGET="${burritoExe.${system}}"
-              '' else
-                "";
+              preInstall =
+                lib.optionalString (type == "local") ''
+                  export BURRITO_TARGET="${burritoExe.${system}}"
+                '';
 
-              postInstall = let
-                beforeCommand = ''
-                  chmod +x ./burrito_out/*
-                  cp -r ./burrito_out "$out"
-                '';
-                patchCommand = ''
-                  patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 "$out/burrito_out/next_ls_linux_amd64"
-                '';
-                afterCommand = ''
-                  rm -rf "$out/bin"
-                  mv "$out/burrito_out" "$out/bin"
-                  mv "$out/bin/next_ls_${burritoExe.${system}}" "$out/bin/nextls"
-                '';
-              in beforeCommand
-              + lib.optionalString (system == "x86_64-linux") patchCommand
-              + afterCommand;
+              postInstall = ''
+                chmod +x ./burrito_out/*
+                cp -r ./burrito_out "$out"
+                ${lib.optionalString (system == "x86_64-linux") ''
+                  patchelf --set-interpreter ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 \
+                    "$out/burrito_out/next_ls_linux_amd64"
+                ''}
+                rm -rf "$out/bin"
+                mv "$out/burrito_out" "$out/bin"
+                mv "$out/bin/next_ls_${burritoExe.${system}}" "$out/bin/nextls"
+              '';
 
               meta = with lib; {
                 license = licenses.mit;
