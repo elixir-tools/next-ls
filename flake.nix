@@ -11,7 +11,7 @@
           f rec {
             inherit system;
             pkgs = nixpkgs.legacyPackages.${system};
-            beamPackages = pkgs.beam.packages.erlang_25;
+            beamPackages = pkgs.beam.packages.erlang_26;
             elixir = beamPackages.elixir_1_15;
           });
 
