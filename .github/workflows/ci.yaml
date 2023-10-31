@@ -120,13 +120,12 @@ jobs:
         run: mix dialyzer --format github
 
   nix-build:
-    runs-on:
-      - ubuntu-latest
-      - macos-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{matrix.os}}
 
     steps:
       - uses: actions/checkout@v2
-
       - uses: nixbuild/nix-quick-install-action@v26
-
       - run: nix build
