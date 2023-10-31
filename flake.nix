@@ -45,7 +45,7 @@
           nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 pkgs._7zz];
 
           mixFodDeps = beamPackages.fetchMixDeps {
-            inherit src version;
+            inherit src version elixir;
             pname = "${pname}-deps";
             hash = "sha256-LCY9ClMG/hP9xEciZUg+A6NQ8V3K7mM2l+6D+WZcubM=";
           };
