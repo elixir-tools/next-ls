@@ -47,7 +47,7 @@
           mixFodDeps = beamPackages.fetchMixDeps {
             inherit src version elixir;
             pname = "${pname}-deps";
-            hash = "sha256-LCY9ClMG/hP9xEciZUg+A6NQ8V3K7mM2l+6D+WZcubM=";
+            hash = "sha256-LV1DYmWi0Mcz1S5k77/jexXYqay7OpysCwOtUcafqGE=";
           };
 
           preConfigure = ''
