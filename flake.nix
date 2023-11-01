@@ -58,16 +58,11 @@
             hash = "sha256-LV1DYmWi0Mcz1S5k77/jexXYqay7OpysCwOtUcafqGE=";
           };
 
-          preConfigure = ''
-            export HOME="$(pwd)"
-          '';
+          BURRITO_ERTS_PATH = "${beamPackages.erlang}/lib/erlang";
+          BURRITO_TARGET = lib.optional localBuild burritoExe.${system};
 
           preBuild = ''
-            export BURRITO_ERTS_PATH=${beamPackages.erlang}/lib/erlang
-          '';
-
-          preInstall = lib.optionalString localBuild ''
-            export BURRITO_TARGET="${burritoExe.${system}}"
+            export HOME="$tmpDir"
           '';
 
           postInstall = ''
