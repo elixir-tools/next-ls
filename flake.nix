@@ -29,7 +29,15 @@
       system,
       beamPackages,
       elixir,
-    }: rec {
+    }: let
+      aliased_7zz = pkgs.symlinkJoin {
+        name = "7zz-aliased";
+        paths = [pkgs._7zz];
+        postBuild = ''
+          ln -s ${pkgs._7zz}/bin/7zz $out/bin/7z
+        '';
+      };
+    in rec {
       default = lib.makeOverridable ({
         localBuild,
         beamPackages,
@@ -42,7 +50,7 @@
           inherit (beamPackages) erlang;
           inherit elixir;
 
-          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 pkgs._7zz];
+          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz];
 
           mixFodDeps = beamPackages.fetchMixDeps {
             inherit src version elixir;
@@ -51,14 +59,7 @@
           };
 
           preConfigure = ''
-            bindir="$(pwd)/bin"
-            mkdir -p "$bindir"
-            echo '#!/usr/bin/env bash
-            7zz "$@"' > "$bindir/7z"
-            chmod +x "$bindir/7z"
-
             export HOME="$(pwd)"
-            export PATH="$bindir:$PATH"
           '';
 
           preBuild = ''
