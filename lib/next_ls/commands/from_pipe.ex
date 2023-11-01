@@ -8,50 +8,48 @@ defmodule NextLS.Commands.FromPipe do
 
   defp opts do
     Schematic.map(%{
-      position: Schematic.map(%{character: Schematic.int(), line: Schematic.int()}),
+      position: Position.schematic(),
       uri: Schematic.str(),
       text: Schematic.list(Schematic.str())
     })
   end
 
   def new(opts) do
-    {:ok, %{text: text, uri: uri, position: position}} = Schematic.unify(opts(), Map.new(opts))
-
-    case from_pipe_edit(text, position) do
-      {:ok, %TextEdit{} = edit} ->
-        %WorkspaceEdit{
-          changes: %{
-            uri => [edit]
-          }
+    with {:ok, %{text: text, uri: uri, position: position}} <- Schematic.unify(opts(), Map.new(opts)),
+         {:ok, %TextEdit{} = edit} <- from_pipe_edit(text, position) do
+      %WorkspaceEdit{
+        changes: %{
+          uri => [edit]
         }
-
+      }
+    else
       {:error, message} ->
         %GenLSP.ErrorResponse{code: ErrorCodes.parse_error(), message: inspect(message)}
     end
   end
 
   defp find_pipe_lines(text, line) do
-    coursor_text_line = Enum.at(text, line)
+    cursor_text_line = Enum.at(text, line)
 
-    if String.contains?(coursor_text_line, "|>") do
-      case Code.string_to_quoted(coursor_text_line) do
+    if String.contains?(cursor_text_line, "|>") do
+      case Code.string_to_quoted(cursor_text_line) do
         {:ok, _} ->
           range = %Range{
             start: %Position{line: line, character: 0},
-            end: %Position{line: line, character: String.length(coursor_text_line)}
+            end: %Position{line: line, character: String.length(cursor_text_line)}
           }
 
-          {:ok, [coursor_text_line], range}
+          {:ok, [cursor_text_line], range}
 
         {:error, _} ->
           previous_line = Enum.at(text, line - 1)
 
           range = %Range{
             start: %Position{line: line - 1, character: 0},
-            end: %Position{line: line, character: String.length(coursor_text_line)}
+            end: %Position{line: line, character: String.length(cursor_text_line)}
           }
 
-          {:ok, [previous_line, coursor_text_line], range}
+          {:ok, [previous_line, cursor_text_line], range}
       end
     else
       next_line = Enum.at(text, line + 1)
@@ -61,7 +59,7 @@ defmodule NextLS.Commands.FromPipe do
         end: %Position{line: line + 1, character: String.length(next_line)}
       }
 
-      {:ok, [coursor_text_line, next_line], range}
+      {:ok, [cursor_text_line, next_line], range}
     end
   end
 
@@ -70,9 +68,6 @@ defmodule NextLS.Commands.FromPipe do
          {:ok, indent} <- get_indent(text, line),
          {:ok, edit} <- get_edit(lines) do
       {:ok, %TextEdit{new_text: indent <> edit, range: range_to_edit}}
-    else
-      {:error, _message} = error ->
-        error
     end
   end
 

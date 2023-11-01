@@ -8,37 +8,41 @@ defmodule NextLS.Commands.ToPipe do
 
   defp opts do
     Schematic.map(%{
-      position: Schematic.map(%{character: Schematic.int(), line: Schematic.int()}),
+      position: Position.schematic(),
       uri: Schematic.str(),
       text: Schematic.list(Schematic.str())
     })
   end
 
   def new(opts) do
-    {:ok, %{text: text, uri: uri, position: position}} = Schematic.unify(opts(), Map.new(opts))
-
-    case to_pipe_edit(text, position) do
-      {:ok, %TextEdit{} = edit} ->
-        %WorkspaceEdit{
-          changes: %{
-            uri => [edit]
-          }
+    with {:ok, %{text: text, uri: uri, position: position}} <- Schematic.unify(opts(), Map.new(opts)),
+         {:ok, %TextEdit{} = edit} <- to_pipe_edit(text, position) do
+      %WorkspaceEdit{
+        changes: %{
+          uri => [edit]
         }
-
+      }
+    else
       {:error, message} ->
         %GenLSP.ErrorResponse{code: ErrorCodes.parse_error(), message: inspect(message)}
     end
   end
 
   defp find_pipe_line(text, line) do
-    coursor_text_line = Enum.at(text, line)
+    cursor_text_line = Enum.at(text, line)
 
-    range = %Range{
-      start: %Position{line: line, character: 0},
-      end: %Position{line: line, character: String.length(coursor_text_line)}
-    }
+    case Code.string_to_quoted(cursor_text_line) do
+      {:ok, _} ->
+        range = %Range{
+          start: %Position{line: line, character: 0},
+          end: %Position{line: line, character: String.length(cursor_text_line)}
+        }
 
-    {:ok, coursor_text_line, range}
+        {:ok, cursor_text_line, range}
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   defp to_pipe_edit(text, %{line: line}) do
@@ -164,7 +168,7 @@ defmodule NextLS.Commands.ToPipe do
         {:ok, first, alias_qualified}
 
       _ ->
-        {:error, "could not find argument to extract"}
+        {:error, "could not find an argument to extract"}
     end
   end
 

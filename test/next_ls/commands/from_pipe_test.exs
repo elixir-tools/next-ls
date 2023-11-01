@@ -3,6 +3,7 @@ defmodule NextLS.Commands.FromPipeTest do
 
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
+
   alias NextLS.Commands.FromPipe
 
   @moduletag :tmp_dir
@@ -24,7 +25,7 @@ defmodule NextLS.Commands.FromPipeTest do
           "\n"
         )
 
-      position = %{line: 2, character: 5}
+      position = %{"line" => 2, "character" => 5}
       expected_line = Enum.at(text, 2)
       indent = "    "
 
@@ -53,7 +54,7 @@ defmodule NextLS.Commands.FromPipeTest do
           "\n"
         )
 
-      position = %{line: 2, character: 5}
+      position = %{"line" => 2, "character" => 5}
       expected_line = Enum.at(text, 2)
       indent = "    "
 
@@ -67,8 +68,8 @@ defmodule NextLS.Commands.FromPipeTest do
       assert range.end.character == String.length(expected_line)
     end
 
-    test "works on separate lines when the coursor is on the pipe" do
-      # When the coursor is on the pipe
+    test "works on separate lines when the cursor is on the pipe" do
+      # When the cursor is on the pipe
       # We should get the line before it to build the ast
       uri = "my_app.ex"
 
@@ -86,7 +87,7 @@ defmodule NextLS.Commands.FromPipeTest do
           "\n"
         )
 
-      position = %{line: 3, character: 5}
+      position = %{"line" => 3, "character" => 5}
       expected_line = Enum.at(text, 3)
       indent = "    "
 
@@ -100,8 +101,8 @@ defmodule NextLS.Commands.FromPipeTest do
       assert range.end.character == String.length(expected_line)
     end
 
-    test "works on separate lines when the coursor is on the var" do
-      # When the coursor is on the var
+    test "works on separate lines when the cursor is on the var" do
+      # When the cursor is on the var
       # we should get the next line to build the ast
       uri = "my_app.ex"
 
@@ -119,7 +120,7 @@ defmodule NextLS.Commands.FromPipeTest do
           "\n"
         )
 
-      position = %{line: 2, character: 5}
+      position = %{"line" => 2, "character" => 5}
       expected_line = Enum.at(text, 3)
       indent = "    "
 
@@ -149,12 +150,20 @@ defmodule NextLS.Commands.FromPipeTest do
           "\n"
         )
 
-      position = %{line: 3, character: 5}
+      position = %{"line" => 3, "character" => 5}
 
       assert %GenLSP.ErrorResponse{code: @parse_error_code, message: message} =
                FromPipe.new(%{uri: uri, text: text, position: position})
 
       assert message =~ "syntax error before"
+    end
+
+    test "we handle schematic errors" do
+
+      assert %GenLSP.ErrorResponse{code: @parse_error_code, message: message} =
+               FromPipe.new(%{bad_arg: :is_very_bad})
+
+      assert message =~ "position: \"expected a map\""
     end
   end
 end
