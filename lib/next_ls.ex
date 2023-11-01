@@ -572,6 +572,27 @@ defmodule NextLS do
       {:reply, [], lsp}
   end
 
+  def handle_request(
+        %GenLSP.Requests.WorkspaceExecuteCommand{params: %GenLSP.Structures.ExecuteCommandParams{command: command} = params},
+        lsp
+      ) do
+
+    reply =
+      case command do
+        "from-pipe" ->
+          NextLS.Commands.FromPipe.new(params.arguments)
+
+        "to-pipe" ->
+          NextLS.Commands.ToPipe.new(params.arguments)
+
+        _ ->
+          NextLS.Logger.warning(lsp.logger, "[Next LS] Unknown workspace command: #{command}")
+          nil
+      end
+
+    {:reply, reply, lsp}
+  end
+
   def handle_request(%Shutdown{}, lsp) do
     {:reply, nil, assign(lsp, exit_code: 0)}
   end
