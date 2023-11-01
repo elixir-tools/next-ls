@@ -38,12 +38,30 @@ defmodule NextLS.CredoExtensionTest do
 
   setup :with_lsp
 
+  @tag init_options: %{"extensions" => %{"credo" => %{"enable" => false}}}
+  test "disables Credo", %{client: client, foo: foo} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+
+    assert_is_ready(context, "my_proj")
+    assert_compiled(context, "my_proj")
+
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] [extension] Credo disabled",
+      "type" => 4
+    }
+  end
+
   test "publishes credo diagnostics", %{client: client, foo: foo} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
     assert_is_ready(context, "my_proj")
     assert_compiled(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
+
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] [extension] Credo initializing with options" <> _,
+      "type" => 4
+    }
 
     uri = uri(foo)
 

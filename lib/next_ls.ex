@@ -67,7 +67,7 @@ defmodule NextLS do
 
     registry = Keyword.fetch!(args, :registry)
 
-    extensions = Keyword.get(args, :extensions, [NextLS.ElixirExtension, NextLS.CredoExtension])
+    extensions = Keyword.get(args, :extensions, elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension)
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
@@ -598,16 +598,23 @@ defmodule NextLS do
         )
     end
 
-    for extension <- lsp.assigns.extensions do
-      {:ok, _} =
+    for {id, extension} <- lsp.assigns.extensions do
+      child =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
           {extension,
+           settings: Map.fetch!(lsp.assigns.init_opts.extensions, id),
+           logger: lsp.assigns.logger,
            cache: lsp.assigns.cache,
            registry: lsp.assigns.registry,
            publisher: self(),
            task_supervisor: lsp.assigns.runtime_task_supervisor}
         )
+
+      case child do
+        {:ok, _pid} -> :ok
+        :ignore -> :ok
+      end
     end
 
     with %{dynamic_registration: true} <- lsp.assigns.client_capabilities.workspace.did_change_watched_files do
@@ -1092,11 +1099,25 @@ defmodule NextLS do
     defstruct completions: %{enable: false}
   end
 
+  defmodule InitOpts.Extensions.Credo do
+    @moduledoc false
+    defstruct enable: true
+  end
+
+  defmodule InitOpts.Extensions do
+    @moduledoc false
+    defstruct elixir: %{enable: true},
+              credo: %NextLS.InitOpts.Extensions.Credo{}
+  end
+
   defmodule InitOpts do
     @moduledoc false
     import Schematic
 
-    defstruct mix_target: "host", mix_env: "dev", experimental: %NextLS.InitOpts.Experimental{}
+    defstruct mix_target: "host",
+              mix_env: "dev",
+              experimental: %NextLS.InitOpts.Experimental{},
+              extensions: %NextLS.InitOpts.Extensions{}
 
     def validate(opts) do
       schematic =
@@ -1107,6 +1128,17 @@ defmodule NextLS do
             optional(:experimental) =>
               schema(NextLS.InitOpts.Experimental, %{
                 optional(:completions) =>
+                  map(%{
+                    {"enable", :enable} => bool()
+                  })
+              }),
+            optional(:extensions) =>
+              schema(NextLS.InitOpts.Extensions, %{
+                optional(:credo) =>
+                  schema(NextLS.InitOpts.Extensions.Credo, %{
+                    optional(:enable) => bool()
+                  }),
+                optional(:elixir) =>
                   map(%{
                     {"enable", :enable} => bool()
                   })
