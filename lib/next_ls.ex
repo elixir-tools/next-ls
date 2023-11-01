@@ -592,6 +592,16 @@ defmodule NextLS do
       end
 
     {:reply, reply, lsp}
+  rescue
+    e ->
+      GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
+        params: %GenLSP.Structures.ShowMessageParams{
+          type: GenLSP.Enumerations.MessageType.warning(),
+          message: "[Next LS] #{command} command has crashed"
+        }
+      })
+
+      {:reply, nil, lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
