@@ -3,11 +3,10 @@ defmodule NextLS.Commands.FromPipeTest do
 
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
-
   alias NextLS.Commands.FromPipe
 
   @moduletag :tmp_dir
-  @parse_error_code -32700
+  @parse_error_code -32_700
 
   describe "from-pipe" do
     test "works on one liners" do
@@ -154,6 +153,7 @@ defmodule NextLS.Commands.FromPipeTest do
 
       assert %GenLSP.ErrorResponse{code: @parse_error_code, message: message} =
                FromPipe.new(%{uri: uri, text: text, position: position})
+
       assert message =~ "syntax error before"
     end
   end

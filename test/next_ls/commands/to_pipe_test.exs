@@ -3,11 +3,10 @@ defmodule NextLS.Commands.ToPipeTest do
 
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
-
   alias NextLS.Commands.ToPipe
 
   @moduletag :tmp_dir
-  @parse_error_code -32700
+  @parse_error_code -32_700
 
   describe "to-pipe" do
     test "works on one liners" do
@@ -39,7 +38,6 @@ defmodule NextLS.Commands.ToPipeTest do
       assert range.end.line == line
       assert range.end.character == String.length(expected_line)
     end
-
 
     test "works on one liners with imports" do
       uri = "my_app.ex"
@@ -137,16 +135,17 @@ defmodule NextLS.Commands.ToPipeTest do
       {"to_list(Map.new)", "Map.new() |> to_list()"},
       {"to_list(a, b, c)", "a |> to_list(b, c)"},
       {"Foo.Bar.baz(foo, bar)", "foo |> Foo.Bar.baz(bar)"},
-      {"Foo.Bar.baz(foo, bar, Map.new())", "foo |> Foo.Bar.baz(bar, Map.new())"},
-
+      {"Foo.Bar.baz(foo, bar, Map.new())", "foo |> Foo.Bar.baz(bar, Map.new())"}
     ]
 
     test "small test scenarios works" do
       uri = "foo.ex"
       position = %{line: 0, character: 0}
-      Enum.each(@test_scenarios, fn {to_transform, expected} ->
 
-        assert %WorkspaceEdit{changes: %{^uri => [edit]}} = ToPipe.new(%{uri: uri, text: [to_transform], position: position})
+      Enum.each(@test_scenarios, fn {to_transform, expected} ->
+        assert %WorkspaceEdit{changes: %{^uri => [edit]}} =
+                 ToPipe.new(%{uri: uri, text: [to_transform], position: position})
+
         assert edit.new_text == expected
       end)
     end

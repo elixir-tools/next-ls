@@ -1,10 +1,10 @@
 defmodule NextLS.Commands.FromPipe do
   @moduledoc false
+  alias GenLSP.Enumerations.ErrorCodes
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
-  alias GenLSP.Enumerations.ErrorCodes
 
   defp opts do
     Schematic.map(%{
@@ -67,9 +67,9 @@ defmodule NextLS.Commands.FromPipe do
 
   defp from_pipe_edit(text, %{line: line}) do
     with {:ok, lines, range_to_edit} <- find_pipe_lines(text, line),
-      {:ok, indent} <- get_indent(text, line),
-      {:ok, edit} <- get_edit(lines) do
-        {:ok, %TextEdit{new_text: indent <> edit, range: range_to_edit}}
+         {:ok, indent} <- get_indent(text, line),
+         {:ok, edit} <- get_edit(lines) do
+      {:ok, %TextEdit{new_text: indent <> edit, range: range_to_edit}}
     else
       {:error, _message} = error ->
         error
@@ -108,7 +108,7 @@ defmodule NextLS.Commands.FromPipe do
     indent =
       text
       |> Enum.at(line)
-      |> (&Regex.run(~r/^(\s*).*/, &1)).()
+      |> then(&Regex.run(~r/^(\s*).*/, &1))
       |> List.last()
 
     {:ok, indent}

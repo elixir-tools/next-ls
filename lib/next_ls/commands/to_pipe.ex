@@ -63,7 +63,9 @@ defmodule NextLS.Commands.ToPipe do
   defp extract_to_pipe({:ok, ast}, {modules, function}, true = _alias) do
     {result, _} =
       Macro.prewalk(ast, _changed = false, fn
-        {{:., _context, _args} = call, context, [{{:., _, [{:__aliases__, _, ^modules}, ^function]}, _, _} = first | rest]}, false ->
+        {{:., _context, _args} = call, context,
+         [{{:., _, [{:__aliases__, _, ^modules}, ^function]}, _, _} = first | rest]},
+        false ->
           new_ast = {:|>, [line: 1], [first, {call, context, rest}]}
           {new_ast, true}
 
@@ -153,7 +155,7 @@ defmodule NextLS.Commands.ToPipe do
               |> String.split(".")
               |> List.pop_at(-1)
 
-            modules = Enum.map(rest, & String.to_atom(&1))
+            modules = Enum.map(rest, &String.to_atom(&1))
             {modules, String.to_atom(function)}
           else
             String.to_atom(first)

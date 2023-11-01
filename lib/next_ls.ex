@@ -573,10 +573,11 @@ defmodule NextLS do
   end
 
   def handle_request(
-        %GenLSP.Requests.WorkspaceExecuteCommand{params: %GenLSP.Structures.ExecuteCommandParams{command: command} = params},
+        %GenLSP.Requests.WorkspaceExecuteCommand{
+          params: %GenLSP.Structures.ExecuteCommandParams{command: command} = params
+        },
         lsp
       ) do
-
     reply =
       case command do
         "from-pipe" ->
