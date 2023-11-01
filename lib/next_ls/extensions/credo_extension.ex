@@ -88,7 +88,7 @@ defmodule NextLS.CredoExtension do
 
               task =
                 Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-                  case Runtime.call(runtime, {:_next_ls_private_credo, :issues, [path]}) do
+                  case Runtime.call(runtime, {:_next_ls_private_credo, :issues, [state.settings.cli_options, path]}) do
                     {:ok, issues} -> issues
                     _error -> []
                   end
