@@ -127,6 +127,9 @@ defmodule NextLS do
              nil
            end,
          document_formatting_provider: true,
+         execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
+           commands: ["to-pipe", "from-pipe"]
+         },
          hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
@@ -581,25 +584,46 @@ defmodule NextLS do
     reply =
       case command do
         "from-pipe" ->
-          NextLS.Commands.FromPipe.new(params.arguments)
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.FromPipe.new(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
 
         "to-pipe" ->
-          NextLS.Commands.ToPipe.new(params.arguments)
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.ToPipe.new(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
 
         _ ->
-          NextLS.Logger.warning(lsp.logger, "[Next LS] Unknown workspace command: #{command}")
+          NextLS.Logger.show_message(lsp.logger, :warning, "[Next LS] Unknown workspace command: #{command}")
           nil
       end
 
     {:reply, reply, lsp}
   rescue
     e ->
-      GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
-        params: %GenLSP.Structures.ShowMessageParams{
-          type: GenLSP.Enumerations.MessageType.warning(),
-          message: "[Next LS] #{command} command has crashed"
-        }
-      })
+      NextLS.Logger.show_message(
+        lsp.assigns.logger,
+        :error,
+        "[Next LS] #{command} has failed, see the logs for more details"
+      )
+
+      NextLS.Logger.error(lsp.assigns.logger, Exception.format_banner(:error, e, __STACKTRACE__))
 
       {:reply, nil, lsp}
   end
