@@ -1,6 +1,11 @@
 {
   inputs = {nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";};
 
+  nixConfig = {
+    extra-substituters = [ "https://elixir-tools.cachix.org" ];
+    extra-trusted-public-keys = [ "elixir-tools.cachix.org-1:GfK9E139Ysi+YWeS1oNN9OaTfQjqpLwlBaz+/73tBjU=" ];
+  };
+
   outputs = {
     self,
     nixpkgs,
