@@ -146,5 +146,5 @@ jobs:
         with:
           name: elixir-tools
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - run: nix build
-      - run: nix flake check
+      - run: nix build --accept-flake-config
+      - run: nix flake check --accept-flake-config
