@@ -9,8 +9,20 @@ permissions:
   pull-requests: write
 
 jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    name: commitlint
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Deps
+        run: yarn install
+      - name: Lint PR Title
+        run: yarn commitlint --from HEAD~1 --to HEAD
+
   release:
     name: release
+    needs: commitlint
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
