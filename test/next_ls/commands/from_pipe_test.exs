@@ -3,7 +3,6 @@ defmodule NextLS.Commands.FromPipeTest do
 
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
-
   alias NextLS.Commands.FromPipe
 
   @moduletag :tmp_dir
@@ -159,7 +158,6 @@ defmodule NextLS.Commands.FromPipeTest do
     end
 
     test "we handle schematic errors" do
-
       assert %GenLSP.ErrorResponse{code: @parse_error_code, message: message} =
                FromPipe.new(%{bad_arg: :is_very_bad})
 

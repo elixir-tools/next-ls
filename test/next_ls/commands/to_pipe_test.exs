@@ -3,7 +3,6 @@ defmodule NextLS.Commands.ToPipeTest do
 
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
-
   alias NextLS.Commands.ToPipe
 
   @moduletag :tmp_dir
@@ -26,7 +25,7 @@ defmodule NextLS.Commands.ToPipeTest do
         )
 
       line = 2
-      position = %{"line" =>  line, "character" =>  5}
+      position = %{"line" => line, "character" => 5}
       expected_line = Enum.at(text, 2)
       indent = "    "
 
@@ -175,7 +174,6 @@ defmodule NextLS.Commands.ToPipeTest do
     end
 
     test "we handle schematic errors" do
-
       assert %GenLSP.ErrorResponse{code: @parse_error_code, message: message} =
                ToPipe.new(%{bad_arg: :is_very_bad})
 
