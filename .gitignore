@@ -30,3 +30,4 @@ result
 # Ignore dialyzer plt files
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+node_modules
