@@ -23,7 +23,7 @@ defmodule NextLS.CredoExtensionTest do
     File.write!(foo, """
     defmodule Foo do
       def run() do
-        :ok
+        dbg(:ok)
       end
     end
     """)
@@ -39,7 +39,7 @@ defmodule NextLS.CredoExtensionTest do
   setup :with_lsp
 
   @tag init_options: %{"extensions" => %{"credo" => %{"enable" => false}}}
-  test "disables Credo", %{client: client, foo: foo} = context do
+  test "disables Credo", %{client: client} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
     assert_is_ready(context, "my_proj")
@@ -48,6 +48,44 @@ defmodule NextLS.CredoExtensionTest do
     assert_notification "window/logMessage", %{
       "message" => "[NextLS] [extension] Credo disabled",
       "type" => 4
+    }
+  end
+
+  @tag init_options: %{"extensions" => %{"credo" => %{"cli_options" => ["--only", "warning"]}}}
+  test "configures cli options", %{client: client, foo: foo} = context do
+    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+
+    assert_is_ready(context, "my_proj")
+    assert_compiled(context, "my_proj")
+
+    assert_notification "window/logMessage", %{
+      "message" => "[NextLS] [extension] Credo initializing with options" <> _,
+      "type" => 4
+    }
+
+    uri = uri(foo)
+
+    assert_notification "textDocument/publishDiagnostics", %{
+      "uri" => ^uri,
+      "diagnostics" => [
+        %{
+          "code" => "Credo.Check.Warning.Dbg",
+          "codeDescription" => %{
+            "href" => "https://hexdocs.pm/credo/Credo.Check.Warning.Dbg.html"
+          },
+          "data" => %{
+            "check" => "Elixir.Credo.Check.Warning.Dbg",
+            "file" => "lib/foo.ex"
+          },
+          "message" => "There should be no calls to dbg.",
+          "range" => %{
+            "end" => %{"character" => 999, "line" => 2},
+            "start" => %{"character" => 4, "line" => 2}
+          },
+          "severity" => 2,
+          "source" => "credo"
+        }
+      ]
     }
   end
 
@@ -69,20 +107,20 @@ defmodule NextLS.CredoExtensionTest do
       "uri" => ^uri,
       "diagnostics" => [
         %{
-          "code" => "Credo.Check.Readability.ParenthesesOnZeroArityDefs",
+          "code" => "Credo.Check.Warning.Dbg",
           "codeDescription" => %{
-            "href" => "https://hexdocs.pm/credo/Credo.Check.Readability.ParenthesesOnZeroArityDefs.html"
+            "href" => "https://hexdocs.pm/credo/Credo.Check.Warning.Dbg.html"
           },
           "data" => %{
-            "check" => "Elixir.Credo.Check.Readability.ParenthesesOnZeroArityDefs",
+            "check" => "Elixir.Credo.Check.Warning.Dbg",
             "file" => "lib/foo.ex"
           },
-          "message" => "Do not use parentheses when defining a function which has no arguments.",
+          "message" => "There should be no calls to dbg.",
           "range" => %{
-            "end" => %{"character" => 999, "line" => 1},
-            "start" => %{"character" => 0, "line" => 1}
+            "end" => %{"character" => 999, "line" => 2},
+            "start" => %{"character" => 4, "line" => 2}
           },
-          "severity" => 3,
+          "severity" => 2,
           "source" => "credo"
         },
         %{

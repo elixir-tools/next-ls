@@ -1101,7 +1101,8 @@ defmodule NextLS do
 
   defmodule InitOpts.Extensions.Credo do
     @moduledoc false
-    defstruct enable: true
+    defstruct enable: true,
+              cli_options: []
   end
 
   defmodule InitOpts.Extensions do
@@ -1136,7 +1137,8 @@ defmodule NextLS do
               schema(NextLS.InitOpts.Extensions, %{
                 optional(:credo) =>
                   schema(NextLS.InitOpts.Extensions.Credo, %{
-                    optional(:enable) => bool()
+                    optional(:enable) => bool(),
+                    optional(:cli_options) => list(str())
                   }),
                 optional(:elixir) =>
                   map(%{
