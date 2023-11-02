@@ -25,6 +25,7 @@ jobs:
         with:
           release-type: elixir
           package-name: next_ls
+          bump-minor-pre-major: true
           extra-files: |
             flake.nix
   draft:
