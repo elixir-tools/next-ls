@@ -44,8 +44,9 @@ defmodule NextLS.Support.Utils do
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
     start_supervised!({Registry, [keys: :duplicate, name: context.module]})
-    extensions = [NextLS.ElixirExtension, NextLS.CredoExtension]
+    extensions = [elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension]
     cache = start_supervised!(NextLS.DiagnosticCache)
+    init_options = context[:init_options] || %{}
 
     server =
       server(NextLS,
@@ -67,6 +68,7 @@ defmodule NextLS.Support.Utils do
                id: 1,
                jsonrpc: "2.0",
                params: %{
+                 initializationOptions: init_options,
                  capabilities: %{
                    workspace: %{
                      workspaceFolders: true

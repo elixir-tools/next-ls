@@ -13,7 +13,7 @@ defmodule NextLS.CredoExtension do
   def start_link(args) do
     GenServer.start_link(
       __MODULE__,
-      Keyword.take(args, [:cache, :registry, :publisher, :task_supervisor]),
+      Keyword.take(args, [:cache, :registry, :publisher, :task_supervisor, :settings, :logger]),
       Keyword.take(args, [:name])
     )
   end
@@ -24,18 +24,29 @@ defmodule NextLS.CredoExtension do
     registry = Keyword.fetch!(args, :registry)
     publisher = Keyword.fetch!(args, :publisher)
     task_supervisor = Keyword.fetch!(args, :task_supervisor)
+    settings = Keyword.fetch!(args, :settings)
+    logger = Keyword.fetch!(args, :logger)
 
-    Registry.register(registry, :extensions, :credo)
+    if settings.enable do
+      Registry.register(registry, :extensions, :credo)
 
-    {:ok,
-     %{
-       runtimes: Map.new(),
-       cache: cache,
-       registry: registry,
-       task_supervisor: task_supervisor,
-       publisher: publisher,
-       refresh_refs: Map.new()
-     }}
+      NextLS.Logger.log(logger, "[extension] Credo initializing with options #{inspect(settings)}")
+
+      {:ok,
+       %{
+         runtimes: Map.new(),
+         cache: cache,
+         registry: registry,
+         task_supervisor: task_supervisor,
+         publisher: publisher,
+         settings: settings,
+         logger: logger,
+         refresh_refs: Map.new()
+       }}
+    else
+      NextLS.Logger.log(logger, "[extension] Credo disabled")
+      :ignore
+    end
   end
 
   @impl GenServer
