@@ -139,7 +139,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v22
+      - uses: cachix/install-nix-action@v23
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: cachix/cachix-action@v12
