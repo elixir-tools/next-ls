@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.15.0](https://github.com/elixir-tools/next-ls/compare/v0.14.2...v0.15.0) (2023-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **extension,credo:** configurable cli options and new default ([#322](https://github.com/elixir-tools/next-ls/issues/322))
+
+### Features
+
+* **extension,credo:** ability to disable Credo extension ([#321](https://github.com/elixir-tools/next-ls/issues/321)) ([6fda39e](https://github.com/elixir-tools/next-ls/commit/6fda39e506db939e7c7b6afe66c9d017a219c355))
+* **extension,credo:** configurable cli options and new default ([#322](https://github.com/elixir-tools/next-ls/issues/322)) ([34738f5](https://github.com/elixir-tools/next-ls/commit/34738f5f5b0dc802b6213d9d8ce12acd4641a2d6))
+
+
+### Bug Fixes
+
+* vscode sends an another "attribute" ([#331](https://github.com/elixir-tools/next-ls/issues/331)) ([d4b090e](https://github.com/elixir-tools/next-ls/commit/d4b090e76da8ee1d0cf1e74e449ce991efd638b4))
+
 ## [0.14.2](https://github.com/elixir-tools/next-ls/compare/v0.14.1...v0.14.2) (2023-10-27)
 
 
