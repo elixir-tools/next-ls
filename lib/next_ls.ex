@@ -369,7 +369,7 @@ defmodule NextLS do
                       nil
                   end
 
-                nil ->
+                _ ->
                   nil
               end
             else
