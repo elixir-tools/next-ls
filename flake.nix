@@ -12,15 +12,16 @@
   }: let
     inherit (nixpkgs) lib;
 
+    version = "0.14.2"; # x-release-please-version
+
     # Helper to provide system-specific attributes
     forAllSystems = f:
-      nixpkgs.lib.genAttrs (builtins.attrNames burritoExe) (system:
-        f rec {
-          inherit system;
-          pkgs = nixpkgs.legacyPackages.${system};
-          beamPackages = pkgs.beam.packages.erlang_26;
-          elixir = beamPackages.elixir_1_15;
-        });
+      nixpkgs.lib.genAttrs (builtins.attrNames burritoExe) (system: let
+        pkgs = nixpkgs.legacyPackages.${system};
+        beamPackages = pkgs.beam.packages.erlang_26;
+        elixir = beamPackages.elixir_1_15;
+      in
+        f {inherit system pkgs beamPackages elixir;});
 
     burritoExe = {
       "aarch64-darwin" = "darwin_arm64";
@@ -42,24 +43,24 @@
           ln -s ${pkgs._7zz}/bin/7zz $out/bin/7z
         '';
       };
-    in rec {
+    in {
       default = lib.makeOverridable ({
         localBuild,
         beamPackages,
         elixir,
       }:
-        beamPackages.mixRelease rec {
+        beamPackages.mixRelease {
           pname = "next-ls";
-          version = "0.14.2"; # x-release-please-version
           src = self.outPath;
+          inherit version elixir;
           inherit (beamPackages) erlang;
-          inherit elixir;
 
           nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz];
 
           mixFodDeps = beamPackages.fetchMixDeps {
-            inherit src version elixir;
-            pname = "${pname}-deps";
+            src = self.outPath;
+            inherit version elixir;
+            pname = "next-ls-deps";
             hash = "sha256-LV1DYmWi0Mcz1S5k77/jexXYqay7OpysCwOtUcafqGE=";
           };
 
@@ -99,7 +100,7 @@
         localBuild = true;
       };
 
-      ci = default.override {localBuild = false;};
+      ci = self.packages.${system}.default.override {localBuild = false;};
     });
 
     devShells = forAllSystems ({
