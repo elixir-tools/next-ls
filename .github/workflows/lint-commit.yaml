@@ -1,9 +1,10 @@
 name: Lint Commit
 on:
   pull_request:
-    - open
+    - opened
+    - reopened
     - synchronize
-    - edit
+    - edited
 
 jobs:
   commitlint:
