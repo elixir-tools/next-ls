@@ -158,8 +158,4 @@ defmodule NextLS.Support.Utils do
               })
     end
   end
-
-  defmacro did_open(client, file_path) do
-    did_open(client, file_path, File.read!(file_path))
-  end
 end
