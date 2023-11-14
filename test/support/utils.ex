@@ -141,11 +141,7 @@ defmodule NextLS.Support.Utils do
     end
   end
 
-  defmacro did_open(
-            client,
-            file_path,
-            text
-          ) do
+  defmacro did_open(client, file_path, text) do
     quote do
       assert :ok ==
               notify(unquote(client), %{
@@ -163,10 +159,7 @@ defmodule NextLS.Support.Utils do
     end
   end
 
-  defmacro did_open(
-            client,
-            file_path
-          ) do
+  defmacro did_open(client, file_path) do
     did_open(client, file_path, File.read!(file_path))
   end
 end
