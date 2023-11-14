@@ -140,4 +140,22 @@ defmodule NextLS.Support.Utils do
       assert result == unquote(pattern)
     end
   end
+
+  defmacro did_open(client, file_path, text) do
+    quote do
+      assert :ok ==
+              notify(unquote(client), %{
+                method: "textDocument/didOpen",
+                jsonrpc: "2.0",
+                params: %{
+                  textDocument: %{
+                    uri: uri(unquote(file_path)),
+                    text: unquote(text),
+                    languageId: "elixir",
+                    version: 1
+                  }
+                }
+              })
+    end
+  end
 end

@@ -47,25 +47,14 @@ defmodule NextLS.CompletionsTest do
   test "global modules", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              En
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        En
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -91,25 +80,14 @@ defmodule NextLS.CompletionsTest do
   test "global module remote functions", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              Enum.fl
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        Enum.fl
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -141,25 +119,14 @@ defmodule NextLS.CompletionsTest do
   test "global structs", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              %U
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        %U
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -182,25 +149,14 @@ defmodule NextLS.CompletionsTest do
   test "structs fields", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              IO.inspect([%Bar{])
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        IO.inspect([%Bar{])
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -227,25 +183,14 @@ defmodule NextLS.CompletionsTest do
   test "special forms", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              qu
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        qu
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -268,25 +213,14 @@ defmodule NextLS.CompletionsTest do
   test "bitstring modifiers", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              <<one::
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        <<one::
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",
@@ -324,25 +258,14 @@ defmodule NextLS.CompletionsTest do
   test "file system paths in strings", %{client: client, foo: foo} do
     uri = uri(foo)
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri,
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo do
-            def run() do
-              "./lib/
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        "./lib/
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/completion",

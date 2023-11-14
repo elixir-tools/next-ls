@@ -112,26 +112,15 @@ defmodule NextLSTest do
   test "formats", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo.Bar do
-            def run() do
+    did_open(client, Path.join(cwd, "my_proj/lib/foo/bar.ex"), """
+    defmodule Foo.Bar do
+      def run() do
 
 
-              :ok
-            end
-          end
-          """
-        }
-      }
-    }
+        :ok
+      end
+    end
+    """)
 
     request client, %{
       method: "textDocument/formatting",
@@ -186,25 +175,14 @@ defmodule NextLSTest do
   test "formatting gracefully handles files with syntax errors", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
-    notify client, %{
-      method: "textDocument/didOpen",
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex",
-          languageId: "elixir",
-          version: 1,
-          text: """
-          defmodule Foo.Bar do
-            def run() do
+    did_open(client, Path.join(cwd, "my_proj/lib/foo/bar.ex"), """
+    defmodule Foo.Bar do
+      def run() do
 
 
-              :ok
-          end
-          """
-        }
-      }
-    }
+        :ok
+    end
+    """)
 
     assert_is_ready(context, "my_proj")
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
