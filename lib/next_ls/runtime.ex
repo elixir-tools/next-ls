@@ -250,7 +250,7 @@ defmodule NextLS.Runtime do
           File.rm_rf!(Path.join(state.working_dir, ".elixir-tools/_build"))
         end
 
-        case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
+        case :rpc.call(node, :_next_ls_private_compiler, :compile, [:test]) do
           {:badrpc, error} ->
             NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
             []
