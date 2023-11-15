@@ -743,10 +743,11 @@ defmodule NextLS do
 
     GenLSP.log(lsp, "[NextLS] Booting runtimes...")
 
+    parent = self()
+
     for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
       token = Progress.token()
       Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
-      parent = self()
       working_dir = URI.parse(uri).path
 
       {:ok, _} =
@@ -778,6 +779,9 @@ defmodule NextLS do
                  send(parent, msg)
                else
                  Progress.stop(lsp, token)
+
+                 send(parent, {:runtime_failed, name, status})
+
                  GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
                end
              end,
@@ -865,38 +869,39 @@ defmodule NextLS do
         parent = self()
         working_dir = URI.parse(uri).path
 
-        # TODO: probably extract this to the Runtime module
         {:ok, _} =
-          DynamicSupervisor.start_child(
-            lsp.assigns.dynamic_supervisor,
-            {NextLS.Runtime.Supervisor,
-             path: Path.join(working_dir, ".elixir-tools"),
-             name: name,
-             registry: lsp.assigns.registry,
-             runtime: [
-               task_supervisor: lsp.assigns.runtime_task_supervisor,
-               working_dir: working_dir,
-               uri: uri,
-               mix_env: lsp.assigns.init_opts.mix_env,
-               mix_target: lsp.assigns.init_opts.mix_target,
-               on_initialized: fn status ->
-                 if status == :ready do
-                   Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
-                   GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
-                   msg = {:runtime_ready, name, self()}
+          NextLS.Runtime.boot(lsp.assigns.dynamic_supervisor,
+            path: Path.join(working_dir, ".elixir-tools"),
+            name: name,
+            registry: lsp.assigns.registry,
+            runtime: [
+              task_supervisor: lsp.assigns.runtime_task_supervisor,
+              working_dir: working_dir,
+              uri: uri,
+              mix_env: lsp.assigns.init_opts.mix_env,
+              mix_target: lsp.assigns.init_opts.mix_target,
+              on_initialized: fn status ->
+                if status == :ready do
+                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
+                  GenLSP.log(lsp, "[NextLS] Runtime for folder #{name} is ready...")
 
-                   dispatch(lsp.assigns.registry, :extensions, fn entries ->
-                     for {pid, _} <- entries, do: send(pid, msg)
-                   end)
+                  msg = {:runtime_ready, name, self()}
 
-                   send(parent, msg)
-                 else
-                   Progress.stop(lsp, token)
-                   GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
-                 end
-               end,
-               logger: lsp.assigns.logger
-             ]}
+                  dispatch(lsp.assigns.registry, :extensions, fn entries ->
+                    for {pid, _} <- entries, do: send(pid, msg)
+                  end)
+
+                  send(parent, msg)
+                else
+                  Progress.stop(lsp, token)
+
+                  send(parent, {:runtime_failed, name, status})
+
+                  GenLSP.error(lsp, "[NextLS] Runtime for folder #{name} failed to initialize")
+                end
+              end,
+              logger: lsp.assigns.logger
+            ]
           )
       end
 
@@ -904,8 +909,7 @@ defmodule NextLS do
 
       for {pid, %{name: name}} <- entries, name in names do
         GenLSP.log(lsp, "[NextLS] Removing workspace folder #{name}")
-        # TODO: probably extract this to the Runtime module
-        DynamicSupervisor.terminate_child(lsp.assigns.dynamic_supervisor, pid)
+        NextLS.Runtime.stop(lsp.assigns.dynamic_supervisor, pid)
       end
     end)
 
@@ -993,6 +997,72 @@ defmodule NextLS do
     refresh_refs = Map.put(lsp.assigns.refresh_refs, task.ref, {token, "Compiled #{name}!"})
 
     {:noreply, assign(lsp, ready: true, refresh_refs: refresh_refs)}
+  end
+
+  def handle_info({:runtime_failed, name, status}, lsp) do
+    {pid, %{init_arg: init_arg}} =
+      dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
+        Enum.find(entries, fn {_pid, %{name: n}} -> n == name end)
+      end)
+
+    :ok = DynamicSupervisor.terminate_child(lsp.assigns.dynamic_supervisor, pid)
+
+    if status == {:error, :deps} do
+      resp =
+        GenLSP.request(
+          lsp,
+          %GenLSP.Requests.WindowShowMessageRequest{
+            id: System.unique_integer([:positive]),
+            params: %GenLSP.Structures.ShowMessageRequestParams{
+              type: GenLSP.Enumerations.MessageType.error(),
+              message: "The NextLS runtime failed with errors on dependencies. Would you like to re-fetch them?",
+              actions: [
+                %GenLSP.Structures.MessageActionItem{title: "yes"},
+                %GenLSP.Structures.MessageActionItem{title: "no"}
+              ]
+            }
+          },
+          :infinity
+        )
+
+      case resp do
+        %GenLSP.Structures.MessageActionItem{title: "yes"} ->
+          NextLS.Logger.info(
+            lsp.assigns.logger,
+            "Running `mix deps.get` in directory #{init_arg[:runtime][:working_dir]}"
+          )
+
+          File.rm_rf!(Path.join(init_arg[:runtime][:working_dir], ".elixir-tools/_build"))
+
+          case System.cmd("mix", ["deps.get"],
+                 env: [{"MIX_ENV", "dev"}, {"MIX_BUILD_ROOT", ".elixir-tools/_build"}],
+                 cd: init_arg[:runtime][:working_dir],
+                 stderr_to_stdout: true
+               ) do
+            {msg, 0} ->
+              NextLS.Logger.info(
+                lsp.assigns.logger,
+                "Restarting runtime #{name} for directory #{init_arg[:runtime][:working_dir]}"
+              )
+
+              NextLS.Logger.info(lsp.assigns.logger, msg)
+
+              {:ok, _} =
+                DynamicSupervisor.start_child(lsp.assigns.dynamic_supervisor, {NextLS.Runtime.Supervisor, init_arg})
+
+            {msg, _} ->
+              NextLS.Logger.warning(
+                lsp.assigns.logger,
+                "Failed to run `mix deps.get` in directory #{init_arg[:runtime][:working_dir]} with message: #{msg}"
+              )
+          end
+
+        _ ->
+          NextLS.Logger.info(lsp.assigns.logger, "Not running `mix deps.get`")
+      end
+    end
+
+    {:noreply, lsp}
   end
 
   def handle_info({ref, _resp}, %{assigns: %{refresh_refs: refs}} = lsp) when is_map_key(refs, ref) do

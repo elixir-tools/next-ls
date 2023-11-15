@@ -21,7 +21,7 @@ defmodule NextLS.Runtime.Supervisor do
     sidecar_name = :"sidecar-#{name}"
     db_activity = :"db-activity-#{name}"
 
-    Registry.register(registry, :runtime_supervisors, %{name: name})
+    Registry.register(registry, :runtime_supervisors, %{name: name, init_arg: init_arg})
 
     children = [
       {NextLS.Runtime.Sidecar, name: sidecar_name, db: db_name},
