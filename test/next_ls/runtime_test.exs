@@ -226,6 +226,78 @@ defmodule NextLs.RuntimeTest do
       assert [] == Runtime.compile(pid)
     end
 
+    test "compiles the project tests and returns diagnostics",
+         %{logger: logger, cwd: cwd, on_init: on_init} do
+      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+
+      tvisor = start_supervised!(Task.Supervisor)
+
+      pid =
+        start_link_supervised!(
+          {Runtime,
+           name: "my_proj",
+           on_initialized: on_init,
+           task_supervisor: tvisor,
+           working_dir: cwd,
+           uri: "file://#{cwd}",
+           parent: self(),
+           logger: logger,
+           db: :some_db,
+           mix_env: "test",
+           mix_target: "host",
+           registry: RuntimeTest.Registry}
+        )
+
+      assert_receive :ready
+
+      lib_file = Path.join(cwd, "lib/bar.ex")
+
+      File.write!(lib_file, """
+      defmodule Bar do
+        def foo(arg1) do
+          arg1
+        end
+      end
+      """)
+
+      assert [] == Runtime.compile(pid)
+
+      test_file = Path.join(cwd, "test/bar_test.exs")
+      File.mkdir_p!(Path.join(cwd, "test"))
+
+      File.write!(Path.join(cwd, "test/test_helper.exs"), "ExUnit.start()")
+
+      File.write!(test_file, """
+      defmodule BarTest do
+        use ExUnit.Case
+        doctest Bar
+
+        test "greets the world" do
+          arg1 = "unused"
+          assert Bar.foo(:hello) == :hello
+        end
+      end
+      """)
+
+      assert [
+               %Mix.Task.Compiler.Diagnostic{
+                 file: ^test_file,
+                 severity: :warning,
+                 message:
+                   "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+                 position: position,
+                 compiler_name: "Elixir",
+                 details: nil
+               }
+             ] = Runtime.compile(pid)
+
+      if Version.match?(System.version(), ">= 1.15.0") do
+        assert position == {6, 5}
+      else
+        assert position == 6
+      end
+    end
+
     test "responds with an error when the runtime isn't ready", %{logger: logger, cwd: cwd, on_init: on_init} do
       start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
 

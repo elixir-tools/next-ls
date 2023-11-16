@@ -245,51 +245,100 @@ defmodule :_next_ls_private_compiler do
 
     Code.put_compiler_option(:tracers, [NextLSPrivate.Tracer | @tracers])
 
+    pdbg("check 1")
+
     # Load ExUnit before we compile anything in case we are compiling
     # helper modules that depend on ExUnit.
     if mix_env == :test, do: Application.ensure_loaded(:ex_unit)
 
+    pdbg("check 2")
     # TODO: Refactor to not be conditional soup
-    case Mix.Task.rerun("compile", [
-           "--ignore-module-conflict",
-           "--no-protocol-consolidation",
-           "--return-errors"
-         ]) do
-      {:error, diagnostics} ->
-        {:error, diagnostics}
+    result =
+      case Mix.Task.rerun("compile", [
+             "--ignore-module-conflict",
+             "--no-protocol-consolidation",
+             "--return-errors"
+           ]) do
+        {:error, diagnostics} ->
+          pdbg({:error, diagnostics})
+          {:error, diagnostics}
 
-      {:noop, diagnostics} ->
-        if mix_env == :test do
-          case IO.inspect(require_all_tests()) do
-            # TODO: Figure out what to do with warnings
-            {:ok, _modules, warnings} -> {:ok, diagnostics}
-            {:error, test_diagnostics, warnings} -> 
-                {:error, Enum.into(test_diagnostics, diagnostics, & struct(Mix.Task.Compiler.Diagnostic, &1))}
+        {:noop, diagnostics} ->
+          pdbg("check 3")
+
+          if mix_env == :test do
+            case compile_all_tests() do
+              {:ok, _modules, warnings} ->
+                pdbg({:ok, diagnostics, warnings})
+                {:ok, Enum.into(warnings, diagnostics, &parse_compiler_diagnostic/1)}
+
+              {:error, test_diagnostics, warnings} ->
+                pdbg({:error, diagnostics, test_diagnostics, warnings})
+                {:error, Enum.into(test_diagnostics ++ warnings, diagnostics, &parse_compiler_diagnostic/1)}
+
+              v ->
+                pdbg({:unexpected, v})
+            end
+          else
+            {:ok, diagnostics}
           end
-        else
-          {:ok, diagnostics}
-        end
-    end
+
+        {:ok, diagnostics} ->
+          pdbg("check 3")
+
+          if mix_env == :test do
+            case compile_all_tests() do
+              {:ok, _modules, warnings} ->
+                pdbg({:ok, diagnostics, warnings})
+                {:ok, Enum.into(warnings, diagnostics, &parse_compiler_diagnostic/1)}
+
+              {:error, test_diagnostics, warnings} ->
+                pdbg({:error, diagnostics, test_diagnostics, warnings})
+                {:error, Enum.into(test_diagnostics ++ warnings, diagnostics, &parse_compiler_diagnostic/1)}
+
+              v ->
+                pdbg({:unexpected, v})
+            end
+          else
+            {:ok, diagnostics}
+          end
+      end
+
+    pdbg({:output, result})
+    result
   rescue
-    e -> {:error, e}
+    e ->
+      pdbg({:exception, e})
+      {:error, e}
   end
 
   # Assumes code has already been compiled and :ex_unit has been loaded
-  def require_all_tests do
+  def compile_all_tests do
     project = Mix.Project.config()
     test_paths = project[:test_paths] || default_test_paths()
     Enum.each(test_paths, &require_test_helper/1)
 
     # Finally parse, require and load the files
     test_pattern = project[:test_pattern] || "*_test.exs"
-    # warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
-
     matched_test_files = Mix.Utils.extract_files(test_paths, test_pattern)
-    # TODO: Maybe warn if a file matches warn_test_pattern
 
-    Kernel.ParallelCompiler.require(matched_test_files, return_diagnostics: true)
+    case Kernel.ParallelCompiler.compile(matched_test_files, return_diagnostics: true) do
+      {res, v, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}} -> 
+        {res, v, runtime_warnings ++ compile_warnings}
+      # The `return_diagnostics` option was introduced in Elixir 1.15; earlier
+      # versions return tuples
+      {res, v, warnings} -> {res, v, Enum.map(warnings, &parse_warning/1)}
+    end
   rescue
     e -> {:error, e}
+  end
+
+  defp parse_compiler_diagnostic(m) do
+    struct(Mix.Task.Compiler.Diagnostic, Map.put(m, :compiler_name, "Elixir"))
+  end
+
+  defp parse_warning({file, position, message}) do
+    %{file: file, position: position, message: message, severity: :warning}
   end
 
   defp relative_app_file_exists?(file) do
@@ -313,5 +362,14 @@ defmodule :_next_ls_private_compiler do
     else
       []
     end
+  end
+
+  defp parent_pid do
+    "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+  end
+
+  defp pdbg(term) do
+    parent = parent_pid()
+    Process.send(parent, {:tracer, :dbg, term}, [])
   end
 end
