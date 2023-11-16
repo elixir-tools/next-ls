@@ -253,7 +253,7 @@ defmodule :_next_ls_private_compiler do
 
     pdbg("check 2")
     # TODO: Refactor to not be conditional soup
-    result =
+    {res, diagnostics} =
       case Mix.Task.rerun("compile", [
              "--ignore-module-conflict",
              "--no-protocol-consolidation",
@@ -304,8 +304,8 @@ defmodule :_next_ls_private_compiler do
           end
       end
 
-    pdbg({:output, result})
-    result
+    pdbg({:output, {res, diagnostics}})
+    {res, Enum.reject(diagnostics, &redefining_module_warning?/1)}
   rescue
     e ->
       pdbg({:exception, e})
@@ -331,6 +331,10 @@ defmodule :_next_ls_private_compiler do
     end
   rescue
     e -> {:error, e}
+  end
+
+  defp redefining_module_warning?(%Mix.Task.Compiler.Diagnostic{severity: :warning, message: message}) do
+    String.starts_with?(message, "redefining module")
   end
 
   defp parse_compiler_diagnostic(m) do

@@ -296,6 +296,19 @@ defmodule NextLs.RuntimeTest do
       else
         assert position == 6
       end
+
+      File.write!(test_file, """
+      defmodule BarTest do
+        use ExUnit.Case
+        doctest Bar
+
+        test "greets the world" do
+          assert Bar.foo(:hello) == :hello
+        end
+      end
+      """)
+
+      assert [] = Runtime.compile(pid)
     end
 
     test "responds with an error when the runtime isn't ready", %{logger: logger, cwd: cwd, on_init: on_init} do
