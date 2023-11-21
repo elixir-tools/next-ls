@@ -660,6 +660,7 @@ defmodule NextLS do
              working_dir: working_dir,
              uri: uri,
              mix_env: lsp.assigns.init_opts.mix_env,
+             # mix_env: "test",
              mix_target: lsp.assigns.init_opts.mix_target,
              on_initialized: fn status ->
                if status == :ready do
