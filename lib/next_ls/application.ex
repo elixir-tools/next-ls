@@ -7,8 +7,6 @@ defmodule NextLS.Application do
 
   @impl true
   def start(_type, _args) do
-    Logger.add_handlers(:next_ls)
-
     if Application.get_env(:next_ls, :otel, false) do
       NextLS.OpentelemetrySchematic.setup()
       NextLS.OpentelemetryGenLSP.setup()
