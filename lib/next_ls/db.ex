@@ -4,6 +4,10 @@ defmodule NextLS.DB do
 
   import __MODULE__.Query
 
+  alias OpenTelemetry.Tracer
+
+  require OpenTelemetry.Tracer
+
   @type query :: String.t()
 
   def start_link(args) do
@@ -11,7 +15,10 @@ defmodule NextLS.DB do
   end
 
   @spec query(pid(), query(), list()) :: list()
-  def query(server, query, opts \\ []), do: GenServer.call(server, {:query, query, opts}, :infinity)
+  def query(server, query, opts \\ []) do
+    ctx = OpenTelemetry.Ctx.get_current()
+    GenServer.call(server, {:query, query, opts, ctx}, :infinity)
+  end
 
   @spec insert_symbol(pid(), map()) :: :ok
   def insert_symbol(server, payload), do: GenServer.cast(server, {:insert_symbol, payload})
@@ -43,28 +50,36 @@ defmodule NextLS.DB do
      }}
   end
 
-  def handle_call({:query, query, args_or_opts}, _from, %{conn: conn} = s) do
-    {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-    NextLS.DB.Activity.update(s.activity, count)
-    opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
+  def handle_call({:query, query, args_or_opts, ctx}, _from, %{conn: conn} = s) do
+    token = OpenTelemetry.Ctx.attach(ctx)
 
-    query =
-      if opts[:select] do
-        String.replace(query, ":select", Enum.map_join(opts[:select], ", ", &to_string/1))
-      else
-        query
+    try do
+      Tracer.with_span :"db.query receive", %{attributes: %{query: query}} do
+        {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+        NextLS.DB.Activity.update(s.activity, count)
+        opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
+
+        query =
+          if opts[:select] do
+            String.replace(query, ":select", Enum.map_join(opts[:select], ", ", &to_string/1))
+          else
+            query
+          end
+
+        rows =
+          for row <- __query__({conn, s.logger}, query, opts[:args] || []) do
+            if opts[:select] do
+              opts[:select] |> Enum.zip(row) |> Map.new()
+            else
+              row
+            end
+          end
+
+        {:reply, rows, s}
       end
-
-    rows =
-      for row <- __query__({conn, s.logger}, query, opts[:args] || []) do
-        if opts[:select] do
-          opts[:select] |> Enum.zip(row) |> Map.new()
-        else
-          row
-        end
-      end
-
-    {:reply, rows, s}
+    after
+      OpenTelemetry.Ctx.detach(token)
+    end
   end
 
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do
@@ -190,22 +205,24 @@ defmodule NextLS.DB do
   end
 
   def __query__({conn, logger}, query, args) do
-    args = Enum.map(args, &cast/1)
+    Tracer.with_span :"db.query process", %{attributes: %{query: query}} do
+      args = Enum.map(args, &cast/1)
 
-    case Exqlite.Basic.exec(conn, query, args) do
-      {:error, %{message: message, statement: statement}, _} ->
-        NextLS.Logger.warning(logger, """
-        sqlite3 error: #{message}
+      case Exqlite.Basic.exec(conn, query, args) do
+        {:error, %{message: message, statement: statement}, _} ->
+          NextLS.Logger.warning(logger, """
+          sqlite3 error: #{message}
 
-        statement: #{statement}
-        arguments: #{inspect(args)}
-        """)
+          statement: #{statement}
+          arguments: #{inspect(args)}
+          """)
 
-        {:error, message}
+          {:error, message}
 
-      result ->
-        {:ok, rows, _} = Exqlite.Basic.rows(result)
-        rows
+        result ->
+          {:ok, rows, _} = Exqlite.Basic.rows(result)
+          rows
+      end
     end
   end
 

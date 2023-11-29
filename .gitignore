@@ -31,3 +31,5 @@ result
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
 node_modules
+
+tempo-data

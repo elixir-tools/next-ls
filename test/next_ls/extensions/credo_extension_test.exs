@@ -47,7 +47,7 @@ defmodule NextLS.CredoExtensionTest do
 
     assert_notification "window/logMessage", %{
       "message" => "[NextLS] [extension] Credo disabled",
-      "type" => 4
+      "type" => 3
     }
   end
 
@@ -60,7 +60,7 @@ defmodule NextLS.CredoExtensionTest do
 
     assert_notification "window/logMessage", %{
       "message" => "[NextLS] [extension] Credo initializing with options" <> _,
-      "type" => 4
+      "type" => 3
     }
 
     uri = uri(foo)
@@ -98,7 +98,7 @@ defmodule NextLS.CredoExtensionTest do
 
     assert_notification "window/logMessage", %{
       "message" => "[NextLS] [extension] Credo initializing with options" <> _,
-      "type" => 4
+      "type" => 3
     }
 
     uri = uri(foo)
