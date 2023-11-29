@@ -2,7 +2,6 @@ import Config
 
 config :next_ls, :indexing_timeout, 100
 
-config :logger, :default_handler, config: [type: :standard_error]
 config :logger, :default_handler,
   config: [
     file: ~c".elixir-tools/next-ls.log",
