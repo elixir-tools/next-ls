@@ -13,7 +13,13 @@ defmodule NextLS.DB.Activity do
     :gen_statem.start_link({:local, Keyword.get(args, :name)}, __MODULE__, Keyword.drop(args, [:name]), [])
   end
 
-  def update(statem, count), do: :gen_statem.cast(statem, count)
+  def update(statem, count, time \\ DateTime.utc_now() |> DateTime.to_unix(:millisecond)) do
+    Registry.dispatch(NextLS.UI.Registry, :activity_socket, fn entries ->
+      for {pid, _} <- entries, do: send(pid, {:activity, count, time})
+    end)
+
+    :gen_statem.cast(statem, count)
+  end
 
   @impl :gen_statem
   def callback_mode, do: :state_functions
@@ -44,6 +50,10 @@ defmodule NextLS.DB.Activity do
     {:next_state, :waiting, %{data | token: nil}}
   end
 
+  # def active(event, msg, data) do
+  #   handle_event(event, msg, data)
+  # end
+
   def waiting(:cast, 0, _data) do
     :keep_state_and_data
   end
@@ -53,4 +63,12 @@ defmodule NextLS.DB.Activity do
     NextLS.Progress.start(data.lsp, token, "Indexing!")
     {:next_state, :active, %{data | count: mailbox_count, token: token}}
   end
+
+  # def waiting(event, msg, data) do
+  #   handle_event(event, msg, data)
+  # end
+
+  # defp handle_event({:call, from}, :get, data) do
+  #   {:keep_state, data, [{:reply, from, data.count}]}
+  # end
 end

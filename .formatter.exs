@@ -8,7 +8,7 @@
     request: 2
   ],
   line_length: 120,
-  import_deps: [:gen_lsp],
+  import_deps: [:gen_lsp, :plug, :temple],
   plugins: [Styler],
   inputs: [
     ".formatter.exs",

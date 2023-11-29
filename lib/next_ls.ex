@@ -64,12 +64,21 @@ defmodule NextLS do
     task_supervisor = Keyword.fetch!(args, :task_supervisor)
     runtime_task_supervisor = Keyword.fetch!(args, :runtime_task_supervisor)
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
-
     registry = Keyword.fetch!(args, :registry)
-
     extensions = Keyword.get(args, :extensions, elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension)
     cache = Keyword.fetch!(args, :cache)
+
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
+
+    {:ok, ui} =
+      DynamicSupervisor.start_child(
+        dynamic_supervisor,
+        {Bandit,
+         [
+           plug: {NextLS.UI.Router, registry: registry},
+           port: "NEXTLS_UI_PORT" |> System.get_env("0") |> String.to_integer()
+         ]}
+      )
 
     {:ok,
      assign(lsp,
@@ -85,7 +94,8 @@ defmodule NextLS do
        registry: registry,
        extensions: extensions,
        ready: false,
-       client_capabilities: nil
+       client_capabilities: nil,
+       ui: ui
      )}
   end
 
@@ -127,6 +137,7 @@ defmodule NextLS do
              nil
            end,
          document_formatting_provider: true,
+         execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{commands: ["open-ui"]},
          hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
@@ -570,6 +581,23 @@ defmodule NextLS do
       )
 
       {:reply, [], lsp}
+  end
+
+  def handle_request(
+        %GenLSP.Requests.WorkspaceExecuteCommand{params: %GenLSP.Structures.ExecuteCommandParams{command: command}},
+        lsp
+      ) do
+    {:ok, {_, port}} = ThousandIsland.listener_info(lsp.assigns.ui)
+
+    case command do
+      "open-ui" ->
+        System.cmd("open", ["http://localhost:#{port}"])
+
+      _ ->
+        NextLS.Logger.warning(lsp.logger, "[Next LS] Unknown workspace command: #{command}")
+    end
+
+    {:reply, nil, lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do

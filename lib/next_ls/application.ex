@@ -24,11 +24,22 @@ defmodule NextLS.Application do
 
     Node.start(:"next-ls-#{System.system_time()}", :shortnames)
 
-    children = [NextLS.LSPSupervisor]
+    children = [
+      {Registry, name: NextLS.UI.Registry, keys: :duplicate},
+      WebDevUtils.FileSystem,
+      WebDevUtils.CodeReloader,
+      NextLS.LSPSupervisor
+    ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: NextLS.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children ++ asset_children(), opts)
+  end
+
+  def asset_children do
+    for conf <- Application.get_env(:next_ls, :assets, []) do
+      {WebDevUtils.Assets, conf}
+    end
   end
 end
