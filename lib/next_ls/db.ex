@@ -51,33 +51,35 @@ defmodule NextLS.DB do
   end
 
   def handle_call({:query, query, args_or_opts, ctx}, _from, %{conn: conn} = s) do
-    OpenTelemetry.Ctx.attach(ctx)
+    token = OpenTelemetry.Ctx.attach(ctx)
 
-    Tracer.with_span :"db.query receive", %{attributes: %{query: query}} do
-      {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-      NextLS.DB.Activity.update(s.activity, count)
-      opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
+    try do
+      Tracer.with_span :"db.query receive", %{attributes: %{query: query}} do
+        {:message_queue_len, count} = Process.info(self(), :message_queue_len)
+        NextLS.DB.Activity.update(s.activity, count)
+        opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
 
-      query =
-        if opts[:select] do
-          String.replace(query, ":select", Enum.map_join(opts[:select], ", ", &to_string/1))
-        else
-          query
-        end
-
-      rows =
-        for row <- __query__({conn, s.logger}, query, opts[:args] || []) do
+        query =
           if opts[:select] do
-            opts[:select] |> Enum.zip(row) |> Map.new()
+            String.replace(query, ":select", Enum.map_join(opts[:select], ", ", &to_string/1))
           else
-            row
+            query
           end
-        end
 
-      {:reply, rows, s}
+        rows =
+          for row <- __query__({conn, s.logger}, query, opts[:args] || []) do
+            if opts[:select] do
+              opts[:select] |> Enum.zip(row) |> Map.new()
+            else
+              row
+            end
+          end
+
+        {:reply, rows, s}
+      end
+    after
+      OpenTelemetry.Ctx.detach(token)
     end
-  after
-    OpenTelemetry.Ctx.detach(ctx)
   end
 
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do

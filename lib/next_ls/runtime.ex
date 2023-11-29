@@ -244,14 +244,16 @@ defmodule NextLS.Runtime do
   end
 
   def handle_call({:call, {m, f, a}, ctx}, _from, %{node: node} = state) do
-    OpenTelemetry.Ctx.attach(ctx)
+    token = OpenTelemetry.Ctx.attach(ctx)
 
-    Tracer.with_span :"runtime.call", %{attributes: %{mfa: inspect({m, f, a})}} do
-      reply = :rpc.call(node, m, f, a)
-      {:reply, {:ok, reply}, state}
+    try do
+      Tracer.with_span :"runtime.call", %{attributes: %{mfa: inspect({m, f, a})}} do
+        reply = :rpc.call(node, m, f, a)
+        {:reply, {:ok, reply}, state}
+      end
+    after
+      OpenTelemetry.Ctx.detach(token)
     end
-  after
-    OpenTelemetry.Ctx.detach(ctx)
   end
 
   def handle_call({:compile, opts}, from, %{node: node} = state) do
