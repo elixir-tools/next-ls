@@ -2,4 +2,4 @@
 
 cd "$(dirname "$0")"/.. || exit 1
 
-elixir -S mix run --no-halt -e "Application.ensure_all_started(:next_ls)" -- "$@"
+mix run --no-halt -e "Application.ensure_all_started(:next_ls)" -- "$@"
