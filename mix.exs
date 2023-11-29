@@ -67,8 +67,8 @@ defmodule NextLS.MixProject do
 
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
-      {:opentelemetry_exporter, "~> 1.4", only: [:dev, :test]},
-      {:opentelemetry_process_propagator, "~> 0.2.2", only: [:dev, :test]},
+      {:opentelemetry_exporter, "~> 1.4"},
+      {:opentelemetry_process_propagator, "~> 0.2.2"},
       {:opentelemetry_telemetry, "~> 1.0"},
       {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
