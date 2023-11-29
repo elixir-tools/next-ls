@@ -32,5 +32,4 @@ result
 /priv/plts/*.plt.hash
 node_modules
 
-/priv/css/*
 tempo-data
