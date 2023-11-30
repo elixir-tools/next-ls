@@ -199,6 +199,8 @@ defmodule NextLS.Runtime do
         end
       end)
 
+      test_compile_queue = if mix_env == "test" do :all else [] end
+
       {:ok,
        %{
          name: name,
@@ -210,7 +212,8 @@ defmodule NextLS.Runtime do
          parent: parent,
          errors: nil,
          registry: registry,
-         on_initialized: on_initialized
+         on_initialized: on_initialized,
+         test_compile_queue: test_compile_queue
        }}
     else
       _ ->
@@ -241,7 +244,14 @@ defmodule NextLS.Runtime do
     {:reply, {:ok, reply}, state}
   end
 
-  def handle_call({:compile, opts}, from, %{node: node} = state) do
+  def handle_call({:compile, opts}, from, %{node: node, test_compile_queue: test_compile_queue} = state) do
+    me = self()
+
+    new_test_compile_queue = case Keyword.get(opts, :uri) do
+      nil -> test_compile_queue
+      uri -> add_file_to_compile_queue(test_compile_queue, URI.parse(uri).path)
+    end
+
     for {_ref, {task_pid, _from}} <- state.compiler_refs, do: Process.exit(task_pid, :kill)
 
     task =
@@ -250,7 +260,7 @@ defmodule NextLS.Runtime do
           File.rm_rf!(Path.join(state.working_dir, ".elixir-tools/_build"))
         end
 
-        case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
+        case :rpc.call(node, :_next_ls_private_compiler, :compile, [new_test_compile_queue]) do
           {:badrpc, error} ->
             NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
             []
@@ -259,6 +269,8 @@ defmodule NextLS.Runtime do
             Registry.dispatch(state.registry, :extensions, fn entries ->
               for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
             end)
+
+            send(me, {:compile_complete})
 
             NextLS.Logger.log(state.logger, "Compiled #{state.name}!")
 
@@ -311,6 +323,10 @@ defmodule NextLS.Runtime do
     {:stop, {:shutdown, :nodedown}, state}
   end
 
+  def handle_info({:compile_complete}, state) do
+    {:noreply, %{state | test_compile_queue: []}}
+  end
+
   def handle_info({port, {:data, data}}, %{port: port} = state) do
     NextLS.Logger.log(state.logger, data)
     {:noreply, state}
@@ -331,6 +347,18 @@ defmodule NextLS.Runtime do
       connect(node, port, attempts - 1)
     else
       true
+    end
+  end
+
+  defp add_file_to_compile_queue(:all, _f) do
+    :all
+  end
+
+  defp add_file_to_compile_queue(q, f) do
+    if Path.extname(f) == ".exs" do
+      Enum.uniq([f | q])
+    else
+      q
     end
   end
 end

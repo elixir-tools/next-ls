@@ -225,7 +225,7 @@ defmodule :_next_ls_private_compiler do
 
   @tracers Code.get_compiler_option(:tracers)
 
-  def compile do
+  def compile(test_compile_queue) do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
     Code.put_compiler_option(:parser_options, columns: true, token_metadata: true)
@@ -263,8 +263,9 @@ defmodule :_next_ls_private_compiler do
     if mix_env != :test or res == :error do
       {res, diagnostics}
     else
+      Mix.Task.run("app.start", [])
       {res, lib_and_test_diagnostics} =
-        case compile_all_tests() do
+        case compile_tests(test_compile_queue) do
           {:error, test_diagnostics, warnings} ->
             {:error, Enum.into(test_diagnostics ++ warnings, diagnostics, &parse_compiler_diagnostic/1)}
 
@@ -283,16 +284,28 @@ defmodule :_next_ls_private_compiler do
 
   # Assumes code has already been compiled and :ex_unit has been loaded
   # This implementation is loosely based off the implementation of `mix test`
-  defp compile_all_tests do
+  defp compile_tests(:all) do
     project = Mix.Project.config()
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &require_test_helper/1)
+    Enum.each(test_paths, &compile_test_helper/1)
 
     # Finally parse, require and load the files
     test_pattern = project[:test_pattern] || "*_test.exs"
     matched_test_files = Mix.Utils.extract_files(test_paths, test_pattern)
 
-    case Kernel.ParallelCompiler.compile(matched_test_files, return_diagnostics: true) do
+    compile_test_files(matched_test_files)
+  end
+
+  defp compile_tests([]) do
+    {:ok, [], []}
+  end
+
+  defp compile_tests(files) do
+    compile_test_files(files)
+  end
+
+  defp compile_test_files(files) do
+    case Kernel.ParallelCompiler.compile(files, return_diagnostics: true) do
       {res, v, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}} ->
         {res, v, runtime_warnings ++ compile_warnings}
 
@@ -301,8 +314,6 @@ defmodule :_next_ls_private_compiler do
       {res, v, warnings} ->
         {res, v, Enum.map(warnings, &parse_warning/1)}
     end
-  rescue
-    e -> {:error, e}
   end
 
   defp redefining_module_warning?(%Mix.Task.Compiler.Diagnostic{severity: :warning, message: message}) do
@@ -321,17 +332,22 @@ defmodule :_next_ls_private_compiler do
     %{file: file, position: position, message: message, severity: :warning}
   end
 
-  defp relative_app_file_exists?(file) do
-    {file, _} = ExUnit.Filters.parse_path(file)
-    File.exists?(Path.join("../..", file))
-  end
-
-  defp require_test_helper(dir) do
+  defp compile_test_helper(dir) do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
-      Code.require_file(file)
+      pdbg(:found_test_helper)
+      pdbg({:__dir__, __DIR__})
+      pdbg({:cwd, File.cwd()})
+      # Code.require_file(file)
+      res = Kernel.ParallelCompiler.require([file], return_diagnostics: true)
+      # pdbg(res)
+      # case res do
+      #   {:error, e} -> pdbg({:test_helper_error, e})
+      #   _ -> nil
+      # end
     else
+      pdbg(:cannot_find_test_helper)
       raise "Cannot run tests because test helper file #{inspect(file)} does not exist"
     end
   end
@@ -342,5 +358,14 @@ defmodule :_next_ls_private_compiler do
     else
       []
     end
+  end
+
+  defp parent_pid do
+    "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
+  end
+
+  defp pdbg(term) do
+    parent = parent_pid()
+    Process.send(parent, {:tracer, :dbg, term}, [])
   end
 end

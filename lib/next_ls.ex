@@ -709,7 +709,7 @@ defmodule NextLS do
 
           task =
             Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-              {name, Runtime.compile(pid)}
+              {name, Runtime.compile(pid, uri: uri)}
             end)
 
           {task.ref, {token, "Compiled #{name}!"}}
