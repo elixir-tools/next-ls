@@ -269,7 +269,7 @@ defmodule :_next_ls_private_compiler do
           {:error, test_diagnostics, warnings} ->
             {:error, Enum.into(test_diagnostics ++ warnings, diagnostics, &parse_compiler_diagnostic/1)}
 
-          {_success, _modules, warnings} ->
+          {success, _modules, warnings} when success in [:ok, :noop] ->
             {:ok, Enum.into(warnings, diagnostics, &parse_compiler_diagnostic/1)}
         end
 
@@ -287,13 +287,24 @@ defmodule :_next_ls_private_compiler do
   defp compile_tests(:all) do
     project = Mix.Project.config()
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &compile_test_helper/1)
+    {res, _v, _warnings} = test_helper_compile_results = test_paths
+      |> Enum.map(&compile_test_helper/1)
+      |> Enum.map(&parse_compile_results/1)
+      |> Enum.reduce(&combine_compiler_results/2)
 
-    # Finally parse, require and load the files
-    test_pattern = project[:test_pattern] || "*_test.exs"
-    matched_test_files = Mix.Utils.extract_files(test_paths, test_pattern)
+    pdbg({:test_helper_compile_results, test_helper_compile_results})
+    # Don't attempt to compile tests if test helpers fail to compile
+    if res == :error do
+      test_helper_compile_results
+    else
+      # Finally parse, require and compile the files
+      test_pattern = project[:test_pattern] || "*_test.exs"
+      matched_test_files = Mix.Utils.extract_files(test_paths, test_pattern)
 
-    compile_test_files(matched_test_files)
+      test_compile_results = compile_test_files(matched_test_files)
+      pdbg({:test_compile_results, test_compile_results})
+      pdbg(combine_compiler_results(test_helper_compile_results, test_compile_results))
+    end
   end
 
   defp compile_tests([]) do
@@ -304,16 +315,32 @@ defmodule :_next_ls_private_compiler do
     compile_test_files(files)
   end
 
-  defp compile_test_files(files) do
-    case Kernel.ParallelCompiler.compile(files, return_diagnostics: true) do
-      {res, v, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}} ->
-        {res, v, runtime_warnings ++ compile_warnings}
+  defp combine_compiler_results({:error, errors1, warnings1}, {:error, errors2, warnings2}) do
+    {:error, errors1 ++ errors2, warnings1 ++ warnings2}
+  end
 
-      # The `return_diagnostics` option was introduced in Elixir 1.15; earlier
-      # versions return tuples which need to be parsed into diagnostics maps
-      {res, v, warnings} ->
-        {res, v, Enum.map(warnings, &parse_warning/1)}
-    end
+  defp combine_compiler_results({:error, errors1, warnings1}, {success, _mods, warnings2}) when success in [:ok, :noop] do
+    {:error, errors1, warnings1 ++ warnings2}
+  end
+
+  defp combine_compiler_results({success, _mods, warnings1}, {:error, errors2, warnings2}) when success in [:ok, :noop] do
+    {:error, errors2, warnings1 ++ warnings2}
+  end
+
+  defp combine_compiler_results({success1, mods1, warnings1}, {success2, mods2, warnings2}) when success1 in [:ok, :noop] and success2 in [:ok, :noop] do
+    {:ok, mods1 ++ mods2, warnings1 ++ warnings2}
+  end
+
+  defp compile_test_files(files) do
+    parse_compile_results(Kernel.ParallelCompiler.compile(files, return_diagnostics: true))
+  end
+
+  defp parse_compile_results({res, v, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}}) do
+    {res, v, runtime_warnings ++ compile_warnings}
+  end
+
+  defp parse_compile_results({res, v, warnings}) do
+    {res, v, Enum.map(warnings, &parse_warning/1)}
   end
 
   defp redefining_module_warning?(%Mix.Task.Compiler.Diagnostic{severity: :warning, message: message}) do
@@ -367,5 +394,6 @@ defmodule :_next_ls_private_compiler do
   defp pdbg(term) do
     parent = parent_pid()
     Process.send(parent, {:tracer, :dbg, term}, [])
+    term
   end
 end
