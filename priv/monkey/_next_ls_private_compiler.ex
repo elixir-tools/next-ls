@@ -292,7 +292,6 @@ defmodule :_next_ls_private_compiler do
       |> Enum.map(&parse_compile_results/1)
       |> Enum.reduce(&combine_compiler_results/2)
 
-    pdbg({:test_helper_compile_results, test_helper_compile_results})
     # Don't attempt to compile tests if test helpers fail to compile
     if res == :error do
       test_helper_compile_results
@@ -301,9 +300,7 @@ defmodule :_next_ls_private_compiler do
       test_pattern = project[:test_pattern] || "*_test.exs"
       matched_test_files = Mix.Utils.extract_files(test_paths, test_pattern)
 
-      test_compile_results = compile_test_files(matched_test_files)
-      pdbg({:test_compile_results, test_compile_results})
-      pdbg(combine_compiler_results(test_helper_compile_results, test_compile_results))
+      combine_compiler_results(test_helper_compile_results, compile_test_files(matched_test_files))
     end
   end
 
@@ -363,18 +360,8 @@ defmodule :_next_ls_private_compiler do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
-      pdbg(:found_test_helper)
-      pdbg({:__dir__, __DIR__})
-      pdbg({:cwd, File.cwd()})
-      # Code.require_file(file)
-      res = Kernel.ParallelCompiler.require([file], return_diagnostics: true)
-      # pdbg(res)
-      # case res do
-      #   {:error, e} -> pdbg({:test_helper_error, e})
-      #   _ -> nil
-      # end
+      Kernel.ParallelCompiler.require([file], return_diagnostics: true)
     else
-      pdbg(:cannot_find_test_helper)
       raise "Cannot run tests because test helper file #{inspect(file)} does not exist"
     end
   end
@@ -385,15 +372,5 @@ defmodule :_next_ls_private_compiler do
     else
       []
     end
-  end
-
-  defp parent_pid do
-    "NEXTLS_PARENT_PID" |> System.get_env() |> Base.decode64!() |> :erlang.binary_to_term()
-  end
-
-  defp pdbg(term) do
-    parent = parent_pid()
-    Process.send(parent, {:tracer, :dbg, term}, [])
-    term
   end
 end
