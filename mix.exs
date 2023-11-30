@@ -61,10 +61,15 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:exqlite, "~> 0.13.14"},
-      {:gen_lsp, "~> 0.6"},
+      {:gen_lsp, "~> 0.7"},
       {:req, "~> 0.3.11"},
       {:schematic, "~> 0.2"},
 
+      {:opentelemetry, "~> 1.3"},
+      {:opentelemetry_api, "~> 1.2"},
+      {:opentelemetry_exporter, "~> 1.4"},
+      {:opentelemetry_process_propagator, "~> 0.2.2"},
+      {:opentelemetry_telemetry, "~> 1.0"},
       {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},

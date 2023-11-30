@@ -2,6 +2,10 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
+  alias OpenTelemetry.Tracer
+
+  require OpenTelemetry.Tracer
+
   @env Mix.env()
   defguardp is_ready(state) when is_map_key(state, :node)
 
@@ -12,7 +16,10 @@ defmodule NextLS.Runtime do
   @type mod_fun_arg :: {atom(), atom(), list()}
 
   @spec call(pid(), mod_fun_arg()) :: any()
-  def call(server, mfa), do: GenServer.call(server, {:call, mfa}, :infinity)
+  def call(server, mfa) do
+    ctx = OpenTelemetry.Ctx.get_current()
+    GenServer.call(server, {:call, mfa, ctx}, :infinity)
+  end
 
   @spec ready?(pid()) :: boolean()
   def ready?(server), do: GenServer.call(server, :ready?)
@@ -110,7 +117,7 @@ defmodule NextLS.Runtime do
         |> Path.join("cmd")
         |> Path.absname()
 
-      NextLS.Logger.log(logger, "Using `elixir` found at: #{elixir_exe}")
+      NextLS.Logger.info(logger, "Using `elixir` found at: #{elixir_exe}")
 
       port =
         Port.open(
@@ -165,7 +172,7 @@ defmodule NextLS.Runtime do
           {:DOWN, ^ref, :process, ^me, reason} ->
             case reason do
               :shutdown ->
-                NextLS.Logger.log(logger, "The runtime for #{name} has successfully shut down.")
+                NextLS.Logger.info(logger, "The runtime for #{name} has successfully shut down.")
 
               reason ->
                 NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
@@ -177,7 +184,7 @@ defmodule NextLS.Runtime do
         with {:ok, host} <- :inet.gethostname(),
              node <- :"#{sname}@#{host}",
              true <- connect(node, port, 120) do
-          NextLS.Logger.log(logger, "Connected to node #{node}")
+          NextLS.Logger.info(logger, "Connected to node #{node}")
 
           :next_ls
           |> :code.priv_dir()
@@ -239,9 +246,17 @@ defmodule NextLS.Runtime do
     {:reply, {:error, :not_ready}, state}
   end
 
-  def handle_call({:call, {m, f, a}}, _from, %{node: node} = state) do
-    reply = :rpc.call(node, m, f, a)
-    {:reply, {:ok, reply}, state}
+  def handle_call({:call, {m, f, a}, ctx}, _from, %{node: node} = state) do
+    token = OpenTelemetry.Ctx.attach(ctx)
+
+    try do
+      Tracer.with_span :"runtime.call", %{attributes: %{mfa: inspect({m, f, a})}} do
+        reply = :rpc.call(node, m, f, a)
+        {:reply, {:ok, reply}, state}
+      end
+    after
+      OpenTelemetry.Ctx.detach(token)
+    end
   end
 
   def handle_call({:compile, opts}, from, %{node: node, test_compile_queue: test_compile_queue} = state) do
@@ -272,7 +287,7 @@ defmodule NextLS.Runtime do
 
             send(me, {:compile_complete})
 
-            NextLS.Logger.log(state.logger, "Compiled #{state.name}!")
+            NextLS.Logger.info(state.logger, "Compiled #{state.name}!")
 
             diagnostics
 
@@ -328,12 +343,12 @@ defmodule NextLS.Runtime do
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do
-    NextLS.Logger.log(state.logger, data)
+    NextLS.Logger.info(state.logger, data)
     {:noreply, state}
   end
 
   def handle_info({port, other}, %{port: port} = state) do
-    NextLS.Logger.log(state.logger, other)
+    NextLS.Logger.info(state.logger, other)
     {:noreply, state}
   end
 

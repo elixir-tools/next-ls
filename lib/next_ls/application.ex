@@ -7,6 +7,11 @@ defmodule NextLS.Application do
 
   @impl true
   def start(_type, _args) do
+    if Application.get_env(:next_ls, :otel, false) do
+      NextLS.OpentelemetrySchematic.setup()
+      NextLS.OpentelemetryGenLSP.setup()
+    end
+
     case System.cmd("epmd", ["-daemon"], stderr_to_stdout: true) do
       {_, 0} ->
         :ok

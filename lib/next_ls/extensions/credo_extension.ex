@@ -30,7 +30,7 @@ defmodule NextLS.CredoExtension do
     if settings.enable do
       Registry.register(registry, :extensions, :credo)
 
-      NextLS.Logger.log(logger, "[extension] Credo initializing with options #{inspect(settings)}")
+      NextLS.Logger.info(logger, "[extension] Credo initializing with options #{inspect(settings)}")
 
       {:ok,
        %{
@@ -44,7 +44,7 @@ defmodule NextLS.CredoExtension do
          refresh_refs: Map.new()
        }}
     else
-      NextLS.Logger.log(logger, "[extension] Credo disabled")
+      NextLS.Logger.info(logger, "[extension] Credo disabled")
       :ignore
     end
   end

@@ -29,7 +29,7 @@ defmodule NextLS.DB.Schema do
     # FIXME: this is odd tech debt. not a big deal but is confusing
     {_, logger} = conn
 
-    NextLS.Logger.log(logger, "Beginning DB migration...")
+    NextLS.Logger.info(logger, "Beginning DB migration...")
 
     DB.__query__(
       conn,
@@ -113,7 +113,7 @@ defmodule NextLS.DB.Schema do
           {:ok, :reindex}
       end
 
-    NextLS.Logger.log(logger, "Finished DB migration...")
+    NextLS.Logger.info(logger, "Finished DB migration...")
     result
   end
 end
