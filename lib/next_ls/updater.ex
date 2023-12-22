@@ -17,7 +17,7 @@ defmodule NextLS.Updater do
     retry = Keyword.get(opts, :retry, :safe)
 
     case Req.get("/repos/elixir-tools/next-ls/releases/latest", base_url: api_host, retry: retry) do
-      {:ok, %{body: %{"tag_name" => "v" <> version = tag}}} ->
+      {:ok, %{status: 200, body: %{"tag_name" => "v" <> version = tag}}} ->
         with {:ok, latest_version} <- Version.parse(version),
              :gt <- Version.compare(latest_version, current_version) do
           with :ok <- File.rename(binpath, binpath <> "-#{Version.to_string(current_version)}"),
@@ -65,7 +65,7 @@ defmodule NextLS.Updater do
           end
         end
 
-      {:error, error} ->
+      {_, error} ->
         NextLS.Logger.error(
           logger,
           "Failed to retrieve the latest version number of Next LS from the GitHub API: #{inspect(error)}"
