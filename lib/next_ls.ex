@@ -170,13 +170,14 @@ defmodule NextLS do
       ) do
     code_actions =
       for %Diagnostic{} = diagnostic <- diagnostics,
-          check =
-            NextLS.Check.new(
-              diagnostic: diagnostic,
-              uri: uri,
-              document: lsp.assigns.documents[uri]
-            ),
-          action <- NextLS.CodeActionable.fetch(check) do
+      # Note: the diagnostic data doesn't have a namespace attribute yet,
+      # this is only so that there are no compile error
+      # Maybe add the namespace to the data attribute
+      # or retrieve the diagnostics for the current file from diagnostic cache
+      # where the namespace information is stored.
+          data = %NextLS.CodeActionable.Data{diagnostic: diagnostic, uri: uri, document: lsp.assigns.documents[uri]},
+          namespace = diagnostic.data["namespace"],
+          action <- NextLS.CodeActionable.from(namespace, data) do
         action
       end
 

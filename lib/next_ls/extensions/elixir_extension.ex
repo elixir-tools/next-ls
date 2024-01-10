@@ -111,4 +111,8 @@ defmodule NextLS.ElixirExtension do
   end
 
   def clamp(line), do: max(line, 0)
+
+  def to_code_action(_diagnostic) do
+    []
+  end
 end
