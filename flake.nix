@@ -18,7 +18,7 @@
     forAllSystems = f:
       nixpkgs.lib.genAttrs (builtins.attrNames burritoExe) (system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        beamPackages = pkgs.beam.packages.erlang_26;
+        beamPackages = pkgs.beam_minimal.packages.erlang_26;
         elixir = beamPackages.elixir_1_15;
       in
         f {inherit system pkgs beamPackages elixir;});
