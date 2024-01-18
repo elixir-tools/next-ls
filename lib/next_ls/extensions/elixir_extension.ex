@@ -30,6 +30,7 @@ defmodule NextLS.ElixirExtension do
 
   def handle_info({:compiler, diagnostics}, state) when is_list(diagnostics) do
     DiagnosticCache.clear(state.cache, :elixir)
+    IO.inspect(diagnostics)
 
     for d <- diagnostics do
       # TODO: some compiler diagnostics only have the line number
@@ -44,7 +45,8 @@ defmodule NextLS.ElixirExtension do
         severity: severity(d.severity),
         message: IO.iodata_to_binary(d.message),
         source: d.compiler_name,
-        range: range(d.position, Map.get(d, :span))
+        range: range(d.position, Map.get(d, :span)),
+        data: metadata(d)
       })
     end
 
@@ -112,7 +114,12 @@ defmodule NextLS.ElixirExtension do
 
   def clamp(line), do: max(line, 0)
 
-  def to_code_action(_diagnostic) do
-    []
+  defp metadata(diagnostic) do
+    cond do
+      diagnostic.message =~ "unused" ->
+        %{"type" => "unused"}
+      true -> %{}
+    end
+    |> Map.put("namespace", "elixir")
   end
 end

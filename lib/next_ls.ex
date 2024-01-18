@@ -168,6 +168,8 @@ defmodule NextLS do
         },
         lsp
       ) do
+    IO.puts "GOt to code action"
+    IO.inspect(diagnostics, label: "DIAGNOSTICS")
     code_actions =
       for %Diagnostic{} = diagnostic <- diagnostics,
       # Note: the diagnostic data doesn't have a namespace attribute yet,
@@ -175,11 +177,13 @@ defmodule NextLS do
       # Maybe add the namespace to the data attribute
       # or retrieve the diagnostics for the current file from diagnostic cache
       # where the namespace information is stored.
-          data = %NextLS.CodeActionable.Data{diagnostic: diagnostic, uri: uri, document: lsp.assigns.documents[uri]},
-          namespace = diagnostic.data["namespace"],
+          data = %NextLS.CodeActionable.Data{diagnostic: diagnostic, uri: uri, document: lsp.assigns.documents[uri]} |> IO.inspect(label: "data"),
+          namespace = diagnostic.data["namespace"] |> IO.inspect(label: "namespace"),
           action <- NextLS.CodeActionable.from(namespace, data) do
         action
       end
+
+    IO.inspect(code_actions, label: "CODE ACTIONS")
 
     {:reply, code_actions, lsp}
   end

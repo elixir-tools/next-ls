@@ -3,17 +3,18 @@ defmodule NextLS.CodeActionable do
   # unsupported diagnostics to return an empty list when gathering the code actions
   # from diagnostics
 
+  alias GenLSP.Structures.CodeAction
+
   defmodule Data do
     defstruct [:diagnostic, :uri, :document]
   end
 
-  @callback to_code_action(arg :: Data.t()) :: [CodeAction.t()]
+  @callback from(diagnostic :: Data.t()) :: [CodeAction.t()]
 
-  def from(:elixir, diagnostic_data) do
-    # Note: It could be NextLS.ElixirExtension.CodeAction.from(diagnostic)
-    NextLS.ElixirExtension.to_code_action(diagnostic_data)
+  def from("elixir", diagnostic_data) do
+    NextLS.ElixirExtension.CodeAction.from(diagnostic_data)
   end
-  def from(:credo, diagnostic_data) do
-    NextLS.CredoExtension.to_code_action(diagnostic_data)
+  def from("credo", diagnostic_data) do
+    NextLS.CredoExtension.CodeAction.from(diagnostic_data)
   end
 end

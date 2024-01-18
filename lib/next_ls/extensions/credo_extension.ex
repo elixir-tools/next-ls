@@ -168,8 +168,4 @@ defmodule NextLS.CredoExtension do
   defp category_to_severity(:consistency), do: DiagnosticSeverity.information()
 
   defp category_to_severity(:readability), do: DiagnosticSeverity.information()
-
-  def to_code_action(_diagnostic) do
-    []
-  end
 end
