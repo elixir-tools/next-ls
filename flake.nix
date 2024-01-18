@@ -61,7 +61,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-M8BtmnSWpABqu8ZelZkzG1BOhD8sm3MoqXFIEgCy708=";
+            hash = "sha256-cyUCWbV4YgO7gfrgUjoSPrWyQ5uLlNFaERsIY8Uyd8o=";
           };
 
           BURRITO_ERTS_PATH = "${beamPackages.erlang}/lib/erlang";
