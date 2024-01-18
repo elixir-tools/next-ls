@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.0](https://github.com/elixir-tools/next-ls/compare/v0.15.0...v0.16.0) (2024-01-18)
+
+
+### Features
+
+* opentelemetry + logging ([#311](https://github.com/elixir-tools/next-ls/issues/311)) ([e871f34](https://github.com/elixir-tools/next-ls/commit/e871f34cd8269e1a91f041d474f674a050e1d3b4))
+
+
+### Bug Fixes
+
+* bump gen_lsp ([dfa83c2](https://github.com/elixir-tools/next-ls/commit/dfa83c264d63b194802ca1cc3ed8a51e78db8beb))
+* handle when auto updater receives a non-200 from GitHub API ([#351](https://github.com/elixir-tools/next-ls/issues/351)) ([3564971](https://github.com/elixir-tools/next-ls/commit/3564971cb8eb6b33b7a4d0f049ce8e99ebbd2374)), closes [#350](https://github.com/elixir-tools/next-ls/issues/350)
+* update gen_lsp ([6adb5d5](https://github.com/elixir-tools/next-ls/commit/6adb5d57e9d98a32d7d27be51cb46cd4abba86c1))
+
 ## [0.15.0](https://github.com/elixir-tools/next-ls/compare/v0.14.2...v0.15.0) (2023-11-03)
 
 
