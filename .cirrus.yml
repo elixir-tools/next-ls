@@ -7,6 +7,7 @@ task:
     - brew install 7zip
     - mkdir -p "$HOME/bin"
     - curl https://mise.jdx.dev/install.sh | sh
+    - export PATH=$HOME/.local/bin:$PATH
     - export PATH=$HOME/.local/share/mise/bin:$PATH
     - export PATH=$HOME/.local/share/mise/shims:$PATH
     - export MISE_TRUSTED_CONFIG_PATHS="$PWD/.mise.toml"
