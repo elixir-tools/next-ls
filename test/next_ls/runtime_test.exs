@@ -253,6 +253,37 @@ defmodule NextLs.RuntimeTest do
     end
   end
 
+  test "supports using custom elixir_exec path", %{logger: logger, cwd: cwd, on_init: on_init} do
+    start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
+    tvisor = start_supervised!(Task.Supervisor)
+
+    # Create local Elixir shim
+    elixir_exec = Path.join(cwd, "elixir")
+    File.ln_s!(System.find_executable("elixir"), elixir_exec)
+    assert {_, 0} = System.cmd(elixir_exec, ["--version"])
+
+    pid =
+      start_supervised!(
+        {Runtime,
+         name: "my_proj",
+         on_initialized: on_init,
+         task_supervisor: tvisor,
+         working_dir: cwd,
+         uri: "file://#{cwd}",
+         parent: self(),
+         logger: logger,
+         db: :some_db,
+         mix_env: "dev",
+         mix_target: "host",
+         elixir_exec: elixir_exec,
+         registry: RuntimeTest.Registry}
+      )
+
+    Process.link(pid)
+
+    assert_receive :ready
+  end
+
   defp flush_messages do
     receive do
       _ -> flush_messages()

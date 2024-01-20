@@ -661,6 +661,7 @@ defmodule NextLS do
              uri: uri,
              mix_env: lsp.assigns.init_opts.mix_env,
              mix_target: lsp.assigns.init_opts.mix_target,
+             elixir_exec: lsp.assigns.init_opts.elixir_exec,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -1117,6 +1118,7 @@ defmodule NextLS do
 
     defstruct mix_target: "host",
               mix_env: "dev",
+              elixir_exec: nil,
               experimental: %NextLS.InitOpts.Experimental{},
               extensions: %NextLS.InitOpts.Extensions{}
 
@@ -1126,6 +1128,7 @@ defmodule NextLS do
           schema(__MODULE__, %{
             optional(:mix_target) => str(),
             optional(:mix_env) => str(),
+            optional(:elixir_exec) => str(),
             optional(:experimental) =>
               schema(NextLS.InitOpts.Experimental, %{
                 optional(:completions) =>
