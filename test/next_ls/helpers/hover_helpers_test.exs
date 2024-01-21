@@ -200,5 +200,65 @@ defmodule NextLS.HoverHelpersTest do
                * Repeat until there is no path between `V1` and `V2`.
                """)
     end
+
+    test "dl, dt, and dd" do
+      html = [
+        {:dl, [],
+         [
+           {:dt, [], [{:code, [], ["root"]}]},
+           {:dd, [],
+            [
+              {:p, [], ["The installation directory of Erlang/OTP, ", {:code, [], ["$ROOT"]}, ":"]},
+              {:pre, [],
+               [
+                 {:code, [],
+                  ["2> init:get_argument(root).\n{ok,[[\"/usr/local/otp/releases/otp_beam_solaris8_r10b_patched\"]]}"]}
+               ]}
+            ]},
+           {:dt, [], [{:code, [], ["progname"]}]},
+           {:dd, [],
+            [
+              {:p, [], ["The name of the program which started Erlang:"]},
+              {:pre, [], [{:code, [], ["3> init:get_argument(progname).\n{ok,[[\"erl\"]]}"]}]}
+            ]},
+           {:dt, [], [{:a, [id: "home"], []}, {:code, [], ["home"]}]},
+           {:dd, [],
+            [
+              {:p, [], ["The home directory (on Unix, the value of $HOME):"]},
+              {:pre, [], [{:code, [], ["4> init:get_argument(home).\n{ok,[[\"/home/harry\"]]}"]}]}
+            ]}
+         ]},
+        {:p, [], ["Returns ", {:code, [], ["error"]}, " if no value is associated with ", {:code, [], ["Flag"]}, "."]}
+      ]
+
+      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+
+      assert String.trim(actual) ==
+               String.trim("""
+               * `root`
+               The installation directory of Erlang/OTP, `$ROOT`:
+
+               ```erlang
+               2> init:get_argument(root).
+               {ok,[[\"/usr/local/otp/releases/otp_beam_solaris8_r10b_patched\"]]}
+               ```
+               * `progname`
+               The name of the program which started Erlang:
+
+               ```erlang
+               3> init:get_argument(progname).
+               {ok,[[\"erl\"]]}
+               ```
+               * []()`home`
+               The home directory (on Unix, the value of $HOME):
+
+               ```erlang
+               4> init:get_argument(home).
+               {ok,[[\"/home/harry\"]]}
+               ```
+
+               Returns `error` if no value is associated with `Flag`.
+               """)
+    end
   end
 end

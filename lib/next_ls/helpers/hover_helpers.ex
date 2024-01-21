@@ -50,6 +50,18 @@ defmodule NextLS.HoverHelpers do
     "_#{IO.iodata_to_binary(bins)}_" <> to_markdown(type, rest)
   end
 
+  def to_markdown("application/erlang+html" = type, [{:dl, _, lis} | rest]) do
+    "#{to_markdown(type, lis)}\n" <> to_markdown(type, rest)
+  end
+
+  def to_markdown("application/erlang+html" = type, [{:dt, _, children} | rest]) do
+    "* #{to_markdown(type, children)}\n" <> to_markdown(type, rest)
+  end
+
+  def to_markdown("application/erlang+html" = type, [{:dd, _, children} | rest]) do
+    "#{to_markdown(type, children)}\n" <> to_markdown(type, rest)
+  end
+
   def to_markdown("application/erlang+html", []) do
     ""
   end
