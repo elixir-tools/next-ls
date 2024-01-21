@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/elixir-tools/next-ls/compare/v0.16.0...v0.16.1) (2024-01-21)
+
+
+### Bug Fixes
+
+* minimally support dl tag for Erlang hover docs ([#362](https://github.com/elixir-tools/next-ls/issues/362)) ([47b8c66](https://github.com/elixir-tools/next-ls/commit/47b8c66b8c9b9f89266a3e531900bc858eff53b1)), closes [#361](https://github.com/elixir-tools/next-ls/issues/361)
+
 ## [0.16.0](https://github.com/elixir-tools/next-ls/compare/v0.15.0...v0.16.0) (2024-01-18)
 
 
