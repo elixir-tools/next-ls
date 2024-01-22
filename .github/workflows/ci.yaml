@@ -20,7 +20,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             deps
@@ -57,7 +57,7 @@ jobs:
         with:
           otp-version: 26.1.2
           elixir-version: 1.15.7
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             deps
@@ -86,7 +86,7 @@ jobs:
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)
       - name: Restore PLT cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         id: plt_cache
         with:
           key: |
@@ -107,7 +107,7 @@ jobs:
       # By default, the GitHub Cache action will only save the cache if all steps in the job succeed,
       # so we separate the cache restore and save steps in case running dialyzer fails.
       - name: Save PLT cache
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         if: steps.plt_cache.outputs.cache-hit != 'true'
         id: plt_cache_save
         with:
