@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v1
+      - uses: jdx/mise-action@v2
       - uses: actions/cache@v4
         with:
           path: |
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v1
+      - uses: jdx/mise-action@v2
       - uses: actions/cache@v4
         with:
           path: |
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v1
+      - uses: jdx/mise-action@v2
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)
