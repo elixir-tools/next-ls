@@ -18,6 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
+        env:
+          KERL_BUILD_DOCS: "yes"
       - uses: actions/cache@v4
         with:
           path: |
