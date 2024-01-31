@@ -6,28 +6,26 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
-    name: Test (${{matrix.elixir}}/${{matrix.otp}})
+    runs-on: ${{matrix.os}}
+    name: Test (${{matrix.os}})
 
     strategy:
       matrix:
-        otp: [26.1.2]
-        elixir: [1.15.7]
+        os: 
+          - ubuntu-latest
+          - macos-14
 
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
+      - uses: jdx/mise-action@v2
       - uses: actions/cache@v4
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{matrix.otp}}-${{matrix.elixir}}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ matrix.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{matrix.otp}}-${{matrix.elixir}}-
+            ${{ matrix.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
 
       - name: Install Dependencies
         run: mix deps.get
@@ -52,19 +50,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
-        id: beam
-        with:
-          otp-version: 26.1.2
-          elixir-version: 1.15.7
+      - uses: jdx/mise-action@v2
       - uses: actions/cache@v4
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+            ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
 
       - name: Install Dependencies
         run: mix deps.get
@@ -76,12 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Elixir
-        id: beam
-        uses: erlef/setup-beam@v1
-        with:
-          otp-version: 26.1.2
-          elixir-version: 1.15.7
+      - uses: jdx/mise-action@v2
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)
@@ -89,10 +78,9 @@ jobs:
         uses: actions/cache/restore@v4
         id: plt_cache
         with:
-          key: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+            ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
           path: |
             priv/plts
 
@@ -111,8 +99,7 @@ jobs:
         if: steps.plt_cache.outputs.cache-hit != 'true'
         id: plt_cache_save
         with:
-          key: |
-            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
           path: |
             priv/plts
 
@@ -122,7 +109,7 @@ jobs:
   nix-build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-13, macos-14]
     runs-on: ${{matrix.os}}
 
     steps:
