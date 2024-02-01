@@ -29,10 +29,6 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
-    strategy:
-      matrix:
-        otp: [26.0.2]
-        elixir: [1.15.4]
     steps:
       - uses: google-github-actions/release-please-action@v3
         id: release
@@ -53,13 +49,30 @@ jobs:
 
   build:
     needs: [release, draft]
+    runs-on: macos-14
     if: ${{ needs.release.outputs.release_created }}
-    uses: elixir-tools/private-workflows/.github/workflows/release.yaml@main
-    with:
-      repo: elixir-tools/next-ls
-      tag: ${{ needs.release.outputs.tag_name }}
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: chmod +x "$PWD/bin/7z"
+      - run: brew install 7zip
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+      - run: mix deps.get
+      - run: chmod +x priv/cmd
+      - run: PATH="$PWD/bin:$PATH" MIX_ENV=prod mix release
+      - name: Create Checksum
+        run: |
+          cd ./burrito_out
+          chmod +x ./*
+          shasum -a 256 ./* > next_ls_checksums.txt
+          cd ..
+      - name: Upload to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+        run: gh release upload ${{ inputs.tag }} ./burrito_out/*
 
   publish:
     name: publish
