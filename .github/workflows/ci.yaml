@@ -106,6 +106,41 @@ jobs:
       - name: Run dialyzer
         run: mix dialyzer --format github
 
+  release-test:
+    runs-on: ${{matrix.os.name}}
+    name: Release Test (${{matrix.os.name}})
+
+    strategy:
+      matrix:
+        os:
+          - name: ubuntu-latest
+            target: linux_amd64
+          - name: macos-14
+            target: darwin_arm64
+          - name: macos-13
+            target: darwin_amd64
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build/prod
+          key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-
+
+      - name: Install Dependencies
+        run: mix deps.get --only prod
+
+      - name: Release
+        env:
+          MIX_ENV: prod
+          BURRITO_TARGET: ${{ matrix.os.target }}
+        run: mix release
+
   nix-build:
     strategy:
       matrix:
