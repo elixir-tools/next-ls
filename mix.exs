@@ -43,10 +43,8 @@ defmodule NextLS.MixProject do
           targets: inject_custom_erts([
             darwin_arm64: [os: :darwin, cpu: :aarch64],
             darwin_amd64: [os: :darwin, cpu: :x86_64],
-            linux_arm64: [os: :linux, cpu: :aarch64, libc: :gnu],
-            linux_amd64: [os: :linux, cpu: :x86_64, libc: :gnu],
-            linux_arm64_musl: [os: :linux, cpu: :aarch64, libc: :musl],
-            linux_amd64_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+            linux_arm64: [os: :linux, cpu: :aarch64],
+            linux_amd64: [os: :linux, cpu: :x86_64],
             windows_amd64: [os: :windows, cpu: :x86_64]
           ])
         ]
@@ -70,7 +68,7 @@ defmodule NextLS.MixProject do
       {:opentelemetry_exporter, "~> 1.4"},
       {:opentelemetry_process_propagator, "~> 0.2.2"},
       {:opentelemetry_telemetry, "~> 1.0"},
-      {:burrito, github: "burrito-elixir/burrito", only: [:dev, :prod]},
+      {:burrito, "~> 1.0",  only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},

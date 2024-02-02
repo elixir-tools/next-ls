@@ -2,8 +2,8 @@
   inputs = {nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";};
 
   nixConfig = {
-    extra-substituters = [ "https://elixir-tools.cachix.org" ];
-    extra-trusted-public-keys = [ "elixir-tools.cachix.org-1:GfK9E139Ysi+YWeS1oNN9OaTfQjqpLwlBaz+/73tBjU=" ];
+    extra-substituters = ["https://elixir-tools.cachix.org"];
+    extra-trusted-public-keys = ["elixir-tools.cachix.org-1:GfK9E139Ysi+YWeS1oNN9OaTfQjqpLwlBaz+/73tBjU="];
   };
 
   outputs = {
@@ -61,7 +61,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-cyUCWbV4YgO7gfrgUjoSPrWyQ5uLlNFaERsIY8Uyd8o=";
+            hash = "sha256-HyXsbQFlodvL8lL2ULI14IWNBprhm6dIwKuKUK0Doz4=";
           };
 
           BURRITO_ERTS_PATH = "${beamPackages.erlang}/lib/erlang";
@@ -74,16 +74,6 @@
           postInstall = ''
             chmod +x ./burrito_out/*
             cp -r ./burrito_out "$out"
-            ${lib.optionalString pkgs.stdenv.isLinux ''
-              patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/${
-                if system == "x86_64-linux"
-                then "ld-linux-x86-64.so.2"
-                else if system == "aarch64-linux"
-                then "ld-linux-aarch64.so.1"
-                else throw "unsupported Linux system"
-              } \
-              "$out/burrito_out/next_ls_${burritoExe.${system}}"
-            ''}
             rm -rf "$out/bin"
             mv "$out/burrito_out" "$out/bin"
             mv "$out/bin/next_ls_${burritoExe.${system}}" "$out/bin/nextls"
@@ -111,7 +101,7 @@
     }: {
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
-        packages = [beamPackages.erlang elixir];
+        packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship];
       };
     });
   };
