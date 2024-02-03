@@ -102,6 +102,10 @@
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
         packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship];
+        shellHook = ''
+        export _IS_NIX_SHELL=1
+        zsh
+        '';
       };
     });
   };
