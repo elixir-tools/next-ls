@@ -61,7 +61,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-HyXsbQFlodvL8lL2ULI14IWNBprhm6dIwKuKUK0Doz4=";
+            hash = "sha256-RfHTmACBiwHs81EEpUcJ2nlOzwEvN3ISYiytD2xpvHI=";
           };
 
           BURRITO_ERTS_PATH = "${beamPackages.erlang}/lib/erlang";
@@ -102,10 +102,6 @@
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
         packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship];
-        shellHook = ''
-        export _IS_NIX_SHELL=1
-        zsh
-        '';
       };
     });
   };
