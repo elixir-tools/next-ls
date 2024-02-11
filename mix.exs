@@ -62,6 +62,7 @@ defmodule NextLS.MixProject do
       {:gen_lsp, "~> 0.7"},
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
+      {:spitfire, github: "elixir-tools/spitfire"},
 
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},

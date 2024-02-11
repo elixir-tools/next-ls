@@ -10,7 +10,7 @@ defmodule NextLS.ASTHelpers.Variables do
   def get_variable_definition(file, position) do
     file = File.read!(file)
 
-    case Code.string_to_quoted(file, columns: true) do
+    case NextLS.Parser.parse(file, columns: true) do
       {:ok, ast} ->
         {_ast, %{vars: vars}} =
           Macro.traverse(
@@ -46,7 +46,7 @@ defmodule NextLS.ASTHelpers.Variables do
   def list_variable_references(file, position) do
     file = File.read!(file)
 
-    case Code.string_to_quoted(file, columns: true) do
+    case NextLS.Parser.parse(file, columns: true) do
       {:ok, ast} ->
         {_ast, %{vars: vars}} =
           Macro.traverse(

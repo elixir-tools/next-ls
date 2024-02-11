@@ -228,11 +228,11 @@ defmodule NextLSTest do
                "range" => %{
                  "start" => %{
                    "line" => 3,
-                   "character" => 0
+                   "character" => 6
                  },
                  "end" => %{
                    "line" => 3,
-                   "character" => 0
+                   "character" => 6
                  }
                },
                "uri" => "file://#{cwd}/my_proj/lib/bar.ex"
@@ -349,8 +349,8 @@ defmodule NextLSTest do
                "kind" => 12,
                "location" => %{
                  "range" => %{
-                   "end" => %{"character" => 0, "line" => 1},
-                   "start" => %{"character" => 0, "line" => 1}
+                   "end" => %{"character" => 6, "line" => 1},
+                   "start" => %{"character" => 6, "line" => 1}
                  },
                  "uri" => "file://#{cwd}/my_proj/lib/project.ex"
                },

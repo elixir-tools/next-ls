@@ -181,8 +181,8 @@ defmodule NextLS.Runtime do
       end)
 
       Task.start_link(fn ->
-        with {:ok, host} <- :inet.gethostname(),
-             node <- :"#{sname}@#{host}",
+        with {:ok, host} = :inet.gethostname(),
+             node = :"#{sname}@#{host}",
              true <- connect(node, port, 120) do
           NextLS.Logger.info(logger, "Connected to node #{node}")
 

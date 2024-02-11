@@ -103,11 +103,11 @@ defmodule NextLS.DependencyTest do
       "range" => %{
         "start" => %{
           "line" => 1,
-          "character" => 0
+          "character" => 6
         },
         "end" => %{
           "line" => 1,
-          "character" => 0
+          "character" => 6
         }
       },
       "uri" => ^uri

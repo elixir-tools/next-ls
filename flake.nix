@@ -1,5 +1,7 @@
 {
-  inputs = {nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";};
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
 
   nixConfig = {
     extra-substituters = ["https://elixir-tools.cachix.org"];
@@ -19,10 +21,23 @@
       lib.genAttrs (builtins.attrNames burritoExe) (system: let
         pkgs = nixpkgs.legacyPackages.${system};
         beamPackages = pkgs.beam_minimal.packages.erlang_26;
-        elixir = beamPackages.elixir_1_15;
         beam = fetchTarball beams.${system};
         rawmusl = musls.${system};
         musl = lib.optionals nixpkgs.legacyPackages.${system}.stdenv.isLinux (builtins.fetchurl (nixpkgs.lib.attrsets.getAttrs ["url" "sha256"] musls.${system}));
+        otp = (pkgs.beam.packagesWith beamPackages.erlang).extend (final: prev: {
+          elixir_1_17 = prev.elixir_1_16.override {
+            rev = "52eaf1456182d5d6cce22a4f5c3f6ec9f4dcbfd9";
+            # You can discover this using Trust On First Use by filling in `lib.fakeHash`
+            sha256 = "sha256-fOsV+jVIzsa38hQDvAjhUqee36nt8kG6AOpOQJnSZ74=";
+            version = "1.17.0-dev";
+          };
+
+          elixir = final.elixir_1_17;
+          # This will get upstreamed into nix-beam-flakes at some point
+          rebar = prev.rebar.overrideAttrs (_old: {doCheck = false;});
+          rebar3 = prev.rebar3.overrideAttrs (_old: {doCheck = false;});
+        });
+        elixir = otp.elixir;
       in
         f {inherit system pkgs beamPackages elixir beam rawmusl musl;});
 
@@ -100,7 +115,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-U5d8DftG0i1c4JiutUentNlRsefFgR4Mfc3eKqnKR3U=";
+            hash = "sha256-RYPweYD1GD0D6A7ZkrtD3h7arCVimdStcOhrrlHFrnw=";
             mixEnv = "prod";
           };
 
@@ -149,7 +164,15 @@
       beamPackages,
       elixir,
       ...
-    }: {
+    }: let
+      aliased_7zz = pkgs.symlinkJoin {
+        name = "7zz-aliased";
+        paths = [pkgs._7zz];
+        postBuild = ''
+          ln -s ${pkgs._7zz}/bin/7zz $out/bin/7z
+        '';
+      };
+    in {
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
         packages = [
