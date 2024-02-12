@@ -96,6 +96,12 @@ defmodule NextLS.MixProject do
 
     erts_path = System.get_env("BURRITO_ERTS_PATH", "")
 
+    dbg File.ls("/tmp")
+
+    dbg erts_path
+    dbg File.exists?(erts_path)
+    dbg File.ls(erts_path)
+
     Enum.map(targets, fn {target_name, target_conf} ->
       case erts_path do
         "" -> {target_name, target_conf}

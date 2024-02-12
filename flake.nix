@@ -20,8 +20,16 @@
         pkgs = nixpkgs.legacyPackages.${system};
         beamPackages = pkgs.beam_minimal.packages.erlang_26;
         elixir = beamPackages.elixir_1_15;
+        beam = fetchTarball {
+          url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/linux/x86_64/any/otp_26.2.1_linux_any_x86_64_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
+          sha256 = "11z50xrmngsn0bzg7vn7w5h76iwmhscx01vij9ir2ivybjc8niky";
+        };
+        musl = builtins.fetchurl {
+          url = "https://beam-machine-universal.b-cdn.net/musl/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so?please-respect-my-bandwidth-costs=thank-you";
+          sha256 = "1g9x5l7jybjr3wl15v3jjka3mvdvqn2hfxg60zlybacs7p0kwq8p";
+        };
       in
-        f {inherit system pkgs beamPackages elixir;});
+        f {inherit system pkgs beamPackages elixir beam musl;});
 
     burritoExe = {
       "aarch64-darwin" = "darwin_arm64";
@@ -34,6 +42,8 @@
       pkgs,
       system,
       beamPackages,
+      beam,
+      musl,
       elixir,
     }: let
       aliased_7zz = pkgs.symlinkJoin {
@@ -52,23 +62,29 @@
         beamPackages.mixRelease {
           pname = "next-ls";
           src = self.outPath;
+          mixEnv = "prod";
           inherit version elixir;
           inherit (beamPackages) erlang;
 
-          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz];
+          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz beam];
 
           mixFodDeps = beamPackages.fetchMixDeps {
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-FXkroE+BOInL3vKraE7dw0WPOHsVnXVYWuyeZCdvfpM=";
+            hash = "sha256-JJbiJhVqeRrJseyDyxaUOmTDmSQTfOXuMLEHLhETJek=";
+            mixEnv = "prod";
           };
 
-          BURRITO_ERTS_PATH = "${beamPackages.erlang}/lib/erlang";
+          BURRITO_ERTS_PATH = "/tmp/beam/";
           BURRITO_TARGET = lib.optional localBuild burritoExe.${system};
 
           preBuild = ''
-            export HOME="$tmpDir"
+            export HOME="$TEMPDIR"
+            mkdir -p /tmp/beam/otp
+            cp -r --no-preserve=mode,ownership,timestamps ${beam}/. /tmp/beam/otp
+            cp --no-preserve=ownership,timestamps ${musl} /tmp/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so
+            chmod +x /tmp/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so
           '';
 
           postInstall = ''
@@ -101,7 +117,7 @@
     }: {
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
-        packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship];
+        packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship pkgs.ncurses5 pkgs.autoconf pkgs.automake pkgs.openssl];
       };
     });
   };
