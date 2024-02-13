@@ -14,7 +14,7 @@ defmodule NextLS.Updater do
     github_host = Keyword.get(opts, :github_host, "https://github.com")
     logger = Keyword.fetch!(opts, :logger)
     current_version = Keyword.fetch!(opts, :current_version)
-    retry = Keyword.get(opts, :retry, :safe)
+    retry = Keyword.get(opts, :retry, :safe_transient)
 
     case Req.get("/repos/elixir-tools/next-ls/releases/latest", base_url: api_host, retry: retry) do
       {:ok, %{status: 200, body: %{"tag_name" => "v" <> version = tag}}} ->
