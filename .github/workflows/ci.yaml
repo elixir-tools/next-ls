@@ -127,7 +127,6 @@ jobs:
         with:
           path: |
             deps
-            _build/prod
           key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-
