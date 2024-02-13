@@ -60,7 +60,7 @@ defmodule NextLS.MixProject do
     [
       {:exqlite, "~> 0.13.14"},
       {:gen_lsp, "~> 0.7"},
-      {:req, "~> 0.4.0"},
+      {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
 
       {:opentelemetry, "~> 1.3"},
@@ -68,7 +68,7 @@ defmodule NextLS.MixProject do
       {:opentelemetry_exporter, "~> 1.4"},
       {:opentelemetry_process_propagator, "~> 0.2.2"},
       {:opentelemetry_telemetry, "~> 1.0"},
-      {:burrito, github: "mhanberg/burrito", branch: "jdkfas", only: [:dev, :prod]},
+      {:burrito, "~> 1.0", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},
@@ -95,12 +95,6 @@ defmodule NextLS.MixProject do
     # so we need to inject our own ERTS path.
 
     erts_path = System.get_env("BURRITO_ERTS_PATH", "")
-
-    dbg File.ls("/tmp")
-
-    dbg erts_path
-    dbg File.exists?(erts_path)
-    dbg File.ls(erts_path)
 
     Enum.map(targets, fn {target_name, target_conf} ->
       case erts_path do

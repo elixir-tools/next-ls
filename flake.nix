@@ -16,26 +16,53 @@
 
     # Helper to provide system-specific attributes
     forAllSystems = f:
-      nixpkgs.lib.genAttrs (builtins.attrNames burritoExe) (system: let
+      lib.genAttrs (builtins.attrNames burritoExe) (system: let
         pkgs = nixpkgs.legacyPackages.${system};
         beamPackages = pkgs.beam_minimal.packages.erlang_26;
         elixir = beamPackages.elixir_1_15;
-        beam = fetchTarball {
-          url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/linux/x86_64/any/otp_26.2.1_linux_any_x86_64_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
-          sha256 = "11z50xrmngsn0bzg7vn7w5h76iwmhscx01vij9ir2ivybjc8niky";
-        };
-        musl = builtins.fetchurl {
-          url = "https://beam-machine-universal.b-cdn.net/musl/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so?please-respect-my-bandwidth-costs=thank-you";
-          sha256 = "1g9x5l7jybjr3wl15v3jjka3mvdvqn2hfxg60zlybacs7p0kwq8p";
-        };
+        beam = fetchTarball beams.${system};
+        rawmusl = musls.${system};
+        musl = lib.optionals nixpkgs.legacyPackages.${system}.stdenv.isLinux (builtins.fetchurl (nixpkgs.lib.attrsets.getAttrs ["url" "sha256"] musls.${system}));
       in
-        f {inherit system pkgs beamPackages elixir beam musl;});
+        f {inherit system pkgs beamPackages elixir beam rawmusl musl;});
 
     burritoExe = {
       "aarch64-darwin" = "darwin_arm64";
       "x86_64-darwin" = "darwin_amd64";
       "x86_64-linux" = "linux_amd64";
       "aarch64-linux" = "linux_arm64";
+    };
+
+    beams = {
+      "aarch64-darwin" = {
+        url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/macos/universal/otp_26.2.1_macos_universal_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "0sdadkl80pixj9q3l71zxamh9zgmnmawsc4hpllgvx9r9hl30f40";
+      };
+      "x86_64-darwin" = {
+        url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/macos/universal/otp_26.2.1_macos_universal_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "0sdadkl80pixj9q3l71zxamh9zgmnmawsc4hpllgvx9r9hl30f40";
+      };
+      "x86_64-linux" = {
+        url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/linux/x86_64/any/otp_26.2.1_linux_any_x86_64_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "11z50xrmngsn0bzg7vn7w5h76iwmhscx01vij9ir2ivybjc8niky";
+      };
+      "aarch64-linux" = {
+        url = "https://beam-machine-universal.b-cdn.net/OTP-26.2.1/linux/aarch64/any/otp_26.2.1_linux_any_aarch64_ssl_3.1.4.tar.gz?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "0ich3xkhbb3sb82m7sncg0pr1d3z92klpwrlh8csr8i1qjhg40h5";
+      };
+    };
+
+    musls = {
+      "x86_64-linux" = {
+        url = "https://beam-machine-universal.b-cdn.net/musl/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "1g9x5l7jybjr3wl15v3jjka3mvdvqn2hfxg60zlybacs7p0kwq8p";
+        file = "libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so";
+      };
+      "aarch64-linux" = {
+        url = "https://beam-machine-universal.b-cdn.net/musl/libc-musl-939d11dcd3b174a8dee05047f2ae794c5c43af54720c352fa946cd8b0114627a.so?please-respect-my-bandwidth-costs=thank-you";
+        sha256 = "0yk22h0qpka6m4pka33jajpl6p2cg6pg4ishw3gahx5isgf137ck";
+        file = "libc-musl-939d11dcd3b174a8dee05047f2ae794c5c43af54720c352fa946cd8b0114627a.so";
+      };
     };
   in {
     packages = forAllSystems ({
@@ -44,6 +71,7 @@
       beamPackages,
       beam,
       musl,
+      rawmusl,
       elixir,
     }: let
       aliased_7zz = pkgs.symlinkJoin {
@@ -72,20 +100,27 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-JJbiJhVqeRrJseyDyxaUOmTDmSQTfOXuMLEHLhETJek=";
+            hash = "sha256-U5d8DftG0i1c4JiutUentNlRsefFgR4Mfc3eKqnKR3U=";
             mixEnv = "prod";
           };
 
           BURRITO_ERTS_PATH = "/tmp/beam/";
           BURRITO_TARGET = lib.optional localBuild burritoExe.${system};
 
-          preBuild = ''
-            export HOME="$TEMPDIR"
-            mkdir -p /tmp/beam/otp
-            cp -r --no-preserve=mode,ownership,timestamps ${beam}/. /tmp/beam/otp
-            cp --no-preserve=ownership,timestamps ${musl} /tmp/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so
-            chmod +x /tmp/libc-musl-17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd.so
-          '';
+          preBuild =
+            ''
+              export HOME="$TEMPDIR"
+              mkdir -p /tmp/beam/otp
+              cp -r --no-preserve=ownership,timestamps ${beam}/. /tmp/beam/otp
+            ''
+            + (
+              if (pkgs.stdenv.isLinux)
+              then ''
+                cp --no-preserve=ownership,timestamps ${musl} /tmp/${rawmusl.file}
+                chmod +x /tmp/${rawmusl.file}
+              ''
+              else ""
+            );
 
           postInstall = ''
             chmod +x ./burrito_out/*
@@ -117,7 +152,19 @@
     }: {
       default = pkgs.mkShell {
         # The Nix packages provided in the environment
-        packages = [pkgs.zsh beamPackages.erlang elixir pkgs.xz pkgs.zig_0_11 pkgs._7zz pkgs.starship pkgs.ncurses5 pkgs.autoconf pkgs.automake pkgs.openssl];
+        packages = [
+          beamPackages.erlang
+          elixir
+          pkgs._7zz
+          pkgs.autoconf
+          pkgs.automake
+          pkgs.ncurses5
+          pkgs.openssl
+          pkgs.starship
+          pkgs.xz
+          pkgs.zig_0_11
+          pkgs.zsh
+        ];
       };
     });
   };
