@@ -656,15 +656,9 @@ defmodule NextLS.AutocompleteTest do
     assert expand(runtime, ~c"\"#{dir}/d") == {:yes, [%{name: "dir/", kind: :dir}]}
     assert expand(runtime, ~c"\"#{dir}/dir") == {:yes, [%{name: "dir/", kind: :dir}]}
 
-    case :os.type() do
-      {:unix, :linux} ->
-        assert expand(runtime, ~c"\"#{dir}/dir/") ==
-                 {:yes, [%{name: "file4", kind: :file}, %{name: "file3", kind: :file}]}
-
-      {:unix, :darwin} ->
-        assert expand(runtime, ~c"\"#{dir}/dir/") ==
-                 {:yes, [%{name: "file3", kind: :file}, %{name: "file4", kind: :file}]}
-    end
+    assert {:yes, [_, _] = files} = expand(runtime, ~c"\"#{dir}/dir/")
+    assert %{name: "file4", kind: :file} in files
+    assert %{name: "file3", kind: :file} in files
 
     assert expand(runtime, ~c"\"#{dir}/dir/file") == dir |> Path.join("dir") |> path_autocompletion("file")
   end
