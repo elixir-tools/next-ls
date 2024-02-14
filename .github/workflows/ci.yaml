@@ -129,23 +129,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/cache@v4
         with:
           path: |
             deps
-          key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-
+            ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/flake.nix') }}-
 
       - name: Install Dependencies
-        run: mix deps.get --only prod
+        run: nix develop --command bash -c 'mix deps.get --only prod'
 
       - name: Release
         env:
           MIX_ENV: prod
           BURRITO_TARGET: ${{ matrix.os.target }}
-        run: mix release
+        run: nix develop --command bash -c 'mix release'
 
   nix-build:
     strategy:
