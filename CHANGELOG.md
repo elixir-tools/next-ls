@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.17.0](https://github.com/elixir-tools/next-ls/compare/v0.16.1...v0.17.0) (2024-02-14)
+
+
+### Features
+
+* spitfire ([#368](https://github.com/elixir-tools/next-ls/issues/368)) ([bcb7e2e](https://github.com/elixir-tools/next-ls/commit/bcb7e2e7433b5488fd3f2bc7170be5028fb56409))
+
+  Incorporates experimental usage of the [Spitfire](https://github.com/elixir-tools/spitfire) parser.
+
+  To enable, the server should be started with `NEXTLS_SPITFIRE_ENABLED=1`. 
+
+  `elixir-tools.nvim` and `elixir-tools.vscode` will have settings to enable this for you.
+
+
 ## [0.16.1](https://github.com/elixir-tools/next-ls/compare/v0.16.0...v0.16.1) (2024-01-21)
 
 
