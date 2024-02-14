@@ -76,7 +76,7 @@ jobs:
       - name: Upload to release
         env:
           GITHUB_TOKEN: ${{ secrets.token }}
-        run: gh release upload ${{ inputs.tag }} ./burrito_out/*
+        run: gh release upload ${{ needs.release.outputs.tag_name }} ./burrito_out/*
 
   publish:
     name: publish
