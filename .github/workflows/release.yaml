@@ -57,13 +57,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: chmod +x "$PWD/bin/7z"
-      - run: brew install 7zip
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-      - run: mix deps.get
+      - run: nix develop --command bash -c 'mix local.hex --force'
+      - run: nix develop --command bash -c 'mix local.rebar --force'
+      - run: nix develop --command bash -c 'mix deps.get --only prod'
       - run: chmod +x priv/cmd
-      - run: PATH="$PWD/bin:$PATH" MIX_ENV=prod mix release
+      - run: nix develop --command bash -c 'mix release'
+        env: 
+          MIX_ENV: prod
       - name: Create Checksum
         run: |
           cd ./burrito_out

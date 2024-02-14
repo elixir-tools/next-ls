@@ -178,7 +178,7 @@
         packages = [
           beamPackages.erlang
           elixir
-          pkgs._7zz
+          aliased_7zz
           pkgs.autoconf
           pkgs.automake
           pkgs.ncurses5
