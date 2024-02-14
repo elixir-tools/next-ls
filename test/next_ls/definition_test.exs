@@ -79,11 +79,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 7,
-            "character" => 0
+            "character" => 7
           },
           "end" => %{
             "line" => 7,
-            "character" => 0
+            "character" => 7
           }
         },
         "uri" => ^uri
@@ -114,11 +114,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 6
           },
           "end" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 6
           }
         },
         "uri" => ^uri
@@ -150,11 +150,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 6
           },
           "end" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 6
           }
         },
         "uri" => ^uri
@@ -243,11 +243,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 4,
-            "character" => 0
+            "character" => 12
           },
           "end" => %{
             "line" => 4,
-            "character" => 0
+            "character" => 12
           }
         },
         "uri" => ^uri
@@ -278,11 +278,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 11
           },
           "end" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 11
           }
         },
         "uri" => ^uri
@@ -313,11 +313,11 @@ defmodule NextLS.DefinitionTest do
         "range" => %{
           "start" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 11
           },
           "end" => %{
             "line" => 1,
-            "character" => 0
+            "character" => 11
           }
         },
         "uri" => ^uri

@@ -72,7 +72,7 @@ defmodule NextLS.ASTHelpers do
     defp postwalk(ast, acc, _module), do: {ast, acc}
 
     defp ast_from_file(file) do
-      file |> File.read!() |> Code.string_to_quoted!(columns: true)
+      file |> File.read!() |> NextLS.Parser.parse!(columns: true)
     end
   end
 
@@ -99,53 +99,57 @@ defmodule NextLS.ASTHelpers do
     """
 
     def extract_alias_range(code, {start, stop}, ale) do
-      lines =
-        code
-        |> String.split("\n")
-        |> Enum.map(&String.split(&1, ""))
-        |> Enum.slice((start.line - 1)..(stop.line - 1))
-
-      code =
-        if start.line == stop.line do
-          [line] = lines
-
-          line
-          |> Enum.slice(start.col..stop.col)
-          |> Enum.join()
-        else
-          [first | rest] = lines
-          first = Enum.drop(first, start.col)
-
-          [last | rest] = Enum.reverse(rest)
-
-          length = Enum.count(last)
-          last = Enum.drop(last, -(length - stop.col - 1))
-
-          Enum.map_join([first | Enum.reverse([last | rest])], "\n", &Enum.join(&1, ""))
-        end
-
       {_, range} =
         code
-        |> Code.string_to_quoted!(columns: true, column: start.col, token_metadata: true)
-        |> Macro.prewalk(nil, fn ast, range ->
-          range =
-            case ast do
-              {:__aliases__, meta, aliases} ->
-                if ale == List.last(aliases) do
-                  {{meta[:line] + start.line - 1, meta[:column]},
-                   {meta[:last][:line] + start.line - 1, meta[:last][:column] + String.length(to_string(ale)) - 1}}
-                else
+        |> NextLS.Parser.parse!(columns: true, token_metadata: true)
+        |> Macro.prewalk(nil, fn
+          ast, nil = range ->
+            range =
+              case ast do
+                {:__aliases__, meta, aliases} ->
+                  if ale == List.last(aliases) do
+                    found_range =
+                      {{meta[:line], meta[:column]},
+                       {meta[:last][:line], meta[:last][:column] + String.length(to_string(ale)) - 1}}
+
+                    if NextLS.ASTHelpers.inside?({{start.line, start.col}, {stop.line, stop.col}}, found_range) do
+                      found_range
+                    else
+                      range
+                    end
+                  else
+                    range
+                  end
+
+                _ ->
                   range
-                end
+              end
 
-              _ ->
-                range
-            end
+            {ast, range}
 
-          {ast, range}
+          ast, range ->
+            {ast, range}
         end)
 
       range
     end
+  end
+
+  def inside?(outer, {{_, _}, {_, _}} = target) do
+    {{outer_startl, outer_startc}, {outer_endl, outer_endc}} = outer
+    {target_start, target_end} = target
+
+    Enum.all?([target_start, target_end], fn {line, col} ->
+      if outer_startl <= line and line <= outer_endl do
+        cond do
+          outer_startl < line and line < outer_endl -> true
+          outer_startl == line and outer_startc <= col -> true
+          outer_endl == line and col <= outer_endc -> true
+          true -> false
+        end
+      else
+        false
+      end
+    end)
   end
 end

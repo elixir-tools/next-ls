@@ -7,42 +7,47 @@ on:
 jobs:
   tests:
     runs-on: ${{matrix.os}}
-    name: Test (${{matrix.os}})
+    name: Test (${{matrix.os}}) - spitfire=${{matrix.spitfire}}
 
     strategy:
       matrix:
+        spitfire: [0, 1]
         os: 
           - ubuntu-latest
           - macos-14
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
       - uses: actions/cache@v4
         with:
           path: |
             deps
             _build
-          key: ${{ matrix.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ matrix.os }}-mix-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ matrix.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
+            ${{ matrix.os }}-mix-${{ hashFiles('**/flake.nix') }}-
 
       - name: Install Dependencies
-        run: mix deps.get
+        run: nix develop --command bash -c 'mix deps.get'
 
       - name: Start EPMD
-        run: epmd -daemon
+        run: nix develop --command bash -c 'epmd -daemon'
 
       - name: Compile
         env:
           MIX_ENV: test
-        run: mix compile
+        run: nix develop --command bash -c 'mix compile'
 
       - name: remove tmp dir
         run: rm -rf tmp
 
       - name: Run Tests
-        run: elixir --erl '-kernel prevent_overlapping_partitions false' -S mix test --max-cases 1
+        env: 
+          NEXTLS_SPITFIRE_ENABLED: ${{ matrix.spitfire }}
+        run: nix develop --command bash -c "elixir --erl '-kernel prevent_overlapping_partitions false' -S mix test --max-cases 1"
 
   formatter:
     runs-on: ubuntu-latest
@@ -50,27 +55,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/cache@v4
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
+            ${{ runner.os }}-mix-${{ hashFiles('**/flake.nix') }}-
 
       - name: Install Dependencies
-        run: mix deps.get
+        run: nix develop --command bash -c 'mix deps.get'
 
       - name: Run Formatter
-        run: mix format --check-formatted
+        run: nix develop --command bash -c 'mix format --check-formatted'
 
   dialyzer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
 
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
       # Cache key based on Elixir & Erlang version (also useful when running in matrix)
@@ -78,19 +85,19 @@ jobs:
         uses: actions/cache/restore@v4
         id: plt_cache
         with:
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-
+            ${{ runner.os }}-mix-${{ hashFiles('**/flake.nix') }}-
           path: |
             priv/plts
 
       - name: Install Dependencies
-        run: mix deps.get
+        run: nix develop --command bash -c 'mix deps.get'
 
       # Create PLTs if no cache was found
       - name: Create PLTs
         if: steps.plt_cache.outputs.cache-hit != 'true'
-        run: mix dialyzer --plt
+        run: nix develop --command bash -c 'mix dialyzer --plt'
 
       # By default, the GitHub Cache action will only save the cache if all steps in the job succeed,
       # so we separate the cache restore and save steps in case running dialyzer fails.
@@ -99,12 +106,12 @@ jobs:
         if: steps.plt_cache.outputs.cache-hit != 'true'
         id: plt_cache_save
         with:
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           path: |
             priv/plts
 
       - name: Run dialyzer
-        run: mix dialyzer --format github
+        run: nix develop --command bash -c 'mix dialyzer --format github'
 
   release-test:
     runs-on: ${{matrix.os.name}}
@@ -122,23 +129,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/cache@v4
         with:
           path: |
             deps
-          key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/.mise.toml') }}-
+            ${{ matrix.os.name }}-mix-prod-${{ hashFiles('**/flake.nix') }}-
 
       - name: Install Dependencies
-        run: mix deps.get --only prod
+        run: nix develop --command bash -c 'mix deps.get --only prod'
 
       - name: Release
         env:
           MIX_ENV: prod
           BURRITO_TARGET: ${{ matrix.os.target }}
-        run: mix release
+        run: nix develop --command bash -c 'mix release'
 
   nix-build:
     strategy:

@@ -5,23 +5,35 @@ defmodule NextLS.DocumentSymbol do
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
 
-  # we set the literal encoder so that we can know when atoms and strings start and end
-  # this makes it useful for knowing the exact locations of struct field definitions
   @spec fetch(text :: String.t()) :: list(DocumentSymbol.t())
   def fetch(text) do
-    text
-    |> Code.string_to_quoted!(
-      literal_encoder: fn literal, meta ->
-        if is_atom(literal) or is_binary(literal) do
-          {:ok, {:__literal__, meta, [literal]}}
-        else
-          {:ok, literal}
-        end
-      end,
-      unescape: false,
-      token_metadata: true,
-      columns: true
-    )
+    ast =
+      case NextLS.Parser.parse(
+             text,
+             # we set the literal encoder so that we can know when atoms and strings start and end
+             # this makes it useful for knowing the exact locations of struct field definitions
+             literal_encoder: fn literal, meta ->
+               if is_atom(literal) or is_binary(literal) do
+                 {:ok, {:__literal__, meta, [literal]}}
+               else
+                 {:ok, literal}
+               end
+             end,
+             unescape: false,
+             token_metadata: true,
+             columns: true
+           ) do
+        {:error, ast, _errors} ->
+          ast
+
+        {:error, _} ->
+          raise "Failed to parse!"
+
+        {:ok, ast} ->
+          ast
+      end
+
+    ast
     |> walker(nil)
     |> List.wrap()
   end
