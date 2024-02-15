@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/elixir-tools/next-ls/compare/v0.17.0...v0.17.1) (2024-02-15)
+
+
+### Bug Fixes
+
+* **diagnostics:** use span field if present ([7d8f2c7](https://github.com/elixir-tools/next-ls/commit/7d8f2c726dc1193166f0536b40f0593d18eff54c))
+
 ## [0.17.0](https://github.com/elixir-tools/next-ls/compare/v0.16.1...v0.17.0) (2024-02-14)
 
 
