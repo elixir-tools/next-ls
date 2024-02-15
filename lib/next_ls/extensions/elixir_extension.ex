@@ -44,7 +44,7 @@ defmodule NextLS.ElixirExtension do
         severity: severity(d.severity),
         message: IO.iodata_to_binary(d.message),
         source: d.compiler_name,
-        range: range(d.position)
+        range: range(d.position, Map.get(d, :span))
       })
     end
 
@@ -58,7 +58,7 @@ defmodule NextLS.ElixirExtension do
   defp severity(:info), do: GenLSP.Enumerations.DiagnosticSeverity.information()
   defp severity(:hint), do: GenLSP.Enumerations.DiagnosticSeverity.hint()
 
-  defp range({start_line, start_col, end_line, end_col}) do
+  defp range({start_line, start_col, end_line, end_col}, _) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: clamp(start_line - 1),
@@ -71,7 +71,20 @@ defmodule NextLS.ElixirExtension do
     }
   end
 
-  defp range({line, col}) do
+  defp range({startl, startc}, {endl, endc}) do
+    %GenLSP.Structures.Range{
+      start: %GenLSP.Structures.Position{
+        line: clamp(startl - 1),
+        character: startc - 1
+      },
+      end: %GenLSP.Structures.Position{
+        line: clamp(endl - 1),
+        character: endc - 1
+      }
+    }
+  end
+
+  defp range({line, col}, nil) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: clamp(line - 1),
@@ -84,7 +97,7 @@ defmodule NextLS.ElixirExtension do
     }
   end
 
-  defp range(line) do
+  defp range(line, _) do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: clamp(line - 1),
