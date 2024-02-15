@@ -115,7 +115,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-suYY3vY540T3cVrnLT6pfuGb0bcrjXJs/K/tveUh23Q=";
+            hash = "sha256-GwIxmja8IcgbeKhdiQflhe5Oxq8KiYbLBNLIMkT4HBc=";
             mixEnv = "prod";
           };
 
