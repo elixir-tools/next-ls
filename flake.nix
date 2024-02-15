@@ -14,7 +14,7 @@
   }: let
     inherit (nixpkgs) lib;
 
-    version = "0.17.0"; # x-release-please-version
+    version = "0.17.1"; # x-release-please-version
 
     # Helper to provide system-specific attributes
     forAllSystems = f:
