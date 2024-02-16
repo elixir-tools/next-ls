@@ -86,3 +86,37 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
+
+  homebrew:
+    name: homebrew
+    needs: [publish]
+    runs-on: macos-14
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Cache Homebrew Bundler RubyGems
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+
+      - name: Bump formula
+      - run: |
+          formula="next-ls"
+          version="${{ needs.release.outputs.tag_name }}"
+          url="https://github.com/elixir-tools/$formula/archive/refs/tags/$version.tar.gz"
+
+          sha="$(curl --silent -L "$url" | shasum -a 256 | cut -f 1 -d ' ' -)"
+          (
+          cd "$(brew --repository elixir-tools/homebrew-tap)"
+
+          git checkout main && git pull
+          )
+
+          HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)" brew bump-formula-pr "$formula" --url="$url" --sha256="$sha" --no-fork --no-browse
