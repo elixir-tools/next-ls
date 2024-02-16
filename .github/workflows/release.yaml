@@ -106,6 +106,8 @@ jobs:
           key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ${{ runner.os }}-rubygems-
 
+      - name: Tap formula
+        run: brew tap elixir-tools/tap
       - name: Bump formula
         run: |
           formula="next-ls"
