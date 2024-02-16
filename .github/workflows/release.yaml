@@ -107,7 +107,7 @@ jobs:
           restore-keys: ${{ runner.os }}-rubygems-
 
       - name: Bump formula
-      - run: |
+        run: |
           formula="next-ls"
           version="${{ needs.release.outputs.tag_name }}"
           url="https://github.com/elixir-tools/$formula/archive/refs/tags/$version.tar.gz"
