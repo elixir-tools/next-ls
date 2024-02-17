@@ -65,6 +65,7 @@ defmodule NextLS.ElixirExtensionTest do
     assert %{
              with_iodata.file => [
                %GenLSP.Structures.Diagnostic{
+                 data: %{"namespace" => "elixir"},
                  severity: 2,
                  message:
                    "ElixirExtension.foo/0" <>
@@ -84,6 +85,7 @@ defmodule NextLS.ElixirExtensionTest do
              ],
              only_line.file => [
                %GenLSP.Structures.Diagnostic{
+                 data: %{"namespace" => "elixir"},
                  severity: 2,
                  message: "kind of bad",
                  source: "Elixir",
@@ -101,6 +103,7 @@ defmodule NextLS.ElixirExtensionTest do
              ],
              line_and_col.file => [
                %GenLSP.Structures.Diagnostic{
+                 data: %{"namespace" => "elixir"},
                  severity: 1,
                  message: "nothing works",
                  source: "Elixir",
@@ -118,6 +121,7 @@ defmodule NextLS.ElixirExtensionTest do
              ],
              start_and_end.file => [
                %GenLSP.Structures.Diagnostic{
+                 data: %{"namespace" => "elixir"},
                  severity: 4,
                  message: "here's a hint",
                  source: "Elixir",

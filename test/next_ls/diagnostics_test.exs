@@ -101,7 +101,7 @@ defmodule NextLS.DiagnosticsTest do
               "start" => %{"line" => 3, "character" => ^char},
               "end" => %{"line" => 3, "character" => 14}
             },
-            "data" => %{"type" => "unused"}
+            "data" => %{"type" => "unused_variable", "namespace" => "elixir"}
           }
         ]
       }

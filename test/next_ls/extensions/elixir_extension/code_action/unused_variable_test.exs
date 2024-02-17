@@ -1,4 +1,4 @@
-defmodule NextLS.ElixirExtensionTest do
+defmodule NextLS.ElixirExtension.UnusedVariableTest do
   use ExUnit.Case, async: true
 
   alias GenLSP.Structures.CodeAction
