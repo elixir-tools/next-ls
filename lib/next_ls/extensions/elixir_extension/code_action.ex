@@ -1,13 +1,14 @@
 defmodule NextLS.ElixirExtension.CodeAction do
   @moduledoc false
 
-  @behaviour CodeActionable
-
   alias GenLSP.Structures.Diagnostic
   alias NextLS.CodeActionable
   alias NextLS.CodeActionable.Data
   alias NextLS.ElixirExtension.CodeAction.UnusedVariable
 
+  @behaviour CodeActionable
+
+  @impl true
   def from(%Data{} = data) do
     do_code_action(data.diagnostic, data.document, data.uri)
   end
