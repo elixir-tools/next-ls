@@ -30,7 +30,6 @@ defmodule NextLS.ElixirExtension do
 
   def handle_info({:compiler, diagnostics}, state) when is_list(diagnostics) do
     DiagnosticCache.clear(state.cache, :elixir)
-    IO.inspect(diagnostics)
 
     for d <- diagnostics do
       # TODO: some compiler diagnostics only have the line number
@@ -114,10 +113,11 @@ defmodule NextLS.ElixirExtension do
 
   def clamp(line), do: max(line, 0)
 
+  @unused_variable ~r/variable\s\"[^\"]+\"\sis\sunused/
   defp metadata(diagnostic) do
     cond do
-      diagnostic.message =~ "unused" ->
-        %{"type" => "unused"}
+      is_binary(diagnostic.message) and diagnostic.message =~ @unused_variable ->
+        %{"type" => "unused_variable"}
       true -> %{}
     end
     |> Map.put("namespace", "elixir")

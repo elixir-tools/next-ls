@@ -123,7 +123,7 @@ defmodule NextLS.CredoExtension do
           }
         },
         severity: category_to_severity(issue.category),
-        data: %{check: issue.check, file: issue.filename},
+        data: %{check: issue.check, file: issue.filename, namespace: :credo},
         source: "credo",
         code: Macro.to_string(issue.check),
         code_description: %CodeDescription{
