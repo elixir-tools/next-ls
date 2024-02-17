@@ -1,10 +1,9 @@
 defmodule NextLS.CredoExtension.CodeAction do
   @moduledoc false
 
-  alias NextLS.CodeActionable
-  alias NextLS.CodeActionable.Data
+  @behaviour NextLS.CodeActionable
 
-  @behaviour CodeActionable
+  alias NextLS.CodeActionable.Data
 
   @impl true
   def from(%Data{} = _data), do: []
