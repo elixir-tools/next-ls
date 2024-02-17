@@ -8,11 +8,12 @@ defmodule NextLS.CodeActionable do
   defmodule Data do
     @moduledoc false
     defstruct [:diagnostic, :uri, :document]
+
     @type t :: %__MODULE__{
-      diagnostic: Diagnostic.t(),
-      uri: String.t(),
-      document: String.t()
-    }
+            diagnostic: Diagnostic.t(),
+            uri: String.t(),
+            document: String.t()
+          }
   end
 
   @callback from(diagnostic :: Data.t()) :: [CodeAction.t()]
