@@ -7,7 +7,6 @@ defmodule NextLS.ElixirExtension.CodeAction.UnusedVariable do
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
 
-  @underscore "_"
   def new(diagnostic, _text, uri) do
     %Diagnostic{range: %{start: start}} = diagnostic
 
@@ -19,7 +18,7 @@ defmodule NextLS.ElixirExtension.CodeAction.UnusedVariable do
           changes: %{
             uri => [
               %TextEdit{
-                new_text: @underscore,
+                new_text: "_",
                 range: %Range{
                   start: start,
                   end: start

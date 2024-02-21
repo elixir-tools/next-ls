@@ -3,18 +3,17 @@ defmodule NextLS.ElixirExtension.CodeAction do
 
   @behaviour NextLS.CodeActionable
 
-  alias GenLSP.Structures.Diagnostic
   alias NextLS.CodeActionable.Data
   alias NextLS.ElixirExtension.CodeAction.UnusedVariable
 
   @impl true
   def from(%Data{} = data) do
-    do_code_action(data.diagnostic, data.document, data.uri)
-  end
+    case data.diagnostic.data do
+      %{"type" => "unused_variable"} ->
+        UnusedVariable.new(data.diagnostic, data.document, data.uri)
 
-  defp do_code_action(%Diagnostic{data: %{"type" => "unused_variable"}} = diagnostic, file, uri) do
-    UnusedVariable.new(diagnostic, file, uri)
+      _ ->
+        []
+    end
   end
-
-  defp do_code_action(_, _, _), do: []
 end

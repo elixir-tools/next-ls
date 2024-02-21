@@ -115,15 +115,14 @@ defmodule NextLS.ElixirExtension do
 
   @unused_variable ~r/variable\s\"[^\"]+\"\sis\sunused/
   defp metadata(diagnostic) do
-    cond_result =
-      cond do
-        is_binary(diagnostic.message) and diagnostic.message =~ @unused_variable ->
-          %{"type" => "unused_variable"}
+    base = %{"namespace" => "elixir"}
 
-        true ->
-          %{}
-      end
+    cond do
+      is_binary(diagnostic.message) and diagnostic.message =~ @unused_variable ->
+        Map.put(base, "type", "unused_variable")
 
-    Map.put(cond_result, "namespace", "elixir")
+      true ->
+        base
+    end
   end
 end
