@@ -295,21 +295,33 @@ defmodule NextLS.AutocompleteTest do
             ]} = expand(runtime, ~c"Enum.count/")
   end
 
-  # TODO: locals
+  test "operator completion", %{runtime: runtime} do
+    assert {:yes,
+            [
+              %{arity: 1, name: "+", docs: _, kind: :function},
+              %{arity: 2, name: "+", docs: _, kind: :function},
+              %{arity: 2, name: "++", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"+")
 
-  # test "operator completion", %{runtime: runtime} do
-  #   assert expand(runtime, ~c"+") == {:yes, ~c"", [~c"+/1", ~c"+/2", ~c"++/2"]}
-  #   assert expand(runtime, ~c"+/") == {:yes, ~c"", [~c"+/1", ~c"+/2"]}
-  #   assert expand(runtime, ~c"++/") == {:yes, ~c"", [~c"++/2"]}
-  # end
+    assert {:yes,
+            [
+              %{arity: 1, name: "+", docs: _, kind: :function},
+              %{arity: 2, name: "+", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"+/")
 
-  # test "sigil completion", %{runtime: runtime} do
-  #   assert {:yes, ~c"", sigils} = expand(runtime, ~c"~")
-  #   assert ~c"~C (sigil_C)" in sigils
-  #   assert {:yes, ~c"", sigils} = expand(runtime, ~c"~r")
-  #   assert ~c"\"" in sigils
-  #   assert ~c"(" in sigils
-  # end
+    assert {:yes,
+            [
+              %{arity: 2, name: "++", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"++/")
+  end
+
+  test "sigil completion", %{runtime: runtime} do
+    assert {:yes, sigils} = expand(runtime, ~c"~")
+    assert %{name: "C", kind: :sigil} in sigils
+    assert {:yes, ~c"", sigils} = expand(runtime, ~c"~r")
+    assert ~c"\"" in sigils
+    assert ~c"(" in sigils
+  end
 
   # TODO: maps
   # test "map atom key completion is supported", %{runtime: runtime} do
@@ -391,11 +403,16 @@ defmodule NextLS.AutocompleteTest do
     end)
   end
 
-  # TODO: locals
-  # test "kernel import completion", %{runtime: runtime} do
-  #   assert expand(runtime, ~c"defstru") == {:yes, ~c"ct", []}
-  #   assert expand(runtime, ~c"put_") == {:yes, ~c"", [~c"put_elem/3", ~c"put_in/2", ~c"put_in/3"]}
-  # end
+  test "kernel import completion", %{runtime: runtime} do
+    assert {:yes, [%{name: "defstruct", kind: :function, docs: _, arity: 1}]} = expand(runtime, ~c"defstru")
+
+    assert {:yes,
+            [
+              %{arity: 3, name: "put_elem", docs: _, kind: :function},
+              %{arity: 2, name: "put_in", docs: _, kind: :function},
+              %{arity: 3, name: "put_in", docs: _, kind: :function}
+            ]} = expand(runtime, ~c"put_")
+  end
 
   # TODO: this only partially works, will not say we support for now
   # test "variable name completion", %{runtime: runtime} do

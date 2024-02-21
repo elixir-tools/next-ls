@@ -278,9 +278,11 @@ defmodule NextLS.Autocomplete do
 
   defp match_local(hint, exact?, runtime) do
     imports = runtime |> imports_from_env() |> Enum.flat_map(&elem(&1, 1))
-    module_funs = get_module_funs(Kernel.SpecialForms, runtime)
+    special_form_funs = get_module_funs(Kernel.SpecialForms, runtime)
+    kernel_funs = get_module_funs(Kernel, runtime)
 
-    match_module_funs(runtime, Kernel.SpecialForms, module_funs, hint, exact?) ++
+    match_module_funs(runtime, Kernel.SpecialForms, special_form_funs, hint, exact?) ++
+      match_module_funs(runtime, Kernel, kernel_funs, hint, exact?) ++
       match_module_funs(runtime, nil, imports, hint, exact?)
   end
 
