@@ -4,6 +4,7 @@ defmodule NextLS do
 
   import NextLS.DB.Query
 
+  alias GenLSP.Enumerations.CodeActionKind
   alias GenLSP.Enumerations.ErrorCodes
   alias GenLSP.Enumerations.TextDocumentSyncKind
   alias GenLSP.ErrorResponse
@@ -16,6 +17,7 @@ defmodule NextLS do
   alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
   alias GenLSP.Requests.Shutdown
+  alias GenLSP.Requests.TextDocumentCodeAction
   alias GenLSP.Requests.TextDocumentCompletion
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
@@ -23,6 +25,10 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
   alias GenLSP.Requests.WorkspaceSymbol
+  alias GenLSP.Structures.CodeActionContext
+  alias GenLSP.Structures.CodeActionOptions
+  alias GenLSP.Structures.CodeActionParams
+  alias GenLSP.Structures.Diagnostic
   alias GenLSP.Structures.DidChangeWatchedFilesParams
   alias GenLSP.Structures.DidChangeWorkspaceFoldersParams
   alias GenLSP.Structures.DidOpenTextDocumentParams
@@ -34,6 +40,7 @@ defmodule NextLS do
   alias GenLSP.Structures.SaveOptions
   alias GenLSP.Structures.ServerCapabilities
   alias GenLSP.Structures.SymbolInformation
+  alias GenLSP.Structures.TextDocumentIdentifier
   alias GenLSP.Structures.TextDocumentItem
   alias GenLSP.Structures.TextDocumentSyncOptions
   alias GenLSP.Structures.TextEdit
@@ -118,6 +125,9 @@ defmodule NextLS do
            save: %SaveOptions{include_text: true},
            change: TextDocumentSyncKind.full()
          },
+         code_action_provider: %CodeActionOptions{
+           code_action_kinds: [CodeActionKind.quick_fix()]
+         },
          completion_provider:
            if init_opts.experimental.completions.enable do
              %GenLSP.Structures.CompletionOptions{
@@ -147,6 +157,26 @@ defmodule NextLS do
        client_capabilities: caps,
        init_opts: init_opts
      )}
+  end
+
+  def handle_request(
+        %TextDocumentCodeAction{
+          params: %CodeActionParams{
+            context: %CodeActionContext{diagnostics: diagnostics},
+            text_document: %TextDocumentIdentifier{uri: uri}
+          }
+        },
+        lsp
+      ) do
+    code_actions =
+      for %Diagnostic{} = diagnostic <- diagnostics,
+          data = %NextLS.CodeActionable.Data{diagnostic: diagnostic, uri: uri, document: lsp.assigns.documents[uri]},
+          namespace = diagnostic.data["namespace"],
+          action <- NextLS.CodeActionable.from(namespace, data) do
+        action
+      end
+
+    {:reply, code_actions, lsp}
   end
 
   def handle_request(%TextDocumentDefinition{params: %{text_document: %{uri: uri}, position: position}}, lsp) do

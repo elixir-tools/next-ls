@@ -44,7 +44,8 @@ defmodule NextLS.ElixirExtension do
         severity: severity(d.severity),
         message: IO.iodata_to_binary(d.message),
         source: d.compiler_name,
-        range: range(d.position, Map.get(d, :span))
+        range: range(d.position, Map.get(d, :span)),
+        data: metadata(d)
       })
     end
 
@@ -111,4 +112,17 @@ defmodule NextLS.ElixirExtension do
   end
 
   def clamp(line), do: max(line, 0)
+
+  @unused_variable ~r/variable\s\"[^\"]+\"\sis\sunused/
+  defp metadata(diagnostic) do
+    base = %{"namespace" => "elixir"}
+
+    cond do
+      is_binary(diagnostic.message) and diagnostic.message =~ @unused_variable ->
+        Map.put(base, "type", "unused_variable")
+
+      true ->
+        base
+    end
+  end
 end
