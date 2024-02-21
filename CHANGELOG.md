@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.0](https://github.com/elixir-tools/next-ls/compare/v0.17.1...v0.18.0) (2024-02-21)
+
+
+### Features
+
+* autocomplete for kernel functions ([#373](https://github.com/elixir-tools/next-ls/issues/373)) ([ff1b89d](https://github.com/elixir-tools/next-ls/commit/ff1b89d1274dbaa1c3c6bc9bbbf9b9fc06c9f331))
+* unused variable code action ([#349](https://github.com/elixir-tools/next-ls/issues/349)) ([8b9a57c](https://github.com/elixir-tools/next-ls/commit/8b9a57c7ccc1bfd3f530d1b9e2ef1e5ebb6b7047))
+
 ## [0.17.1](https://github.com/elixir-tools/next-ls/compare/v0.17.0...v0.17.1) (2024-02-15)
 
 
