@@ -124,8 +124,7 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
     name =
       alias
       |> Module.concat()
-      |> to_string()
-      |> String.replace_prefix("Elixir.", "")
+      |> Macro.to_string()
 
     {:ok, name}
   end
