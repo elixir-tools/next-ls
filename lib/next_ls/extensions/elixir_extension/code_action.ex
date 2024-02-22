@@ -4,6 +4,7 @@ defmodule NextLS.ElixirExtension.CodeAction do
   @behaviour NextLS.CodeActionable
 
   alias NextLS.CodeActionable.Data
+  alias NextLS.ElixirExtension.CodeAction.Require
   alias NextLS.ElixirExtension.CodeAction.UnusedVariable
 
   @impl true
@@ -11,6 +12,9 @@ defmodule NextLS.ElixirExtension.CodeAction do
     case data.diagnostic.data do
       %{"type" => "unused_variable"} ->
         UnusedVariable.new(data.diagnostic, data.document, data.uri)
+
+      %{"type" => "require"} ->
+        Require.new(data.diagnostic, data.document, data.uri)
 
       _ ->
         []

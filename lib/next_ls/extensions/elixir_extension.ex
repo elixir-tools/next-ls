@@ -114,12 +114,16 @@ defmodule NextLS.ElixirExtension do
   def clamp(line), do: max(line, 0)
 
   @unused_variable ~r/variable\s\"[^\"]+\"\sis\sunused/
+  @require_module ~r/you\smust\srequire/
   defp metadata(diagnostic) do
     base = %{"namespace" => "elixir"}
 
     cond do
       is_binary(diagnostic.message) and diagnostic.message =~ @unused_variable ->
         Map.put(base, "type", "unused_variable")
+
+      is_binary(diagnostic.message) and diagnostic.message =~ @require_module ->
+        Map.put(base, "type", "require")
 
       true ->
         base
