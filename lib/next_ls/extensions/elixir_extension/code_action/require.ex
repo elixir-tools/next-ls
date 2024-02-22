@@ -9,14 +9,15 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
   alias GenLSP.Structures.WorkspaceEdit
 
   @one_indentation_level "  "
-  def new(%Diagnostic{} = diagnostic, text, uri) do
+  @spec new(diagnostic :: Diagnostic.t(), [text :: String.t()], uri :: String.t()) :: [CodeAction.t()]
+  def new(diagnostic = %Diagnostic{}, text, uri) do
     range = diagnostic.range
 
     with {:ok, require_module} <- get_edit(diagnostic.message),
          {:ok, ast} <- parse_ast(text),
          {:ok, defm} <- nearest_defmodule(ast, range),
-         {:ok, indentation} <- get_indent(text, defm),
          {:ok, module_name} <- get_module_name(defm),
+         indentation <- get_indent(text, defm),
          nearest <- find_nearest_node_for_require(defm),
          range <- get_edit_range(nearest) do
       [
@@ -85,16 +86,17 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
     }
   end
 
+  @indent ~r/^(\s*).*/
   defp get_indent(text, {_, defm_context, _}) do
     line = defm_context[:line] - 1
 
     indent =
       text
       |> Enum.at(line)
-      |> then(&Regex.run(~r/^(\s*).*/, &1))
+      |> then(&Regex.run(@indent, &1))
       |> List.last()
 
-    {:ok, indent <> @one_indentation_level}
+    indent <> @one_indentation_level
   end
 
   @top_level_macros [:import, :alias, :require]
