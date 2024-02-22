@@ -10,7 +10,7 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
 
   @one_indentation_level "  "
   @spec new(diagnostic :: Diagnostic.t(), [text :: String.t()], uri :: String.t()) :: [CodeAction.t()]
-  def new(diagnostic = %Diagnostic{}, text, uri) do
+  def new(%Diagnostic{} = diagnostic, text, uri) do
     range = diagnostic.range
 
     with {:ok, require_module} <- get_edit(diagnostic.message),
