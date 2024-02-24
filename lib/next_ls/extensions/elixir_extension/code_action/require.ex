@@ -16,19 +16,18 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
     with {:ok, require_module} <- get_edit(diagnostic.message),
          {:ok, ast} <- parse_ast(text),
          {:ok, defm} <- nearest_defmodule(ast, range),
-         {:ok, module_name} <- get_module_name(defm),
          indentation <- get_indent(text, defm),
          nearest <- find_nearest_node_for_require(defm),
          range <- get_edit_range(nearest) do
       [
         %CodeAction{
-          title: "Add missing require in #{module_name}",
+          title: "Add missing require for #{require_module}",
           diagnostics: [diagnostic],
           edit: %WorkspaceEdit{
             changes: %{
               uri => [
                 %TextEdit{
-                  new_text: indentation <> require_module,
+                  new_text: indentation <> "require #{require_module}\n",
                   range: range
                 }
               ]
@@ -72,7 +71,7 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
   @module_name ~r/require\s+([^\s]+)\s+before/
   defp get_edit(message) do
     case Regex.run(@module_name, message) do
-      [_, module] -> {:ok, "require #{module}\n"}
+      [_, module] -> {:ok, module}
       _ -> {:error, "unable to find require"}
     end
   end
@@ -119,15 +118,4 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
         context
     end
   end
-
-  defp get_module_name({:defmodule, _, [{:__aliases__, _, alias} | _rest]}) do
-    name =
-      alias
-      |> Module.concat()
-      |> Macro.to_string()
-
-    {:ok, name}
-  end
-
-  defp get_module_name(_), do: {:error, "expected defmodule ast"}
 end

@@ -38,7 +38,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
     assert [code_action] = Require.new(diagnostic, text, uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title =~ "Test.Require"
+    assert code_action.title == "Add missing require for Logger"
 
     assert %WorkspaceEdit{
              changes: %{
@@ -83,7 +83,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
     assert [code_action] = Require.new(diagnostic, text, uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title =~ "Test.Require"
+    assert code_action.title == "Add missing require for Logger"
 
     assert %WorkspaceEdit{
              changes: %{
@@ -130,7 +130,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
     assert [code_action] = Require.new(diagnostic, text, uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title =~ "Test.Require"
+    assert code_action.title == "Add missing require for Logger"
 
     assert %WorkspaceEdit{
              changes: %{
@@ -186,7 +186,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
     assert [code_action] = Require.new(diagnostic, text, uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title =~ "Require"
+    assert code_action.title == "Add missing require for Logger"
 
     assert %WorkspaceEdit{
              changes: %{
