@@ -9,14 +9,18 @@ defmodule NextLS.ElixirExtension.UnusedVariableTest do
   alias NextLS.ElixirExtension.CodeAction.UnusedVariable
 
   test "adds an underscore to unused variables" do
-    text = """
-    defmodule Test.Unused do
-      def hello() do
-        foo = 3
-        :world
-      end
-    end
-    """
+    text =
+      String.split(
+        """
+        defmodule Test.Unused do
+          def hello() do
+            foo = 3
+            :world
+          end
+        end
+        """,
+        "\n"
+      )
 
     start = %Position{character: 4, line: 3}
 

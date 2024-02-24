@@ -21,6 +21,10 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
         foo = :bar
         :world
       end
+
+      def world() do
+        Logger.info("no require")
+      end
     end
     """
 
@@ -71,6 +75,50 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
                      "jsonrpc" => "2.0",
                      "id" => 1,
                      "result" => [%{"edit" => %{"changes" => %{^foo_uri => [%{"newText" => "_"}]}}}]
+                   },
+                   500
+  end
+
+  test "can send more than one code action", %{client: client, foo_path: foo} do
+    foo_uri = uri(foo)
+    id = 1
+
+    request client, %{
+      method: "textDocument/codeAction",
+      id: id,
+      jsonrpc: "2.0",
+      params: %{
+        context: %{
+          "diagnostics" => [
+            %{
+              "data" => %{"namespace" => "elixir", "type" => "unused_variable"},
+              "message" =>
+                "variable \"foo\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+              "range" => %{"end" => %{"character" => 999, "line" => 2}, "start" => %{"character" => 4, "line" => 2}},
+              "severity" => 2,
+              "source" => "Elixir"
+            },
+            %{
+              "data" => %{"namespace" => "elixir", "type" => "require"},
+              "message" => "you must require Logger before invoking the macro Logger.info/1",
+              "range" => %{"end" => %{"character" => 999, "line" => 7}, "start" => %{"character" => 0, "line" => 7}},
+              "severity" => 2,
+              "source" => "Elixir"
+            }
+          ]
+        },
+        range: %{start: %{line: 2, character: 0}, end: %{line: 7, character: 999}},
+        textDocument: %{uri: foo_uri}
+      }
+    }
+
+    assert_receive %{
+                     "jsonrpc" => "2.0",
+                     "id" => 1,
+                     "result" => [
+                       %{"edit" => %{"changes" => %{^foo_uri => [%{"newText" => "_"}]}}},
+                       %{"edit" => %{"changes" => %{^foo_uri => [%{"newText" => "  require Logger\n"}]}}}
+                     ]
                    },
                    500
   end
