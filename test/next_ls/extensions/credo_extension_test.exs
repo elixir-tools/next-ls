@@ -77,7 +77,7 @@ defmodule NextLS.CredoExtensionTest do
             "check" => "Elixir.Credo.Check.Warning.Dbg",
             "file" => "lib/foo.ex"
           },
-          "message" => "There should be no calls to dbg.",
+          "message" => "There should be no calls to `dbg/1`.",
           "range" => %{
             "end" => %{"character" => 999, "line" => 2},
             "start" => %{"character" => 4, "line" => 2}
@@ -115,7 +115,7 @@ defmodule NextLS.CredoExtensionTest do
             "check" => "Elixir.Credo.Check.Warning.Dbg",
             "file" => "lib/foo.ex"
           },
-          "message" => "There should be no calls to dbg.",
+          "message" => "There should be no calls to `dbg/1`.",
           "range" => %{
             "end" => %{"character" => 999, "line" => 2},
             "start" => %{"character" => 4, "line" => 2}
@@ -155,7 +155,8 @@ defmodule NextLS.CredoExtensionTest do
           version: "0.1.0",
           elixir: "~> 1.10",
           deps: [
-            {:credo, ">= 0.0.0"}
+            {:credo, "~> 1.7"},
+            {:jason, github: "mhanberg/jason", branch: "format", override: true}
           ]
         ]
       end
