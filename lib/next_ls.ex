@@ -24,7 +24,9 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
+  alias GenLSP.Requests.WorkspaceApplyEdit
   alias GenLSP.Requests.WorkspaceSymbol
+  alias GenLSP.Structures.ApplyWorkspaceEditParams
   alias GenLSP.Structures.CodeActionContext
   alias GenLSP.Structures.CodeActionOptions
   alias GenLSP.Structures.CodeActionParams
@@ -44,6 +46,7 @@ defmodule NextLS do
   alias GenLSP.Structures.TextDocumentItem
   alias GenLSP.Structures.TextDocumentSyncOptions
   alias GenLSP.Structures.TextEdit
+  alias GenLSP.Structures.WorkspaceEdit
   alias GenLSP.Structures.WorkspaceFoldersChangeEvent
   alias NextLS.DB
   alias NextLS.Definition
@@ -137,6 +140,11 @@ defmodule NextLS do
              nil
            end,
          document_formatting_provider: true,
+         execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
+           commands: [
+             "to-pipe"
+           ]
+         },
          hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
@@ -600,6 +608,57 @@ defmodule NextLS do
       )
 
       {:reply, [], lsp}
+  end
+
+  def handle_request(
+        %GenLSP.Requests.WorkspaceExecuteCommand{
+          params: %GenLSP.Structures.ExecuteCommandParams{command: command} = params
+        },
+        lsp
+      ) do
+    reply =
+      case command do
+        "to-pipe" ->
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.ToPipe.run(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
+
+        _ ->
+          NextLS.Logger.show_message(lsp.logger, :warning, "[Next LS] Unknown workspace command: #{command}")
+          nil
+      end
+
+    case reply do
+      %WorkspaceEdit{} = edit ->
+        GenLSP.request(lsp, %WorkspaceApplyEdit{
+          id: System.unique_integer([:positive]),
+          params: %ApplyWorkspaceEditParams{label: "Pipe", edit: edit}
+        })
+
+      _reply ->
+        :ok
+    end
+
+    {:reply, reply, lsp}
+  rescue
+    e ->
+      NextLS.Logger.show_message(
+        lsp.assigns.logger,
+        :error,
+        "[Next LS] #{command} has failed, see the logs for more details"
+      )
+
+      NextLS.Logger.error(lsp.assigns.logger, Exception.format_banner(:error, e, __STACKTRACE__))
+
+      {:reply, nil, lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
