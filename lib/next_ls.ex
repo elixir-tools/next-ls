@@ -142,7 +142,8 @@ defmodule NextLS do
          document_formatting_provider: true,
          execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
            commands: [
-             "to-pipe"
+             "to-pipe",
+             "from-pipe"
            ]
          },
          hover_provider: true,
@@ -618,6 +619,19 @@ defmodule NextLS do
       ) do
     reply =
       case command do
+        "from-pipe" ->
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.Pipe.from(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
+
         "to-pipe" ->
           [arguments] = params.arguments
 
@@ -625,7 +639,7 @@ defmodule NextLS do
           position = arguments["position"]
           text = lsp.assigns.documents[uri]
 
-          NextLS.Commands.ToPipe.run(%{
+          NextLS.Commands.Pipe.to(%{
             uri: uri,
             text: text,
             position: position

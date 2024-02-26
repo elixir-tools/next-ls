@@ -1,4 +1,4 @@
-defmodule NextLS.Commands.ToPipe do
+defmodule NextLS.Commands.Pipe do
   @moduledoc false
   import Schematic
 
@@ -18,7 +18,7 @@ defmodule NextLS.Commands.ToPipe do
     })
   end
 
-  def run(opts) do
+  def to(opts) do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
          {:ok, ast} = parse(text),
          {:ok, {t, m, [argument | rest]} = original} <- get_node(ast, position) do
@@ -33,6 +33,34 @@ defmodule NextLS.Commands.ToPipe do
               new_text:
                 EditHelpers.add_indent_to_edit(
                   Macro.to_string(piped),
+                  indent
+                ),
+              range: range
+            }
+          ]
+        }
+      }
+    else
+      {:error, message} ->
+        %GenLSP.ErrorResponse{code: ErrorCodes.parse_error(), message: inspect(message)}
+    end
+  end
+
+  def from(opts) do
+    with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
+         {:ok, ast} = parse(text),
+         {:ok, {:|>, _m, [left, {right, _, args}]} = original} <- get_pipe_node(ast, position) do
+      range = make_range(original)
+      indent = EditHelpers.get_indent(text, range.start.line)
+      unpiped = {right, [], [left | args]}
+
+      %WorkspaceEdit{
+        changes: %{
+          uri => [
+            %TextEdit{
+              new_text:
+                EditHelpers.add_indent_to_edit(
+                  Macro.to_string(unpiped),
                   indent
                 ),
               range: range
@@ -104,6 +132,37 @@ defmodule NextLS.Commands.ToPipe do
 
       {_, {_t, _m, []}} ->
         {:error, "could not find an argument to extract at the cursor position"}
+
+      {_, {_t, _m, [_argument | _rest]} = node} ->
+        {:ok, node}
+    end
+  end
+
+  def get_pipe_node(ast, pos) do
+    pos = [line: pos.line + 1, column: pos.character + 1]
+
+    result =
+      ast
+      |> Z.zip()
+      |> Z.traverse(nil, fn tree, acc ->
+        node = Z.node(tree)
+        range = Sourceror.get_range(node)
+
+        if not is_nil(range) and match?({:|>, _, _}, node) do
+          if Sourceror.compare_positions(range.start, pos) == :lt &&
+               Sourceror.compare_positions(range.end, pos) == :gt do
+            {tree, node}
+          else
+            {tree, acc}
+          end
+        else
+          {tree, acc}
+        end
+      end)
+
+    case result do
+      {_, nil} ->
+        {:error, "could not find a pipe operator at the cursor position"}
 
       {_, {_t, _m, [_argument | _rest]} = node} ->
         {:ok, node}

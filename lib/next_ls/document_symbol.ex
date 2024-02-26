@@ -33,9 +33,7 @@ defmodule NextLS.DocumentSymbol do
           ast
       end
 
-    ast
-    |> walker(nil)
-    |> List.wrap()
+    List.wrap(walker(ast, nil))
   end
 
   defp walker([{{:__literal__, _, [:do]}, {_, _, _exprs} = ast}], mod) do

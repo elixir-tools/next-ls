@@ -28,6 +28,35 @@ defmodule NextLS.CredoExtensionTest do
     end
     """)
 
+    credo = Path.join(cwd, "my_proj/.credo.exs")
+
+    File.write!(credo, ~S"""
+    %{
+      configs: [
+        %{
+          name: "default",
+          files: %{
+            included: ["lib/", "test/"],
+            excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
+          },
+          plugins: [],
+          requires: [],
+          strict: false,
+          parse_timeout: 5000,
+          color: true,
+          checks: %{
+            enabled: [
+              {Credo.Check.Readability.ModuleDoc, []},
+              {Credo.Check.Warning.Dbg, []},
+              {Credo.Check.Warning.IoInspect, []},
+            ],
+            disabled: []
+          }
+        }
+      ]
+    }
+    """)
+
     [foo: foo]
   end
 

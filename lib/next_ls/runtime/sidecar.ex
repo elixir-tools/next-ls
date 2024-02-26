@@ -17,6 +17,7 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({:tracer, :dbg, term}, state) do
+    # credo:disable-for-next-line
     dbg(term)
 
     {:noreply, state}
@@ -82,6 +83,7 @@ defmodule NextLS.Runtime.Sidecar do
   end
 
   def handle_info({{:tracer, :dbg}, payload}, state) do
+    # credo:disable-for-next-line
     dbg(payload)
     {:noreply, state}
   end
