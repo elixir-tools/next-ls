@@ -22,9 +22,7 @@ defmodule NextLS.Commands.ToPipe do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
          {:ok, ast} = parse(text),
          {:ok, {t, m, [argument | rest]} = original} <- get_node(ast, position) do
-      dbg(original)
       range = Sourceror.get_range(original)
-      dbg(range)
       text |> Enum.join("\n") |> NextLS.Commands.ToPipe.decorate(range) |> dbg()
       range = make_range(original)
       indent = EditHelpers.get_indent(text, range.start.line)
