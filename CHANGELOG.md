@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.19.0](https://github.com/elixir-tools/next-ls/compare/v0.18.0...v0.19.0) (2024-02-27)
+
+
+### Features
+
+* add require code action ([#375](https://github.com/elixir-tools/next-ls/issues/375)) ([1d5ba4f](https://github.com/elixir-tools/next-ls/commit/1d5ba4fd66c50ed8853979cce7859697e00243d1))
+* **commands:** from-pipe ([#378](https://github.com/elixir-tools/next-ls/issues/378)) ([774e7cb](https://github.com/elixir-tools/next-ls/commit/774e7cba5ec8d20e2354b575e88ad8d1b7e2d57e))
+* **commands:** to-pipe ([#318](https://github.com/elixir-tools/next-ls/issues/318)) ([cfa7eb2](https://github.com/elixir-tools/next-ls/commit/cfa7eb267533c910f2338a4a60d49bcffcab91fe))
+
+
+### Bug Fixes
+
+* add more logging to runtime startup ([91fb590](https://github.com/elixir-tools/next-ls/commit/91fb590c7d55324f6b7b867bd36564cb5d5370b0))
+
 ## [0.18.0](https://github.com/elixir-tools/next-ls/compare/v0.17.1...v0.18.0) (2024-02-21)
 
 
