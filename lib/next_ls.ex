@@ -579,7 +579,7 @@ defmodule NextLS do
           _ -> []
         end
       end)
-      |> Enum.map(fn %{name: name, kind: kind} = symbol ->
+      |> Enum.reduce([], fn %{name: name, kind: kind} = symbol, results ->
         {label, kind, docs} =
           case kind do
             :struct -> {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
@@ -592,13 +592,21 @@ defmodule NextLS do
             _ -> {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
           end
 
-        %GenLSP.Structures.CompletionItem{
-          label: label,
-          kind: kind,
-          insert_text: name,
-          documentation: docs
-        }
+        completion_item =
+          %GenLSP.Structures.CompletionItem{
+            label: label,
+            kind: kind,
+            insert_text: name,
+            documentation: docs
+          }
+
+        case NextLS.Snippet.get(name, nil) do
+          nil -> [completion_item | results]
+          snippets when is_list(snippets) -> results ++ snippets
+          snippet -> [snippet | results]
+        end
       end)
+      |> Enum.reverse()
 
     {:reply, results, lsp}
   rescue
