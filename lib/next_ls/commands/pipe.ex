@@ -77,7 +77,7 @@ defmodule NextLS.Commands.Pipe do
   defp parse(lines) do
     lines
     |> Enum.join("\n")
-    |> Spitfire.parse()
+    |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
     |> case do
       {:error, ast, _errors} ->
         {:ok, ast}
@@ -85,12 +85,6 @@ defmodule NextLS.Commands.Pipe do
       other ->
         other
     end
-  end
-
-  def decorate(code, range) do
-    code
-    |> Sourceror.patch_string([%{range: range, change: &"«#{&1}»"}])
-    |> String.trim_trailing()
   end
 
   defp make_range(original_ast) do
@@ -114,7 +108,7 @@ defmodule NextLS.Commands.Pipe do
 
         if not is_nil(range) and
              (match?({{:., _, _}, _, [_ | _]}, node) or
-                match?({t, _, [_ | _]} when t not in [:., :__aliases__], node)) do
+                match?({t, _, [_ | _]} when t not in [:., :__aliases__, :__block__, :=], node)) do
           if Sourceror.compare_positions(range.start, pos) == :lt &&
                Sourceror.compare_positions(range.end, pos) == :gt do
             {tree, node}
