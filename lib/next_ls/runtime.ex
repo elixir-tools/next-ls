@@ -117,7 +117,50 @@ defmodule NextLS.Runtime do
         |> Path.join("cmd")
         |> Path.absname()
 
-      NextLS.Logger.info(logger, "Using `elixir` found at: #{elixir_exe}")
+      env = [
+        {~c"LSP", ~c"nextls"},
+        {~c"NEXTLS_PARENT_PID", parent},
+        {~c"MIX_ENV", ~c"#{mix_env}"},
+        {~c"MIX_TARGET", ~c"#{mix_target}"},
+        {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+        {~c"ROOTDIR", false},
+        {~c"BINDIR", false},
+        {~c"RELEASE_ROOT", false},
+        {~c"RELEASE_SYS_CONFIG", false},
+        {~c"PATH", String.to_charlist(new_path)}
+      ]
+
+      args =
+        [elixir_exe] ++
+          if @env == :test do
+            ["--erl", "-kernel prevent_overlapping_partitions false"]
+          else
+            []
+          end ++
+          [
+            "--no-halt",
+            "--sname",
+            sname,
+            "--cookie",
+            Node.get_cookie(),
+            "-S",
+            "mix",
+            "loadpaths",
+            "--no-compile"
+          ]
+
+      NextLS.Logger.info(logger, """
+      Booting runtime for #{name}.
+
+      - elixir: #{elixir_exe}
+      - zombie wrapper script: #{exe}
+      - working_dir: #{working_dir}
+      - command: #{Enum.join(args, " ")}
+
+      Environment: 
+
+      #{Enum.map_join(env, "\n", fn {k, v} -> "#{k}=#{v}" end)}
+      """)
 
       port =
         Port.open(
@@ -128,36 +171,8 @@ defmodule NextLS.Runtime do
             :binary,
             :stream,
             cd: working_dir,
-            env: [
-              {~c"LSP", ~c"nextls"},
-              {~c"NEXTLS_PARENT_PID", parent},
-              {~c"MIX_ENV", ~c"#{mix_env}"},
-              {~c"MIX_TARGET", ~c"#{mix_target}"},
-              {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
-              {~c"ROOTDIR", false},
-              {~c"BINDIR", false},
-              {~c"RELEASE_ROOT", false},
-              {~c"RELEASE_SYS_CONFIG", false},
-              {~c"PATH", String.to_charlist(new_path)}
-            ],
-            args:
-              [elixir_exe] ++
-                if @env == :test do
-                  ["--erl", "-kernel prevent_overlapping_partitions false"]
-                else
-                  []
-                end ++
-                [
-                  "--no-halt",
-                  "--sname",
-                  sname,
-                  "--cookie",
-                  Node.get_cookie(),
-                  "-S",
-                  "mix",
-                  "loadpaths",
-                  "--no-compile"
-                ]
+            env: env,
+            args: args
           ]
         )
 
