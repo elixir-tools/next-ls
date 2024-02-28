@@ -6,7 +6,7 @@ defmodule NextLS.DependencyTest do
 
   @moduletag :tmp_dir
 
-  describe "" do
+  describe "refetching deps" do
     @describetag root_paths: ["my_proj"]
 
     setup %{tmp_dir: cwd} do
@@ -40,7 +40,8 @@ defmodule NextLS.DependencyTest do
 
     setup :with_lsp
 
-    test "successfully asks to refetch deps", %{client: client, mixexs: mixexs, lockfile: lockfile} = context do
+    test "successfully asks to refetch deps on start",
+         %{client: client, mixexs: mixexs, lockfile: lockfile} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
       assert_is_ready(context, "my_proj")
@@ -73,6 +74,68 @@ defmodule NextLS.DependencyTest do
 
       %{client: client} = context = Map.merge(context, Map.new(with_lsp(context)))
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+
+      assert_request(client, "window/showMessageRequest", fn params ->
+        assert %{
+                 "type" => 1,
+                 "actions" => [
+                   %{"title" => "yes"},
+                   %{"title" => "no"}
+                 ]
+               } = params
+
+        # respond with yes
+        %{"title" => "yes"}
+      end)
+
+      assert_notification "window/logMessage", %{
+        "message" => "[NextLS] Running `mix deps.get` in directory" <> _,
+        "type" => 3
+      }
+
+      assert_notification "window/logMessage", %{
+        "message" => "[NextLS] Restarting runtime" <> _,
+        "type" => 3
+      }
+
+      assert_is_ready(context, "my_proj")
+      assert_compiled(context, "my_proj")
+    end
+
+    test "successfully asks to refetch deps on compile",
+         %{client: client, mixexs: mixexs, lockfile: lockfile} = context do
+      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+
+      assert_is_ready(context, "my_proj")
+      assert_compiled(context, "my_proj")
+
+      did_open(client, mixexs, File.read!(mixexs))
+
+      # write new mix.exs and lockfile to simulate having them out of sync with the `deps` folder
+      new_text =
+        proj_mix_exs("""
+        [{:temple, "~> 0.12.0"}]
+        """)
+
+      File.write!(mixexs, new_text)
+
+      File.write!(lockfile, """
+      %{
+        "floki": {:hex, :floki, "0.35.4", "cc947b446024732c07274ac656600c5c4dc014caa1f8fb2dfff93d275b83890d", [:mix], [], "hexpm", "27fa185d3469bd8fc5947ef0f8d5c4e47f0af02eb6b070b63c868f69e3af0204"},
+        "phoenix_html": {:hex, :phoenix_html, "3.3.3", "380b8fb45912b5638d2f1d925a3771b4516b9a78587249cabe394e0a5d579dc9", [:mix], [{:plug, "~> 1.5", [hex: :plug, repo: "hexpm", optional: true]}], "hexpm", "923ebe6fec6e2e3b3e569dfbdc6560de932cd54b000ada0208b5f45024bdd76c"},
+        "temple": {:hex, :temple, "0.12.0", "b50b806e1f1805219f0cbffc9c747c14f138543977fa6c01e74756c3e0daaa25", [:mix], [{:floki, ">= 0.0.0", [hex: :floki, repo: "hexpm", optional: false]}, {:phoenix_html, "~> 3.2", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:typed_struct, "~> 0.3", [hex: :typed_struct, repo: "hexpm", optional: false]}], "hexpm", "0d006e850bf21f6684fa0ee52ceeb2f8516bb0213bd003f6d38c66880262f8a8"},
+        "typed_struct": {:hex, :typed_struct, "0.3.0", "939789e3c1dca39d7170c87f729127469d1315dcf99fee8e152bb774b17e7ff7", [:mix], [], "hexpm", "c50bd5c3a61fe4e198a8504f939be3d3c85903b382bde4865579bc23111d1b6d"},
+      }
+      """)
+
+      notify client, %{
+        method: "textDocument/didSave",
+        jsonrpc: "2.0",
+        params: %{
+          text: new_text,
+          textDocument: %{uri: uri(mixexs)}
+        }
+      }
 
       assert_request(client, "window/showMessageRequest", fn params ->
         assert %{

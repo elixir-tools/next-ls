@@ -303,7 +303,7 @@ defmodule NextLS.Runtime do
             diagnostics
 
           {:error, %Mix.Error{message: "Can't continue due to errors on dependencies"}} ->
-            nil
+            {:runtime_failed, state.name, {:error, :deps}}
 
           unknown ->
             NextLS.Logger.warning(state.logger, "Unexpected compiler response: #{inspect(unknown)}")
@@ -356,6 +356,13 @@ defmodule NextLS.Runtime do
         {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
         %{port: port} = state
       ) do
+    NextLS.Logger.log(state.logger, data)
+
+    state.on_initialized.({:error, :deps})
+    {:noreply, state}
+  end
+
+  def handle_info({port, {:data, "Unchecked dependencies" <> _ = data}}, %{port: port} = state) do
     NextLS.Logger.log(state.logger, data)
 
     state.on_initialized.({:error, :deps})
