@@ -45,6 +45,14 @@ defmodule NextLS.Runtime do
     GenServer.call(server, {:compile, opts}, :infinity)
   end
 
+  def boot(supervisor, opts) do
+    DynamicSupervisor.start_child(supervisor, {NextLS.Runtime.Supervisor, opts})
+  end
+
+  def stop(supervisor, pid) do
+    DynamicSupervisor.terminate_child(supervisor, pid)
+  end
+
   defmacro execute!(runtime, block) do
     quote do
       {:ok, result} = NextLS.Runtime.execute(unquote_splicing([runtime, block]))
@@ -294,6 +302,9 @@ defmodule NextLS.Runtime do
 
             diagnostics
 
+          {:error, %Mix.Error{message: "Can't continue due to errors on dependencies"}} ->
+            nil
+
           unknown ->
             NextLS.Logger.warning(state.logger, "Unexpected compiler response: #{inspect(unknown)}")
             []
@@ -339,6 +350,16 @@ defmodule NextLS.Runtime do
 
   def handle_info({:nodedown, node}, %{node: node} = state) do
     {:stop, {:shutdown, :nodedown}, state}
+  end
+
+  def handle_info(
+        {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
+        %{port: port} = state
+      ) do
+    NextLS.Logger.log(state.logger, data)
+
+    state.on_initialized.({:error, :deps})
+    {:noreply, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do

@@ -42,11 +42,19 @@ defmodule NextLS.Support.Utils do
 
     tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
-    rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]})
-    start_supervised!({Registry, [keys: :duplicate, name: context.module]})
+    rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]}, id: :three)
+    start_supervised!({Registry, [keys: :duplicate, name: context.module]}, id: :four)
     extensions = [elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension]
-    cache = start_supervised!(NextLS.DiagnosticCache)
+    cache = start_supervised!(NextLS.DiagnosticCache, id: :five)
     init_options = context[:init_options] || %{}
+
+    pids = [
+      :one,
+      :two,
+      :three,
+      :four,
+      :five
+    ]
 
     server =
       server(NextLS,
@@ -82,7 +90,7 @@ defmodule NextLS.Support.Utils do
                }
              })
 
-    [server: server, client: client]
+    [server: server, client: client, pids: pids]
   end
 
   defmacro assert_is_ready(
@@ -144,18 +152,18 @@ defmodule NextLS.Support.Utils do
   defmacro did_open(client, file_path, text) do
     quote do
       assert :ok ==
-              notify(unquote(client), %{
-                method: "textDocument/didOpen",
-                jsonrpc: "2.0",
-                params: %{
-                  textDocument: %{
-                    uri: uri(unquote(file_path)),
-                    text: unquote(text),
-                    languageId: "elixir",
-                    version: 1
-                  }
-                }
-              })
+               notify(unquote(client), %{
+                 method: "textDocument/didOpen",
+                 jsonrpc: "2.0",
+                 params: %{
+                   textDocument: %{
+                     uri: uri(unquote(file_path)),
+                     text: unquote(text),
+                     languageId: "elixir",
+                     version: 1
+                   }
+                 }
+               })
     end
   end
 end
