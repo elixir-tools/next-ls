@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.1](https://github.com/elixir-tools/next-ls/compare/v0.19.0...v0.19.1) (2024-02-28)
+
+
+### Bug Fixes
+
+* **commands,pipe:** handle erlang modules ([#380](https://github.com/elixir-tools/next-ls/issues/380)) ([8b0b7bd](https://github.com/elixir-tools/next-ls/commit/8b0b7bd9cc61faa6eb7566948ebf66c9572219ff))
+* prompt the user to run mix deps.get when dependency problems happen at runtime ([#384](https://github.com/elixir-tools/next-ls/issues/384)) ([57b9964](https://github.com/elixir-tools/next-ls/commit/57b996402a91c364675649235b3acec3c62fe29c)), closes [#53](https://github.com/elixir-tools/next-ls/issues/53)
+* prompt to run mix deps.get if deps are out of sync on start ([#338](https://github.com/elixir-tools/next-ls/issues/338)) ([55e91ac](https://github.com/elixir-tools/next-ls/commit/55e91ac6872b3f0962642bfa9dad8a0aae530199))
+* updater ([69db3b2](https://github.com/elixir-tools/next-ls/commit/69db3b2b82881a7e0dca502420f8d16334d3933a))
+
 ## [0.19.0](https://github.com/elixir-tools/next-ls/compare/v0.18.0...v0.19.0) (2024-02-27)
 
 
