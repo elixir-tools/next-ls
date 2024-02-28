@@ -145,7 +145,8 @@ defmodule NextLS do
          execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
            commands: [
              "to-pipe",
-             "from-pipe"
+             "from-pipe",
+             "alias-refactor"
            ]
          },
          hover_provider: true,
@@ -706,6 +707,19 @@ defmodule NextLS do
           text = lsp.assigns.documents[uri]
 
           NextLS.Commands.Pipe.to(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
+
+        "alias-refactor" ->
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.Alias.refactor(%{
             uri: uri,
             text: text,
             position: position

@@ -7,6 +7,7 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
+  alias NextLS.ASTHelpers
 
   @one_indentation_level "  "
   @spec new(diagnostic :: Diagnostic.t(), [text :: String.t()], uri :: String.t()) :: [CodeAction.t()]
@@ -15,7 +16,7 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
 
     with {:ok, require_module} <- get_edit(diagnostic.message),
          {:ok, ast} <- parse_ast(text),
-         {:ok, defm} <- nearest_defmodule(ast, range),
+         {:ok, defm} <- ASTHelpers.get_nearest_module(ast, range.start),
          indentation <- get_indent(text, defm),
          nearest <- find_nearest_node_for_require(defm),
          range <- get_edit_range(nearest) do
@@ -45,27 +46,6 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
     text
     |> Enum.join("\n")
     |> Spitfire.parse()
-  end
-
-  defp nearest_defmodule(ast, range) do
-    defmodules =
-      ast
-      |> Macro.prewalker()
-      |> Enum.filter(fn
-        {:defmodule, _, _} -> true
-        _ -> false
-      end)
-
-    if defmodules != [] do
-      defm =
-        Enum.min_by(defmodules, fn {_, ctx, _} ->
-          range.start.character - ctx[:line] + 1
-        end)
-
-      {:ok, defm}
-    else
-      {:error, "no defmodule definition"}
-    end
   end
 
   @module_name ~r/require\s+([^\s]+)\s+before/

@@ -1,5 +1,6 @@
 defmodule NextLS.ASTHelpers do
   @moduledoc false
+  alias GenLSP.Structures.Position
 
   defmodule Attributes do
     @moduledoc false
@@ -151,5 +152,25 @@ defmodule NextLS.ASTHelpers do
         false
       end
     end)
+  end
+
+  @spec get_nearest_module(ast :: Macro.t(), position :: Position.t()) :: {:ok, Macro.t()} | {:error, String.t()}
+  def get_nearest_module(ast, position) do
+    defm =
+      ast
+      |> Macro.prewalker()
+      |> Enum.filter(fn node -> match?({:defmodule, _, _}, node) end)
+      |> Enum.min_by(
+        fn {_, ctx, _} ->
+          abs(ctx[:line] - 1 - position.line)
+        end,
+        fn -> nil end
+      )
+
+    if defm do
+      {:ok, defm}
+    else
+      {:error, "no defmodule definition"}
+    end
   end
 end
