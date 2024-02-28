@@ -21,48 +21,26 @@ defmodule NextLS.Updater do
         with {:ok, latest_version} <- Version.parse(version),
              :gt <- Version.compare(latest_version, current_version) do
           with :ok <- File.rename(binpath, binpath <> "-#{Version.to_string(current_version)}"),
-               {:ok, _} <-
-                 File.open(binpath, [:write], fn file ->
-                   fun = fn request, finch_request, finch_name, finch_options ->
-                     fun = fn
-                       {:status, status}, response ->
-                         %{response | status: status}
-
-                       {:headers, headers}, response ->
-                         %{response | headers: headers}
-
-                       {:data, data}, response ->
-                         IO.binwrite(file, data)
-                         response
-                     end
-
-                     case Finch.stream(finch_request, finch_name, Req.Response.new(), fun, finch_options) do
-                       {:ok, response} -> {request, response}
-                       {:error, exception} -> {request, exception}
-                     end
-                   end
-
-                   with {:error, error} <-
-                          Req.get("/elixir-tools/next-ls/releases/download/#{tag}/next_ls_#{os()}_#{arch()}",
-                            finch_request: fun,
-                            base_url: github_host,
-                            retry: retry
-                          ) do
-                     NextLS.Logger.show_message(logger, :error, "Failed to download version #{version} of Next LS!")
-                     NextLS.Logger.error(logger, "Failed to download Next LS: #{inspect(error)}")
-                     :error
-                   end
-                 end) do
-            File.chmod(binpath, 0o755)
-
-            NextLS.Logger.show_message(
-              logger,
-              :info,
-              "[Next LS] Downloaded v#{version}, please restart your editor for it to take effect."
-            )
-
-            NextLS.Logger.info(logger, "Downloaded #{version} of Next LS")
+               {:error, error} <-
+                 Req.get("/elixir-tools/next-ls/releases/download/#{tag}/next_ls_#{os()}_#{arch()}",
+                   into: File.stream!(binpath),
+                   base_url: github_host,
+                   retry: retry
+                 ) do
+            NextLS.Logger.show_message(logger, :error, "Failed to download version #{version} of Next LS!")
+            NextLS.Logger.error(logger, "Failed to download Next LS: #{inspect(error)}")
+            :error
           end
+
+          File.chmod(binpath, 0o755)
+
+          NextLS.Logger.show_message(
+            logger,
+            :info,
+            "[Next LS] Downloaded v#{version}, please restart your editor for it to take effect."
+          )
+
+          NextLS.Logger.info(logger, "Downloaded #{version} of Next LS")
         end
 
       {_, error} ->
