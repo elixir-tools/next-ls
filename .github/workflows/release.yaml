@@ -110,6 +110,7 @@ jobs:
         run: brew tap elixir-tools/tap
       - name: Configure git
         run: |
+          git config --unset-all http.https://github.com/.extraheader
           git config --global user.name github-actions[bot] 
           git config --global user.email github-actions[bot]@users.noreply.github.com
 
