@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.2](https://github.com/elixir-tools/next-ls/compare/v0.19.1...v0.19.2) (2024-03-01)
+
+
+### Bug Fixes
+
+* properly initiate progress notification ([#387](https://github.com/elixir-tools/next-ls/issues/387)) ([082b8d5](https://github.com/elixir-tools/next-ls/commit/082b8d5e2bdd2398c47a89907fc9d2c7b935400f))
+
 ## [0.19.1](https://github.com/elixir-tools/next-ls/compare/v0.19.0...v0.19.1) (2024-02-28)
 
 
