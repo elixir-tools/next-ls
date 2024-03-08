@@ -108,5 +108,15 @@ defmodule NextLS.ASTHelpersTest do
       position = %Position{line: 0, character: 0}
       assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Test]} | _]}} = ASTHelpers.get_nearest_module(ast, position)
     end
+
+    test "errors out when it can't find a module" do
+      {:ok, ast} =
+        Spitfire.parse("""
+        def foo, do: :bar
+        """)
+
+      position = %Position{line: 0, character: 0}
+      assert {:error, "no defmodule definition"} = ASTHelpers.get_nearest_module(ast, position)
+    end
   end
 end
