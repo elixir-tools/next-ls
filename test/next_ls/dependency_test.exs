@@ -89,12 +89,12 @@ defmodule NextLS.DependencyTest do
       end)
 
       assert_notification "window/logMessage", %{
-        "message" => "[NextLS] Running `mix deps.get` in directory" <> _,
+        "message" => "[Next LS] Running `mix deps.get` in directory" <> _,
         "type" => 3
       }
 
       assert_notification "window/logMessage", %{
-        "message" => "[NextLS] Restarting runtime" <> _,
+        "message" => "[Next LS] Restarting runtime" <> _,
         "type" => 3
       }
 
@@ -151,12 +151,12 @@ defmodule NextLS.DependencyTest do
       end)
 
       assert_notification "window/logMessage", %{
-        "message" => "[NextLS] Running `mix deps.get` in directory" <> _,
+        "message" => "[Next LS] Running `mix deps.get` in directory" <> _,
         "type" => 3
       }
 
       assert_notification "window/logMessage", %{
-        "message" => "[NextLS] Restarting runtime" <> _,
+        "message" => "[Next LS] Restarting runtime" <> _,
         "type" => 3
       }
 

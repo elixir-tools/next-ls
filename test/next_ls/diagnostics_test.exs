@@ -58,7 +58,7 @@ defmodule NextLS.DiagnosticsTest do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] NextLS v" <> _,
+      "message" => "[Next LS] NextLS v" <> _,
       "type" => 4
     }
 

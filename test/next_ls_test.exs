@@ -84,7 +84,7 @@ defmodule NextLSTest do
              })
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] Method Not Found: textDocument/signatureHelp",
+      "message" => "[Next LS] Method Not Found: textDocument/signatureHelp",
       "type" => 2
     }
 

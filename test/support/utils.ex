@@ -99,7 +99,7 @@ defmodule NextLS.Support.Utils do
              timeout \\ Application.get_env(:ex_unit, :assert_receive_timeout)
            ) do
     quote do
-      message = "[NextLS] Runtime for folder #{unquote(context).module}-#{unquote(name)} is ready..."
+      message = "[Next LS] Runtime for folder #{unquote(context).module}-#{unquote(name)} is ready..."
 
       assert_notification "window/logMessage", %{"message" => ^message}, unquote(timeout)
     end

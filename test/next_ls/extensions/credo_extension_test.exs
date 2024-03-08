@@ -75,7 +75,7 @@ defmodule NextLS.CredoExtensionTest do
     assert_compiled(context, "my_proj")
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] [extension] Credo disabled",
+      "message" => "[Next LS] [extension] Credo disabled",
       "type" => 3
     }
   end
@@ -88,7 +88,7 @@ defmodule NextLS.CredoExtensionTest do
     assert_compiled(context, "my_proj")
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] [extension] Credo initializing with options" <> _,
+      "message" => "[Next LS] [extension] Credo initializing with options" <> _,
       "type" => 3
     }
 
@@ -126,7 +126,7 @@ defmodule NextLS.CredoExtensionTest do
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     assert_notification "window/logMessage", %{
-      "message" => "[NextLS] [extension] Credo initializing with options" <> _,
+      "message" => "[Next LS] [extension] Credo initializing with options" <> _,
       "type" => 3
     }
 
