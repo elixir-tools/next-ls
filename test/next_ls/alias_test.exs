@@ -58,20 +58,20 @@ defmodule NextLS.PipeTest do
       }
     }
 
-    expected_edit = """
-    defmodule Foo do
-      alias Foo.Bar
+    expected_edit =
+      String.trim("""
+      defmodule Foo do
+        alias Foo.Bar
 
-      def to_list() do
-        Bar.to_list(Map.new())
-      end
+        def to_list() do
+          Bar.to_list(Map.new())
+        end
 
-      def to_map() do
-        Bar.to_map(List.new())
+        def to_map() do
+          Bar.to_map(List.new())
+        end
       end
-    end
-    """
-    |> String.trim()
+      """)
 
     assert_request(client, "workspace/applyEdit", 500, fn params ->
       assert %{"edit" => edit, "label" => "Pipe"} = params
