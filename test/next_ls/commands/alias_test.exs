@@ -38,7 +38,7 @@ defmodule NextLS.Commands.AliasTest do
       position = %{"line" => line, "character" => 6}
 
       assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
-               Alias.refactor(%{uri: uri, text: text, position: position})
+               Alias.run(%{uri: uri, text: text, position: position})
 
       assert edit.new_text == expected_edit
       assert range.start.line == 0
@@ -83,7 +83,7 @@ defmodule NextLS.Commands.AliasTest do
       position = %{"line" => line, "character" => 6}
 
       assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
-               Alias.refactor(%{uri: uri, text: text, position: position})
+               Alias.run(%{uri: uri, text: text, position: position})
 
       assert edit.new_text == expected_edit
       assert range.start.line == 0
@@ -130,7 +130,7 @@ defmodule NextLS.Commands.AliasTest do
       position = %{"line" => line, "character" => 6}
 
       assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
-               Alias.refactor(%{uri: uri, text: text, position: position})
+               Alias.run(%{uri: uri, text: text, position: position})
 
       assert edit.new_text == expected_edit
       assert range.start.line == 0
@@ -185,7 +185,7 @@ defmodule NextLS.Commands.AliasTest do
       position = %{"line" => line, "character" => 8}
 
       assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
-               Alias.refactor(%{uri: uri, text: text, position: position})
+               Alias.run(%{uri: uri, text: text, position: position})
 
       assert edit.new_text == expected_edit
       assert range.start.line == 1

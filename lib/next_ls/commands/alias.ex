@@ -19,7 +19,7 @@ defmodule NextLS.Commands.Alias do
     })
   end
 
-  def refactor(opts) do
+  def run(opts) do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
          {:ok, ast} = parse(text),
          {:ok, defm} <- ASTHelpers.get_nearest_module(ast, position),

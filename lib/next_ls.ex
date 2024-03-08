@@ -719,7 +719,7 @@ defmodule NextLS do
           position = arguments["position"]
           text = lsp.assigns.documents[uri]
 
-          NextLS.Commands.Alias.refactor(%{
+          NextLS.Commands.Alias.run(%{
             uri: uri,
             text: text,
             position: position

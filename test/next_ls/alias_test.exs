@@ -1,4 +1,4 @@
-defmodule NextLS.PipeTest do
+defmodule NextLS.AliasTest do
   use ExUnit.Case, async: true
 
   import GenLSP.Test
