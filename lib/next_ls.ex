@@ -602,8 +602,7 @@ defmodule NextLS do
 
         case NextLS.Snippet.get(label, nil) do
           nil -> [completion_item | results]
-          snippets when is_list(snippets) -> Enum.map(snippets, &Map.merge(completion_item, &1)) ++ results
-          snippet -> [Map.merge(completion_item, snippet) | results]
+          %{} = snippet -> [Map.merge(completion_item, snippet) | results]
         end
       end)
       |> Enum.reverse()
