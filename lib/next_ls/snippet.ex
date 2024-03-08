@@ -1,9 +1,8 @@
 defmodule NextLS.Snippet do
   @moduledoc false
 
-  def get("defmodule" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defmodule/2", nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -14,9 +13,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defstruct" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defstruct/1", nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -25,9 +23,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defprotocol" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defprotocol/2", nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -38,38 +35,36 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defimpl" = label, nil) do
-    [
-      %GenLSP.Structures.CompletionItem{
-        label: label,
-        kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-        insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
-        insert_text: """
-        defimpl ${1:ProtocolName} do
-          def ${2:function_name}(${3:parameter_name}) do
-            $0
-          end
+  def get("defimpl/2", nil) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      defimpl ${1:ProtocolName} do
+        def ${2:function_name}(${3:parameter_name}) do
+          $0
         end
-        """
-      },
-      %GenLSP.Structures.CompletionItem{
-        label: label <> "f",
-        kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-        insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
-        insert_text: """
-        defimpl ${1:ProtocolName}, for: ${2:StructName} do
-          def ${3:function_name}(${4:parameter_name}) do
-            $0
-          end
-        end
-        """
-      }
-    ]
+      end
+      """
+    }
   end
 
-  def get("def" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defimpl/3", nil) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      defimpl ${1:ProtocolName}, for: ${2:StructName} do
+        def ${3:function_name}(${4:parameter_name}) do
+          $0
+        end
+      end
+      """
+    }
+  end
+
+  def get("def/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -80,9 +75,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defp" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defp/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -93,9 +87,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defmacro" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defmacro/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -108,9 +101,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defmacrop" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("defmacrop/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -123,9 +115,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("for" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("for/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -136,9 +127,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("with" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("with/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -149,9 +139,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("case" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("case/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
@@ -166,9 +155,8 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("cond" = label, nil) do
-    %GenLSP.Structures.CompletionItem{
-      label: label,
+  def get("cond/" <> _, nil) do
+    %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
