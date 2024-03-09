@@ -26,9 +26,9 @@
         musl = lib.optionals nixpkgs.legacyPackages.${system}.stdenv.isLinux (builtins.fetchurl (nixpkgs.lib.attrsets.getAttrs ["url" "sha256"] musls.${system}));
         otp = (pkgs.beam.packagesWith beamPackages.erlang).extend (final: prev: {
           elixir_1_17 = prev.elixir_1_16.override {
-            rev = "52eaf1456182d5d6cce22a4f5c3f6ec9f4dcbfd9";
+            rev = "514615d0347cb9bb513faa44ae1e36406979e516";
             # You can discover this using Trust On First Use by filling in `lib.fakeHash`
-            sha256 = "sha256-fOsV+jVIzsa38hQDvAjhUqee36nt8kG6AOpOQJnSZ74=";
+            sha256 = "sha256-lEnDgHi1sRg+3/JTnQJVo1qqSi0X2cNN4i9i9M95B2A=";
             version = "1.17.0-dev";
           };
 
