@@ -73,9 +73,7 @@ defmodule NextLS.Commands.AliasTest do
             Bar.to_list(map)
           end
 
-          def bar do
-            :bar
-          end
+          def bar, do: :bar
         end
         """)
 

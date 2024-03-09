@@ -51,7 +51,7 @@ defmodule NextLS.Commands.Alias do
   defp parse(lines) do
     lines
     |> Enum.join("\n")
-    |> Spitfire.parse()
+    |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
     |> case do
       {:error, ast, _errors} ->
         {:ok, ast}
@@ -113,14 +113,14 @@ defmodule NextLS.Commands.Alias do
 
     alias_to_add = {:alias, [alias: false], [{:__aliases__, [], modules}]}
 
-    {:defmodule, context, [module, [do: block]]} = replaced
+    {:defmodule, context, [module, [{do_block, block}]]} = replaced
 
     case block do
       {:__block__, block_context, defs} ->
-        {:defmodule, context, [module, [do: {:__block__, block_context, [alias_to_add | defs]}]]}
+        {:defmodule, context, [module, [{do_block, {:__block__, block_context, [alias_to_add | defs]}}]]}
 
       {_, _, _} = original ->
-        {:defmodule, context, [module, [do: {:__block__, [], [alias_to_add, original]}]]}
+        {:defmodule, context, [module, [{do_block, {:__block__, [], [alias_to_add, original]}}]]}
     end
   end
 end
