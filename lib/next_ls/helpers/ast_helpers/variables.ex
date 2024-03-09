@@ -64,7 +64,7 @@ defmodule NextLS.ASTHelpers.Variables do
         position =
           case symbol do
             nil -> position
-            {_, {line.._, column.._}} -> {line, column}
+            {_, {line.._//_, column.._//_}} -> {line, column}
           end
 
         Enum.reduce(vars, [], fn val, acc ->
@@ -124,7 +124,7 @@ defmodule NextLS.ASTHelpers.Variables do
     {ast, acc}
   end
 
-  # search symbols inside left side of a match or <- and fix processig sequence
+  # search symbols inside left side of a match or <- and fix processing sequence
   defp prewalk({operation, meta, [left, right]}, acc) when operation in [:=, :<-, :destructure] do
     acc = find_symbols(left, acc)
     {{operation, meta, [right, left]}, acc}

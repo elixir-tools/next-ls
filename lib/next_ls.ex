@@ -198,7 +198,7 @@ defmodule NextLS do
                      URI.parse(uri).path,
                      {position.line + 1, position.character + 1}
                    ) do
-                {_name, {startl..endl, startc..endc}} ->
+                {_name, {startl..endl//_, startc..endc//_}} ->
                   %Location{
                     uri: "file://#{URI.parse(uri).path}",
                     range: %Range{
@@ -316,7 +316,7 @@ defmodule NextLS do
               :unknown ->
                 file
                 |> NextLS.ASTHelpers.Variables.list_variable_references({line, col})
-                |> Enum.map(fn {_name, {startl..endl, startc..endc}} ->
+                |> Enum.map(fn {_name, {startl..endl//_, startc..endc//_}} ->
                   [file, startl, endl, startc, endc]
                 end)
             end
@@ -555,6 +555,20 @@ defmodule NextLS do
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
 
+    env =
+      document
+      |> List.update_at(position.line, fn row ->
+        {front, back} = String.split_at(row, position.character)
+        String.slice(front, -1..1) <> "__cursor__()" <> back
+      end)
+      |> Enum.join("\n")
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
+      |> then(fn
+        {:ok, ast} -> ast
+        {:error, ast, _} -> ast
+      end)
+      |> NextLS.ASTHelpers.Env.build()
+
     document_slice =
       document
       |> Enum.take(position.line + 1)
@@ -571,7 +585,10 @@ defmodule NextLS do
       |> dispatch(:runtimes, fn entries ->
         [result] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            NextLS.Autocomplete.expand(document_slice |> String.to_charlist() |> Enum.reverse(), runtime)
+            document_slice
+            |> String.to_charlist()
+            |> Enum.reverse()
+            |> NextLS.Autocomplete.expand(runtime, env)
           end
 
         case result do
@@ -607,12 +624,14 @@ defmodule NextLS do
       end)
       |> Enum.reverse()
 
+    dbg(results)
+
     {:reply, results, lsp}
   rescue
     e ->
       GenLSP.warning(
         lsp,
-        "[Next LS] Failed to run completion request: #{Exception.format_banner(:error, e, __STACKTRACE__)}"
+        "[Next LS] Failed to run completion request: #{Exception.format(:error, e, __STACKTRACE__)}"
       )
 
       {:reply, [], lsp}
