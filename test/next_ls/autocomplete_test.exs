@@ -81,8 +81,8 @@ defmodule NextLS.AutocompleteTest do
     [runtime: pid]
   end
 
-  defp expand(runtime, expr) do
-    NextLS.Autocomplete.expand(Enum.reverse(expr), runtime)
+  defp expand(runtime, expr, env \\ %{variables: []}) do
+    NextLS.Autocomplete.expand(Enum.reverse(expr), runtime, env)
   end
 
   test "Erlang module completion", %{runtime: runtime} do
@@ -414,14 +414,42 @@ defmodule NextLS.AutocompleteTest do
             ]} = expand(runtime, ~c"put_")
   end
 
-  # TODO: this only partially works, will not say we support for now
-  # test "variable name completion", %{runtime: runtime} do
-  #   prev = "numeral = 3; number = 3; nothing = nil"
-  #   assert expand(runtime, ~c"#{prev}\nnumb") == {:yes, ~c"er", []}
-  #   assert expand(runtime, ~c"#{prev}\nnum") == {:yes, ~c"", [~c"number", ~c"numeral"]}
-  #   # FIXME: variables + local functions
-  #   # assert expand(runtime, ~c"#{prev}\nno") == {:yes, ~c"", [~c"nothing", ~c"node/0", ~c"node/1", ~c"not/1"]}
-  # end
+  test "variable name completion", %{runtime: runtime} do
+    prev = "numeral = 3; number = 3; nothing = nil"
+    env = %{variables: ["numeral", "number", "nothing"]}
+    assert expand(runtime, ~c"#{prev}\nnumb", env) == {:yes, [%{name: "number", kind: :variable}]}
+
+    assert expand(runtime, ~c"#{prev}\nnum", env) ==
+             {:yes, [%{name: "number", kind: :variable}, %{name: "numeral", kind: :variable}]}
+
+    assert expand(runtime, ~c"#{prev}\nno", env) == {
+             :yes,
+             [
+               %{name: "nothing", kind: :variable},
+               %{
+                 arity: 0,
+                 name: "node",
+                 docs:
+                   "## Kernel.node/0\n\nReturns an atom representing the name of the local node.\nIf the node is not alive, `:nonode@nohost` is returned instead.\n\nAllowed in guard tests. Inlined by the compiler.\n\n",
+                 kind: :function
+               },
+               %{
+                 arity: 1,
+                 name: "node",
+                 docs:
+                   "## Kernel.node/1\n\nReturns an atom representing the name of the local node.\nIf the node is not alive, `:nonode@nohost` is returned instead.\n\nAllowed in guard tests. Inlined by the compiler.\n\n",
+                 kind: :function
+               },
+               %{
+                 arity: 1,
+                 name: "not",
+                 docs:
+                   "## Kernel.not/1\n\nStrictly boolean \"not\" operator.\n\n`value` must be a boolean; if it's not, an `ArgumentError` exception is raised.\n\nAllowed in guard tests. Inlined by the compiler.\n\n## Examples\n\n    iex> not false\n    true\n\n\n",
+                 kind: :function
+               }
+             ]
+           }
+  end
 
   # TODO: locals
   # test "completion of manually imported functions and macros", %{runtime: runtime} do
