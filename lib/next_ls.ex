@@ -624,8 +624,6 @@ defmodule NextLS do
       end)
       |> Enum.reverse()
 
-    dbg(results)
-
     {:reply, results, lsp}
   rescue
     e ->

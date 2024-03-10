@@ -24,14 +24,14 @@ defmodule NextLS.Autocomplete do
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
-  def expand(code, runtime) do
+  def expand(code, runtime, env) do
     case path_fragment(code) do
-      [] -> expand_code(code, runtime)
+      [] -> expand_code(code, runtime, env)
       path -> expand_path(path)
     end
   end
 
-  defp expand_code(code, runtime) do
+  defp expand_code(code, runtime, env) do
     code = Enum.reverse(code)
     # helper = get_helper(code)
 
@@ -62,13 +62,13 @@ defmodule NextLS.Autocomplete do
         expand_dot_call(path, List.to_atom(hint), runtime)
 
       :expr ->
-        expand_container_context(code, :expr, "", runtime) || expand_local_or_var("", "", runtime)
+        expand_container_context(code, :expr, "", runtime) || expand_local_or_var(code, "", runtime, env)
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
 
         expand_container_context(code, :expr, hint, runtime) ||
-          expand_local_or_var(hint, List.to_string(local_or_var), runtime)
+          expand_local_or_var(hint, List.to_string(local_or_var), runtime, env)
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, runtime)
@@ -77,7 +77,7 @@ defmodule NextLS.Autocomplete do
         expand_aliases("", runtime)
 
       {:local_call, local} ->
-        expand_local_call(List.to_atom(local), runtime)
+        expand_local_call(List.to_atom(local), runtime, env)
 
       {:operator, operator} when operator in ~w(:: -)c ->
         expand_container_context(code, :operator, "", runtime) ||
@@ -90,10 +90,10 @@ defmodule NextLS.Autocomplete do
         expand_local(List.to_string(operator), true, runtime)
 
       {:operator_call, operator} when operator in ~w(|)c ->
-        expand_container_context(code, :expr, "", runtime) || expand_local_or_var("", "", runtime)
+        expand_container_context(code, :expr, "", runtime) || expand_local_or_var("", "", runtime, env)
 
       {:operator_call, _operator} ->
-        expand_local_or_var("", "", runtime)
+        expand_local_or_var("", "", runtime, env)
 
       {:sigil, []} ->
         expand_sigil(runtime)
@@ -163,12 +163,12 @@ defmodule NextLS.Autocomplete do
 
   ## Expand call
 
-  defp expand_local_call(fun, runtime) do
+  defp expand_local_call(fun, runtime, env) do
     runtime
     |> imports_from_env()
     |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
     |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
-    |> expand_signatures(runtime)
+    |> expand_signatures(runtime, env)
   end
 
   defp expand_dot_call(path, fun, runtime) do
@@ -192,7 +192,7 @@ defmodule NextLS.Autocomplete do
     yes([head])
   end
 
-  defp expand_signatures([], runtime), do: expand_local_or_var("", "", runtime)
+  defp expand_signatures([], runtime, env), do: expand_local_or_var("", "", runtime, env)
 
   ## Expand dot
 
@@ -259,8 +259,8 @@ defmodule NextLS.Autocomplete do
 
   ## Expand local or var
 
-  defp expand_local_or_var(code, hint, runtime) do
-    format_expansion(match_var(code, hint, runtime) ++ match_local(code, false, runtime))
+  defp expand_local_or_var(code, hint, runtime, env) do
+    format_expansion(match_var(code, hint, runtime, env) ++ match_local(hint, false, runtime))
   end
 
   defp expand_local(hint, exact?, runtime) do
@@ -286,9 +286,9 @@ defmodule NextLS.Autocomplete do
       match_module_funs(runtime, nil, imports, hint, exact?)
   end
 
-  defp match_var(code, hint, runtime) do
+  defp match_var(code, hint, _runtime, env) do
     code
-    |> variables_from_binding(runtime)
+    |> variables_from_binding(env)
     |> Enum.filter(&String.starts_with?(&1, hint))
     |> Enum.sort()
     |> Enum.map(&%{kind: :variable, name: &1})
@@ -774,13 +774,8 @@ defmodule NextLS.Autocomplete do
     []
   end
 
-  defp variables_from_binding(_hint, _runtime) do
-    # {:ok, ast} = Code.Fragment.container_cursor_to_quoted(hint, columns: true)
-
-    # ast |> Macro.to_string() |> IO.puts()
-
-    # NextLS.ASTHelpers.Variables.collect(ast)
-    []
+  defp variables_from_binding(_hint, env) do
+    env.variables
   end
 
   defp value_from_binding([_var | _path], _runtime) do
