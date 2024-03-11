@@ -315,7 +315,7 @@ defmodule NextLS.DocumentSymbolTest do
                      start: %GenLSP.Structures.Position{character: 2, line: 1}
                    },
                    range: %GenLSP.Structures.Range{
-                     end: %GenLSP.Structures.Position{character: 2, line: 1},
+                     end: %GenLSP.Structures.Position{character: 18, line: 1},
                      start: %GenLSP.Structures.Position{character: 2, line: 1}
                    },
                    deprecated: nil,
@@ -348,7 +348,7 @@ defmodule NextLS.DocumentSymbolTest do
                      start: %GenLSP.Structures.Position{character: 2, line: 5}
                    },
                    range: %GenLSP.Structures.Range{
-                     end: %GenLSP.Structures.Position{character: 2, line: 5},
+                     end: %GenLSP.Structures.Position{character: 18, line: 5},
                      start: %GenLSP.Structures.Position{character: 2, line: 5}
                    },
                    deprecated: nil,
