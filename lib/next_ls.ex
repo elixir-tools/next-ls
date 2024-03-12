@@ -24,6 +24,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
+  alias GenLSP.Requests.TextDocumentSignatureHelp
   alias GenLSP.Requests.WorkspaceApplyEdit
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.ApplyWorkspaceEditParams
@@ -41,6 +42,8 @@ defmodule NextLS do
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.SaveOptions
   alias GenLSP.Structures.ServerCapabilities
+  alias GenLSP.Structures.SignatureHelp
+  alias GenLSP.Structures.SignatureHelpParams
   alias GenLSP.Structures.SymbolInformation
   alias GenLSP.Structures.TextDocumentIdentifier
   alias GenLSP.Structures.TextDocumentItem
@@ -53,6 +56,7 @@ defmodule NextLS do
   alias NextLS.DiagnosticCache
   alias NextLS.Progress
   alias NextLS.Runtime
+  alias NextLS.SignatureHelp
 
   def start_link(args) do
     {args, opts} =
@@ -145,6 +149,9 @@ defmodule NextLS do
              "to-pipe",
              "from-pipe"
            ]
+         },
+         signature_help_provider: %GenLSP.Structures.SignatureHelpOptions{
+           trigger_characters: ["(", ","]
          },
          hover_provider: true,
          workspace_symbol_provider: true,
@@ -697,6 +704,20 @@ defmodule NextLS do
       NextLS.Logger.error(lsp.assigns.logger, Exception.format_banner(:error, e, __STACKTRACE__))
 
       {:reply, nil, lsp}
+  end
+
+  def handle_request(
+        %TextDocumentSignatureHelp{params: %SignatureHelpParams{text_document: %{uri: uri}, position: position}},
+        lsp
+      ) do
+    result =
+      dispatch(lsp.assigns.registry, :databases, fn entries ->
+        for {pid, _} <- entries do
+          SignatureHelp.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid, lsp.assigns.logger)
+        end
+      end)
+
+    {:reply, List.first(result), lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do

@@ -24,7 +24,7 @@ defmodule NextLS.Logger do
 
   def handle_cast({:log, type, msg}, state) do
     apply(GenLSP, type, [state.lsp, String.trim("[Next LS] #{msg}")])
-
+    
     case type do
       :log -> Logger.debug(msg)
       :warning -> Logger.warning(msg)

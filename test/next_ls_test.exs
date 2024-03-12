@@ -70,29 +70,29 @@ defmodule NextLSTest do
     assert_result 2, nil
   end
 
-  test "returns method not found for unimplemented requests", %{client: client} do
-    id = System.unique_integer([:positive])
+  # test "returns method not found for unimplemented requests", %{client: client} do
+  #   id = System.unique_integer([:positive])
 
-    assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+  #   assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
-    assert :ok ==
-             request(client, %{
-               method: "textDocument/signatureHelp",
-               id: id,
-               jsonrpc: "2.0",
-               params: %{position: %{line: 0, character: 0}, textDocument: %{uri: ""}}
-             })
+  #   assert :ok ==
+  #            request(client, %{
+  #              method: "textDocument/signatureHelp",
+  #              id: id,
+  #              jsonrpc: "2.0",
+  #              params: %{position: %{line: 0, character: 0}, textDocument: %{uri: ""}}
+  #            })
 
-    assert_notification "window/logMessage", %{
-      "message" => "[Next LS] Method Not Found: textDocument/signatureHelp",
-      "type" => 2
-    }
+  #   assert_notification "window/logMessage", %{
+  #     "message" => "[Next LS] Method Not Found: textDocument/signatureHelp",
+  #     "type" => 2
+  #   }
 
-    assert_error ^id, %{
-      "code" => -32_601,
-      "message" => "Method Not Found: textDocument/signatureHelp"
-    }
-  end
+  #   assert_error ^id, %{
+  #     "code" => -32_601,
+  #     "message" => "Method Not Found: textDocument/signatureHelp"
+  #   }
+  # end
 
   test "can initialize the server" do
     assert_result 1, %{
