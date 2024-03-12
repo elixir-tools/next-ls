@@ -77,20 +77,20 @@ defmodule NextLSTest do
 
     assert :ok ==
              request(client, %{
-               method: "textDocument/signatureHelp",
+               method: "textDocument/typeDefinition",
                id: id,
                jsonrpc: "2.0",
                params: %{position: %{line: 0, character: 0}, textDocument: %{uri: ""}}
              })
 
     assert_notification "window/logMessage", %{
-      "message" => "[Next LS] Method Not Found: textDocument/signatureHelp",
+      "message" => "[Next LS] Method Not Found: textDocument/typeDefinition",
       "type" => 2
     }
 
     assert_error ^id, %{
       "code" => -32_601,
-      "message" => "Method Not Found: textDocument/signatureHelp"
+      "message" => "Method Not Found: textDocument/typeDefinition"
     }
   end
 

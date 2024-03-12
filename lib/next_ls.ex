@@ -24,6 +24,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
+  alias GenLSP.Requests.TextDocumentSignatureHelp
   alias GenLSP.Requests.WorkspaceApplyEdit
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.ApplyWorkspaceEditParams
@@ -41,6 +42,8 @@ defmodule NextLS do
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.SaveOptions
   alias GenLSP.Structures.ServerCapabilities
+  alias GenLSP.Structures.SignatureHelp
+  alias GenLSP.Structures.SignatureHelpParams
   alias GenLSP.Structures.SymbolInformation
   alias GenLSP.Structures.TextDocumentIdentifier
   alias GenLSP.Structures.TextDocumentItem
@@ -53,6 +56,7 @@ defmodule NextLS do
   alias NextLS.DiagnosticCache
   alias NextLS.Progress
   alias NextLS.Runtime
+  alias NextLS.SignatureHelp
 
   require NextLS.Runtime
 
@@ -156,6 +160,9 @@ defmodule NextLS do
              "from-pipe",
              "alias-refactor"
            ]
+         },
+         signature_help_provider: %GenLSP.Structures.SignatureHelpOptions{
+           trigger_characters: ["(", ","]
          },
          hover_provider: true,
          workspace_symbol_provider: true,
@@ -815,6 +822,34 @@ defmodule NextLS do
       NextLS.Logger.error(lsp.assigns.logger, Exception.format(:error, e, __STACKTRACE__))
 
       {:reply, nil, lsp}
+  end
+
+  def handle_request(
+        %TextDocumentSignatureHelp{params: %SignatureHelpParams{text_document: %{uri: uri}, position: position}},
+        lsp
+      ) do
+    signature_help =
+      case SignatureHelp.fetch_mod_and_name(uri, {position.line + 1, position.character + 1}) do
+        {:ok, {mod, name}} ->
+          docs =
+            dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+              [result] =
+                for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+                  Runtime.call(runtime, {Code, :fetch_docs, [mod]})
+                end
+
+              result
+            end)
+
+          docs
+          |> SignatureHelp.format(name)
+          |> List.first()
+
+        {:error, :not_found} ->
+          nil
+      end
+
+    {:reply, signature_help, lsp}
   end
 
   def handle_request(%Shutdown{}, lsp) do
