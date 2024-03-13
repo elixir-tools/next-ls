@@ -220,7 +220,7 @@ defmodule NextLS do
             [] ->
               nil
 
-            [[_pk, _mod, file, _type, _name, line, column | _] | _] ->
+            [[_pk, _mod, file, _type, _name, _params, line, column | _] | _] ->
               %Location{
                 uri: "file://#{file}",
                 range: %Range{
@@ -450,7 +450,7 @@ defmodule NextLS do
           []
         )
 
-      for [_pk, module, file, type, name, line, column | _] <- rows do
+      for [_pk, module, file, type, name, _params, line, column | _] <- rows do
         %{
           module: module,
           file: file,
