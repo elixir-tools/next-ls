@@ -127,7 +127,7 @@ defmodule NextLS.DB do
       )
     end
 
-    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, args, _, _} <- clauses do
+    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, params, _, _} <- clauses do
       __query__(
         {conn, s.logger},
         ~Q"""
@@ -139,7 +139,7 @@ defmodule NextLS.DB do
           file,
           type,
           name,
-          :erlang.term_to_binary(args),
+          :erlang.term_to_binary(params),
           meta[:line],
           meta[:column] || 1,
           source
