@@ -127,14 +127,23 @@ defmodule NextLS.DB do
       )
     end
 
-    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, _, _, _} <- clauses do
+    for {name, {:v1, type, _meta, clauses}} <- defs, {meta, params, _, _} <- clauses do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, params, line, 'column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, meta[:line], meta[:column] || 1, source]
+        [
+          mod,
+          file,
+          type,
+          name,
+          :erlang.term_to_binary(params),
+          meta[:line],
+          meta[:column] || 1,
+          source
+        ]
       )
     end
 
