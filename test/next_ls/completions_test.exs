@@ -300,4 +300,38 @@ defmodule NextLS.CompletionsTest do
              "label" => "next_ls/"
            } in results
   end
+
+  test "defmodule infer name", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmod
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 0,
+          character: 6
+        }
+      }
+    }
+
+    assert_result 2, [
+      %{
+        "data" => nil,
+        "documentation" => _,
+        "insertText" => "defmodule ${1:Foo} do\n  $0\nend\n",
+        "kind" => 15,
+        "label" => "defmodule/2",
+        "insertTextFormat" => 2
+      }
+    ]
+  end
 end

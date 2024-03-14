@@ -1,19 +1,30 @@
 defmodule NextLS.Snippet do
   @moduledoc false
 
-  def get("defmodule/2", nil) do
+  def get(label, trigger_character, opts \\ [])
+
+  def get("defmodule/2", nil, opts) do
+    uri = Keyword.get(opts, :uri)
+
+    modulename =
+      if uri do
+        infer_module_name(uri)
+      else
+        "ModuleName"
+      end
+
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
       insert_text: """
-      defmodule ${1:ModuleName} do
+      defmodule ${1:#{modulename}} do
         $0
       end
       """
     }
   end
 
-  def get("defstruct/1", nil) do
+  def get("defstruct/1", nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -23,7 +34,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defprotocol/2", nil) do
+  def get("defprotocol/2", nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -35,7 +46,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defimpl/2", nil) do
+  def get("defimpl/2", nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -49,7 +60,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defimpl/3", nil) do
+  def get("defimpl/3", nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -63,7 +74,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("def/" <> _, nil) do
+  def get("def/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -75,7 +86,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defp/" <> _, nil) do
+  def get("defp/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -87,7 +98,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defmacro/" <> _, nil) do
+  def get("defmacro/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -101,7 +112,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("defmacrop/" <> _, nil) do
+  def get("defmacrop/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -115,7 +126,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("for/" <> _, nil) do
+  def get("for/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -127,7 +138,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("with/" <> _, nil) do
+  def get("with/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -139,7 +150,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("case/" <> _, nil) do
+  def get("case/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -155,7 +166,7 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get("cond/" <> _, nil) do
+  def get("cond/" <> _, nil, _opts) do
     %{
       kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
       insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
@@ -171,7 +182,47 @@ defmodule NextLS.Snippet do
     }
   end
 
-  def get(_label, _trigger_character) do
+  def get(_label, _trigger_character, _opts) do
     nil
+  end
+
+  defp infer_module_name(uri) do
+    result =
+      uri
+      |> Path.split()
+      |> Enum.reduce(false, fn
+        "lib", _ ->
+          {:lib, []}
+
+        "test", _ ->
+          {:test, []}
+
+        "support", {:test, _} ->
+          {:lib, []}
+
+        _, false ->
+          false
+
+        element, {type, elements} ->
+          camelized =
+            element
+            |> Path.rootname()
+            |> Macro.camelize()
+
+          {type, [camelized | elements]}
+      end)
+
+    case result do
+      {_, parts} ->
+        parts
+        |> Enum.reverse()
+        |> Enum.join(".")
+
+      false ->
+        uri
+        |> Path.basename()
+        |> Path.rootname()
+        |> Macro.camelize()
+    end
   end
 end

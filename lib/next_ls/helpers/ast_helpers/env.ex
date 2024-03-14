@@ -113,6 +113,8 @@ defmodule NextLS.ASTHelpers.Env do
     }
   end
 
+  def ascend(nil, acc, _callback), do: acc
+
   def ascend(%Zipper{path: nil} = zipper, acc, callback), do: callback.(Zipper.node(zipper), zipper, acc)
 
   def ascend(zipper, acc, callback) do

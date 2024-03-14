@@ -617,7 +617,7 @@ defmodule NextLS do
             documentation: docs
           }
 
-        case NextLS.Snippet.get(label, nil) do
+        case NextLS.Snippet.get(label, nil, uri: uri) do
           nil -> [completion_item | results]
           %{} = snippet -> [Map.merge(completion_item, snippet) | results]
         end
