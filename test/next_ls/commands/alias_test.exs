@@ -189,7 +189,7 @@ defmodule NextLS.Commands.AliasTest do
       assert range.start.line == 1
       assert range.start.character == 2
       assert range.end.line == 9
-      assert range.end.character == 7
+      assert range.end.character == 5
     end
   end
 end

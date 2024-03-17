@@ -82,8 +82,8 @@ defmodule NextLS.Commands.Alias do
 
         if not is_nil(range) and
              match?({{:., _, [{:__aliases__, _context, _modules} | _]}, _, _args}, node) &&
-             Sourceror.compare_positions(range.start, pos) == :lt &&
-             Sourceror.compare_positions(range.end, pos) == :gt do
+             Sourceror.compare_positions(range.start, pos) in [:lt, :eq] &&
+             Sourceror.compare_positions(range.end, pos) in [:gt, :eq] do
           {tree, node}
         else
           {tree, acc}
