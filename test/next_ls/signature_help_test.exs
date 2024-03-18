@@ -29,7 +29,7 @@ defmodule NextLS.SignatureHelpTest do
 
       File.write!(imported, """
       defmodule Imported do
-        def boom(boom1, _boom2) do
+        def boom([] = boom1, _boom2) do
           boom1
         end
       end
@@ -40,12 +40,22 @@ defmodule NextLS.SignatureHelpTest do
       File.write!(bar, """
       defmodule Bar do
         def run() do
-          Remote.bang!()
+          Remote.bang!("!")
         end
       end
       """)
 
-      [bar: bar, imported: imported, remote: remote]
+      baz = Path.join(cwd, "my_proj/lib/baz.ex")
+
+      File.write!(baz, """
+      defmodule Baz do
+        def run() do
+          Imported.boom([1, 2], 1)
+        end
+      end
+      """)
+
+      [bar: bar, imported: imported, remote: remote, baz: baz]
     end
 
     setup :with_lsp
@@ -63,56 +73,49 @@ defmodule NextLS.SignatureHelpTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 3, character: 16},
+          position: %{line: 2, character: 13},
           textDocument: %{uri: uri}
         }
       })
 
       assert_result 4, %{
-        "activeParameter" => 0,
-        "activeSignature" => 0,
         "signatures" => [
           %{
-            "activeParameter" => 0,
             "parameters" => [
               %{"label" => "bang"}
             ],
-            "documentation" => "need help",
-            "label" => "bang!"
+            "label" => "bang!(bang)"
           }
         ]
       }
     end
 
-    test "get signature help 2", %{client: client, bar: bar} = context do
+    test "get signature help 2", %{client: client, baz: baz} = context do
       assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 
       assert_is_ready(context, "my_proj")
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
-      uri = uri(bar)
+      uri = uri(baz)
 
       request(client, %{
         method: "textDocument/signatureHelp",
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 8, character: 10},
+          position: %{line: 2, character: 13},
           textDocument: %{uri: uri}
         }
       })
 
       assert_result 4, %{
-        "activeParameter" => 0,
-        "activeSignature" => 0,
         "signatures" => [
           %{
-            "activeParameter" => 0,
             "parameters" => [
-              %{"label" => "bang"}
+              %{"label" => "[] = boom1"},
+              %{"label" => "_boom2"}
             ],
-            "documentation" => "need help",
-            "label" => "bang!"
+            "label" => "boom([] = boom1, _boom2)"
           }
         ]
       }

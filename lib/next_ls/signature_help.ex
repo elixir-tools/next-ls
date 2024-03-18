@@ -1,76 +1,50 @@
 defmodule NextLS.SignatureHelp do
   @moduledoc false
 
-  import NextLS.DB.Query
-
-  alias GenLSP.Enumerations.MarkupKind
-  alias GenLSP.Structures.MarkupContent
   alias GenLSP.Structures.ParameterInformation
   alias GenLSP.Structures.SignatureHelp
   alias GenLSP.Structures.SignatureInformation
-  alias NextLS.ASTHelpers
-  alias NextLS.DB
+  alias NextLS.Definition
 
-  def fetch(file, {line, col}, db, _logger) do
-    code = File.read!(file)
+  def fetch(file, {line, col}, db) do
+    case Definition.fetch(file, {line, col}, db) do
+      nil ->
+        nil
 
-    {mod, func} =
-      ASTHelpers.Functions.get_function_name_from_params(code, line, col)
+      [] ->
+        nil
 
-    query =
-      ~Q"""
-      SELECT
-          *
-      FROM
-          symbols
-      WHERE
-          symbols.module = ?
-          AND symbols.name = ?;
-      """
+      [[_, _mod, _file, type, label, params, _line, _col | _] | _] = _definition ->
+        if type in ["def", "defp"] do
+          term_params =
+            :erlang.binary_to_term(params)
 
-    args = [Enum.map_join(mod, ".", &Atom.to_string/1), Atom.to_string(func)]
+          code_params =
+            term_params
+            |> Macro.to_string()
+            |> String.replace_prefix("[", "(")
+            |> String.replace_suffix("]", ")")
 
-    symbol = DB.query(db, query, args)
+          params_info =
+            term_params
+            |> Enum.map(&Macro.to_string/1)
+            |> Enum.map(fn name ->
+              %ParameterInformation{
+                label: name
+              }
+            end)
 
-    result =
-      case symbol do
-        nil ->
+          %SignatureHelp{
+            signatures: [
+              %SignatureInformation{
+                label: "#{label}#{code_params}",
+                parameters: params_info
+              }
+            ]
+          }
+        else
           nil
-
-        [] ->
-          nil
-
-        [[_, _mod, file, type, label, params, line, col | _] | _] = _definition ->
-          if type in ["def", "defp"] do
-            code_params = params |> :erlang.binary_to_term() |> Macro.to_string() |> dbg()
-
-            signature_params =
-              params
-              |> :erlang.binary_to_term()
-              |> Enum.map(fn {name, _, _} ->
-                %ParameterInformation{
-                  label: Atom.to_string(name)
-                }
-              end)
-              |> dbg()
-
-            %SignatureHelp{
-              signatures: [
-                %SignatureInformation{
-                  label: "#{label}.#{code_params}",
-                  documentation: "need help",
-                  parameters: signature_params
-                  # active_parameter: 0
-                }
-              ]
-              # active_signature: 1,
-              # active_parameter: 0
-            }
-          else
-            nil
-          end
-      end
-
-    result
+        end
+    end
   end
 end

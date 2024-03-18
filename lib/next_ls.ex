@@ -713,7 +713,7 @@ defmodule NextLS do
     result =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
         for {pid, _} <- entries do
-          SignatureHelp.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid, lsp.assigns.logger)
+          SignatureHelp.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid)
         end
       end)
 
