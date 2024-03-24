@@ -580,22 +580,21 @@ defmodule NextLS do
       |> Enum.reverse()
       |> Enum.join("\n")
 
-    results =
-      lsp.assigns.registry
-      |> dispatch(:runtimes, fn entries ->
-        [result] =
+    {root_path, entries} =
+      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+        [{wuri, result}] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            document_slice
-            |> String.to_charlist()
-            |> Enum.reverse()
-            |> NextLS.Autocomplete.expand(runtime, env)
+            {wuri, document_slice |> String.to_charlist() |> Enum.reverse() |> NextLS.Autocomplete.expand(runtime, env)}
           end
 
         case result do
-          {:yes, entries} -> entries
-          _ -> []
+          {:yes, entries} -> {wuri, entries}
+          _ -> {wuri, []}
         end
       end)
+
+    results =
+      entries
       |> Enum.reduce([], fn %{name: name, kind: kind} = symbol, results ->
         {label, kind, docs} =
           case kind do
@@ -617,7 +616,9 @@ defmodule NextLS do
             documentation: docs
           }
 
-        case NextLS.Snippet.get(label, nil, uri: uri) do
+        root_path = root_path |> URI.parse() |> Map.get(:path)
+
+        case NextLS.Snippet.get(label, nil, uri: Path.relative_to(URI.parse(uri).path, root_path)) do
           nil -> [completion_item | results]
           %{} = snippet -> [Map.merge(completion_item, snippet) | results]
         end
