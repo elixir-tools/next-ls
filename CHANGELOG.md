@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.20.0](https://github.com/elixir-tools/next-ls/compare/v0.19.2...v0.20.0) (2024-03-24)
+
+
+### Features
+
+* add params to symbols table  ([#397](https://github.com/elixir-tools/next-ls/issues/397)) ([7c6941b](https://github.com/elixir-tools/next-ls/commit/7c6941b9664451e0452384ccc153a1eb5a9ef72a))
+* **completions:** local variables ([#393](https://github.com/elixir-tools/next-ls/issues/393)) ([d3a1c7d](https://github.com/elixir-tools/next-ls/commit/d3a1c7da99673cc64574837a66c92da73af156bc))
+* defmodule snippet infer module name ([#398](https://github.com/elixir-tools/next-ls/issues/398)) ([4151895](https://github.com/elixir-tools/next-ls/commit/4151895cc009fa4ab0344ed1fe455ed40e666830))
+* snippets ([#385](https://github.com/elixir-tools/next-ls/issues/385)) ([92248b6](https://github.com/elixir-tools/next-ls/commit/92248b6c761e5f7117c5f0943c244f19df20ab9f)), closes [#59](https://github.com/elixir-tools/next-ls/issues/59)
+
+
+### Bug Fixes
+
+* compiler warnings ([f2bf792](https://github.com/elixir-tools/next-ls/commit/f2bf7929a95e87c9868d0de08b067c6eaa7d57fb))
+* update sourceror ([#394](https://github.com/elixir-tools/next-ls/issues/394)) ([d5c9c0a](https://github.com/elixir-tools/next-ls/commit/d5c9c0a70e8d396ceb66d7a62df909a8a3605e6b))
+* use correct spelling of Next LS in logs ([165a03c](https://github.com/elixir-tools/next-ls/commit/165a03c4faf6dbcf5c2195c0b04c017807086691))
+
 ## [0.19.2](https://github.com/elixir-tools/next-ls/compare/v0.19.1...v0.19.2) (2024-03-01)
 
 
