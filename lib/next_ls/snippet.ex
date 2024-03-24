@@ -4,11 +4,11 @@ defmodule NextLS.Snippet do
   def get(label, trigger_character, opts \\ [])
 
   def get("defmodule/2", nil, opts) do
-    uri = Keyword.get(opts, :uri)
+    path = Keyword.get(opts, :uri)
 
     modulename =
-      if uri do
-        infer_module_name(uri)
+      if path do
+        infer_module_name(path)
       else
         "ModuleName"
       end
@@ -186,43 +186,15 @@ defmodule NextLS.Snippet do
     nil
   end
 
-  defp infer_module_name(uri) do
-    result =
-      uri
-      |> Path.split()
-      |> Enum.reduce(false, fn
-        "lib", _ ->
-          {:lib, []}
-
-        "test", _ ->
-          {:test, []}
-
-        "support", {:test, _} ->
-          {:lib, []}
-
-        _, false ->
-          false
-
-        element, {type, elements} ->
-          camelized =
-            element
-            |> Path.rootname()
-            |> Macro.camelize()
-
-          {type, [camelized | elements]}
-      end)
-
-    case result do
-      {_, parts} ->
-        parts
-        |> Enum.reverse()
-        |> Enum.join(".")
-
-      false ->
-        uri
-        |> Path.basename()
-        |> Path.rootname()
-        |> Macro.camelize()
-    end
+  defp infer_module_name(path) do
+    path
+    |> Path.rootname()
+    |> then(fn
+      "test/support/" <> rest -> rest
+      "test/" <> rest -> rest
+      "lib/" <> rest -> rest
+      path -> path
+    end)
+    |> Macro.camelize()
   end
 end
