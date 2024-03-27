@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.2](https://github.com/elixir-tools/next-ls/compare/v0.20.1...v0.20.2) (2024-03-27)
+
+
+### Bug Fixes
+
+* single thread compiler requests ([#401](https://github.com/elixir-tools/next-ls/issues/401)) ([e6aff2b](https://github.com/elixir-tools/next-ls/commit/e6aff2b619fcdb97e45ee75f75bbace9c8139f3d))
+
 ## [0.20.1](https://github.com/elixir-tools/next-ls/compare/v0.20.0...v0.20.1) (2024-03-27)
 
 
