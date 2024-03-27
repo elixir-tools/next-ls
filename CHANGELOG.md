@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/elixir-tools/next-ls/compare/v0.20.0...v0.20.1) (2024-03-27)
+
+
+### Bug Fixes
+
+* update sourceror ([64fe2b3](https://github.com/elixir-tools/next-ls/commit/64fe2b3037f4e9f2b12ca40d007f609b88ddcf95))
+
 ## [0.20.0](https://github.com/elixir-tools/next-ls/compare/v0.19.2...v0.20.0) (2024-03-24)
 
 
