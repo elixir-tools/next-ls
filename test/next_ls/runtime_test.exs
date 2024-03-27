@@ -129,6 +129,7 @@ defmodule NextLs.RuntimeTest do
            working_dir: cwd,
            uri: "file://#{cwd}",
            parent: self(),
+           lsp_pid: self(),
            logger: logger,
            db: :some_db,
            mix_env: "dev",
@@ -157,6 +158,7 @@ defmodule NextLs.RuntimeTest do
            working_dir: cwd,
            uri: "file://#{cwd}",
            parent: self(),
+           lsp_pid: self(),
            logger: logger,
            db: :some_db,
            mix_env: "dev",
@@ -186,6 +188,7 @@ defmodule NextLs.RuntimeTest do
            working_dir: cwd,
            uri: "file://#{cwd}",
            parent: self(),
+           lsp_pid: self(),
            logger: logger,
            db: :some_db,
            mix_env: "dev",
@@ -193,21 +196,26 @@ defmodule NextLs.RuntimeTest do
            registry: RuntimeTest.Registry}
         )
 
-      assert_receive :ready
+      assert_receive :ready, 5000
 
       file = Path.join(cwd, "lib/bar.ex")
 
-      assert [
-               %Mix.Task.Compiler.Diagnostic{
-                 file: ^file,
-                 severity: :warning,
-                 message:
-                   "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
-                 position: position,
-                 compiler_name: "Elixir",
-                 details: nil
-               }
-             ] = Runtime.compile(pid)
+      ref = make_ref()
+      assert :ok == Runtime.compile(pid, caller_ref: ref)
+
+      assert_receive {:compiler_result, ^ref, "my_proj",
+                      {:ok,
+                       [
+                         %Mix.Task.Compiler.Diagnostic{
+                           file: ^file,
+                           severity: :warning,
+                           message:
+                             "variable \"arg1\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+                           position: position,
+                           compiler_name: "Elixir",
+                           details: nil
+                         }
+                       ]}}
 
       if Version.match?(System.version(), ">= 1.15.0") do
         assert position == {4, 11}
@@ -223,7 +231,10 @@ defmodule NextLs.RuntimeTest do
       end
       """)
 
-      assert [] == Runtime.compile(pid)
+      ref = make_ref()
+      assert :ok == Runtime.compile(pid, caller_ref: ref)
+
+      assert_receive {:compiler_result, ^ref, "my_proj", {:ok, []}}
     end
 
     test "responds with an error when the runtime isn't ready", %{logger: logger, cwd: cwd, on_init: on_init} do
@@ -240,6 +251,7 @@ defmodule NextLs.RuntimeTest do
            working_dir: cwd,
            uri: "file://#{cwd}",
            parent: self(),
+           lsp_pid: self(),
            logger: logger,
            db: :some_db,
            mix_env: "dev",

@@ -1,5 +1,6 @@
 defmodule NextLS.DependencyTest do
-  use ExUnit.Case, async: true
+  # FIXME: make async: true
+  use ExUnit.Case, async: false
 
   import GenLSP.Test
   import NextLS.Support.Utils

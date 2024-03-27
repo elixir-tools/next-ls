@@ -90,6 +90,7 @@ defmodule NextLS.Runtime do
     sname = "nextls-runtime-#{System.system_time()}"
     name = Keyword.fetch!(opts, :name)
     working_dir = Keyword.fetch!(opts, :working_dir)
+    lsp_pid = Keyword.fetch!(opts, :lsp_pid)
     uri = Keyword.fetch!(opts, :uri)
     parent = Keyword.fetch!(opts, :parent)
     logger = Keyword.fetch!(opts, :logger)
@@ -222,6 +223,8 @@ defmodule NextLS.Runtime do
               :ok
           end)
 
+          {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
+
           send(me, {:node, node})
         else
           error ->
@@ -237,6 +240,7 @@ defmodule NextLS.Runtime do
          port: port,
          task_supervisor: task_supervisor,
          logger: logger,
+         lsp_pid: lsp_pid,
          parent: parent,
          errors: nil,
          registry: registry,
@@ -279,54 +283,32 @@ defmodule NextLS.Runtime do
     end
   end
 
-  def handle_call({:compile, opts}, from, %{node: node} = state) do
-    for {_ref, {task_pid, _from}} <- state.compiler_refs, do: Process.exit(task_pid, :kill)
+  def handle_call({:compile, opts}, _from, %{node: node} = state) do
+    opts =
+      opts
+      |> Keyword.put_new(:working_dir, state.working_dir)
+      |> Keyword.put_new(:registry, state.registry)
+      |> Keyword.put(:from, self())
 
-    task =
-      Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-        if opts[:force] do
-          File.rm_rf!(Path.join(state.working_dir, ".elixir-tools/_build"))
-        end
+    with {:badrpc, error} <- :rpc.call(node, :_next_ls_private_compiler_worker, :enqueue_compiler, [opts]) do
+      NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+    end
 
-        case :rpc.call(node, :_next_ls_private_compiler, :compile, []) do
-          {:badrpc, error} ->
-            NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
-            []
-
-          {_, diagnostics} when is_list(diagnostics) ->
-            Registry.dispatch(state.registry, :extensions, fn entries ->
-              for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
-            end)
-
-            NextLS.Logger.info(state.logger, "Compiled #{state.name}!")
-
-            diagnostics
-
-          {:error, %Mix.Error{message: "Can't continue due to errors on dependencies"}} ->
-            {:runtime_failed, state.name, {:error, :deps}}
-
-          unknown ->
-            NextLS.Logger.warning(state.logger, "Unexpected compiler response: #{inspect(unknown)}")
-            []
-        end
-      end)
-
-    {:noreply, %{state | compiler_refs: Map.put(state.compiler_refs, task.ref, {task.pid, from})}}
+    {:reply, :ok, state}
   end
 
   @impl GenServer
-  def handle_info({ref, errors}, %{compiler_refs: compiler_refs} = state) when is_map_key(compiler_refs, ref) do
-    Process.demonitor(ref, [:flush])
-
-    orig = elem(compiler_refs[ref], 1)
-    GenServer.reply(orig, errors)
-
-    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
+  # NOTE: these two callbacks are basically to forward the messages from the runtime to the LSP
+  #       LSP process so that progress messages can be dispatched
+  def handle_info({:compiler_result, caller_ref, result}, state) do
+    # we add the runtime name into the message
+    send(state.lsp_pid, {:compiler_result, caller_ref, state.name, result})
+    {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{compiler_refs: compiler_refs} = state)
-      when is_map_key(compiler_refs, ref) do
-    {:noreply, %{state | compiler_refs: Map.delete(compiler_refs, ref)}}
+  def handle_info({:compiler_canceled, _caller_ref} = msg, state) do
+    send(state.lsp_pid, msg)
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, _, :port, port, _}, %{port: port} = state) do

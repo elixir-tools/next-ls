@@ -65,6 +65,7 @@ defmodule NextLS.AutocompleteTest do
          working_dir: cwd,
          uri: "file://#{cwd}",
          parent: self(),
+         lsp_pid: self(),
          logger: logger,
          db: :some_db,
          mix_env: "dev",
@@ -76,7 +77,8 @@ defmodule NextLS.AutocompleteTest do
 
     assert_receive :ready
 
-    Runtime.compile(pid)
+    Runtime.compile(pid, caller_ref: make_ref())
+    assert_receive {:compiler_result, _, _, {:ok, _}}
 
     [runtime: pid]
   end

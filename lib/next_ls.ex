@@ -77,7 +77,9 @@ defmodule NextLS do
 
     registry = Keyword.fetch!(args, :registry)
 
-    extensions = Keyword.get(args, :extensions, elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension)
+    extensions =
+      Keyword.get(args, :extensions, elixir: NextLS.ElixirExtension, credo: NextLS.CredoExtension)
+
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
@@ -179,7 +181,11 @@ defmodule NextLS do
       ) do
     code_actions =
       for %Diagnostic{} = diagnostic <- diagnostics,
-          data = %NextLS.CodeActionable.Data{diagnostic: diagnostic, uri: uri, document: lsp.assigns.documents[uri]},
+          data = %NextLS.CodeActionable.Data{
+            diagnostic: diagnostic,
+            uri: uri,
+            document: lsp.assigns.documents[uri]
+          },
           namespace = diagnostic.data["namespace"],
           action <- NextLS.CodeActionable.from(namespace, data) do
         action
@@ -192,7 +198,11 @@ defmodule NextLS do
     result =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
         for {pid, _} <- entries do
-          case Definition.fetch(URI.parse(uri).path, {position.line + 1, position.character + 1}, pid) do
+          case Definition.fetch(
+                 URI.parse(uri).path,
+                 {position.line + 1, position.character + 1},
+                 pid
+               ) do
             nil ->
               case NextLS.ASTHelpers.Variables.get_variable_definition(
                      URI.parse(uri).path,
@@ -243,14 +253,14 @@ defmodule NextLS do
 
   def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
     symbols =
-      if Path.extname(uri) in [".ex", ".exs"] do
+      if Path.extname(uri) in [".ex", ".exs"] && lsp.assigns.documents[uri] do
         try do
           lsp.assigns.documents[uri]
           |> Enum.join("\n")
           |> NextLS.DocumentSymbol.fetch()
         rescue
           e ->
-            GenLSP.error(lsp, Exception.format_banner(:error, e, __STACKTRACE__))
+            GenLSP.error(lsp, Exception.format(:error, e, __STACKTRACE__))
             nil
         end
       else
@@ -321,7 +331,8 @@ defmodule NextLS do
                 end)
             end
 
-          for [file, startl, endl, startc, endc] <- references, match?({:ok, _}, File.stat(file)) do
+          for [file, startl, endl, startc, endc] <- references,
+              match?({:ok, _}, File.stat(file)) do
             %Location{
               uri: "file://#{file}",
               range: %Range{
@@ -422,7 +433,10 @@ defmodule NextLS do
                 value: String.trim(value)
               },
               range: %Range{
-                start: %Position{line: reference.start_line - 1, character: reference.start_column - 1},
+                start: %Position{
+                  line: reference.start_line - 1,
+                  character: reference.start_column - 1
+                },
                 end: %Position{line: reference.end_line - 1, character: reference.end_column - 1}
               }
             }
@@ -465,7 +479,9 @@ defmodule NextLS do
     symbols =
       dispatch(lsp.assigns.registry, :databases, fn entries ->
         filtered_symbols =
-          for {pid, _} <- entries, symbol <- symbols.(pid), score = fuzzy_match(symbol.name, query, case_sensitive?) do
+          for {pid, _} <- entries,
+              symbol <- symbols.(pid),
+              score = fuzzy_match(symbol.name, query, case_sensitive?) do
             name =
               if symbol.type not in ["defstruct", "attribute"] do
                 "#{symbol.type} #{symbol.name}"
@@ -506,9 +522,15 @@ defmodule NextLS do
         dispatch(lsp.assigns.registry, :runtimes, fn entries ->
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
             with {:ok, {formatter, _}} <-
-                   Runtime.call(runtime, {Mix.Tasks.Format, :formatter_for_file, [URI.parse(uri).path]}),
+                   Runtime.call(
+                     runtime,
+                     {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
+                   ),
                  {:ok, response} when is_binary(response) or is_list(response) <-
-                   Runtime.call(runtime, {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}) do
+                   Runtime.call(
+                     runtime,
+                     {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
+                   ) do
               {:reply,
                [
                  %TextEdit{
@@ -584,7 +606,11 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         [{wuri, result}] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            {wuri, document_slice |> String.to_charlist() |> Enum.reverse() |> NextLS.Autocomplete.expand(runtime, env)}
+            {wuri,
+             document_slice
+             |> String.to_charlist()
+             |> Enum.reverse()
+             |> NextLS.Autocomplete.expand(runtime, env)}
           end
 
         case result do
@@ -598,14 +624,29 @@ defmodule NextLS do
       |> Enum.reduce([], fn %{name: name, kind: kind} = symbol, results ->
         {label, kind, docs} =
           case kind do
-            :struct -> {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
-            :function -> {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
-            :module -> {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
-            :variable -> {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
-            :dir -> {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
-            :file -> {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
-            :keyword -> {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
-            _ -> {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
+            :struct ->
+              {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
+
+            :function ->
+              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
+
+            :module ->
+              {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
+
+            :variable ->
+              {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+
+            :dir ->
+              {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
+
+            :file ->
+              {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
+
+            :keyword ->
+              {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
+
+            _ ->
+              {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
           end
 
         completion_item =
@@ -671,7 +712,12 @@ defmodule NextLS do
           })
 
         _ ->
-          NextLS.Logger.show_message(lsp.logger, :warning, "[Next LS] Unknown workspace command: #{command}")
+          NextLS.Logger.show_message(
+            lsp.logger,
+            :warning,
+            "[Next LS] Unknown workspace command: #{command}"
+          )
+
           nil
       end
 
@@ -695,7 +741,7 @@ defmodule NextLS do
         "[Next LS] #{command} has failed, see the logs for more details"
       )
 
-      NextLS.Logger.error(lsp.assigns.logger, Exception.format_banner(:error, e, __STACKTRACE__))
+      NextLS.Logger.error(lsp.assigns.logger, Exception.format(:error, e, __STACKTRACE__))
 
       {:reply, nil, lsp}
   end
@@ -745,7 +791,8 @@ defmodule NextLS do
       end
     end
 
-    with %{dynamic_registration: true} <- lsp.assigns.client_capabilities.workspace.did_change_watched_files do
+    with %{dynamic_registration: true} <-
+           lsp.assigns.client_capabilities.workspace.did_change_watched_files do
       nil =
         GenLSP.request(lsp, %GenLSP.Requests.ClientRegisterCapability{
           id: System.unique_integer([:positive]),
@@ -782,6 +829,7 @@ defmodule NextLS do
            path: Path.join(working_dir, ".elixir-tools"),
            name: name,
            lsp: lsp,
+           lsp_pid: parent,
            registry: lsp.assigns.registry,
            logger: lsp.assigns.logger,
            runtime: [
@@ -835,23 +883,25 @@ defmodule NextLS do
 
     refresh_refs =
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {pid, %{name: name, uri: wuri}} <- entries, String.starts_with?(uri, wuri), into: %{} do
+        for {pid, %{name: name, uri: wuri}} <- entries,
+            String.starts_with?(uri, wuri),
+            into: %{} do
           token = Progress.token()
           Progress.start(lsp, token, "Compiling #{name}...")
 
-          task =
-            Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-              {name, Runtime.compile(pid)}
-            end)
+          ref = make_ref()
+          Runtime.compile(pid, caller_ref: ref)
 
-          {task.ref, {token, "Compiled #{name}!"}}
+          {ref, {token, "Compiled #{name}!"}}
         end
       end)
 
-    {:noreply,
-     lsp
-     |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))
-     |> then(&put_in(&1.assigns.refresh_refs, refresh_refs))}
+    lsp =
+      lsp
+      |> then(&put_in(&1.assigns.documents[uri], String.split(text, "\n")))
+      |> then(&update_in(&1.assigns.refresh_refs, fn r -> Map.merge(r, refresh_refs) end))
+
+    {:noreply, lsp}
   end
 
   def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
@@ -866,7 +916,8 @@ defmodule NextLS do
       Process.exit(task, :kill)
     end
 
-    {:noreply, put_in(lsp.assigns.documents[uri], String.split(text, "\n"))}
+    lsp = put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
+    {:noreply, lsp}
   end
 
   def handle_notification(
@@ -898,6 +949,8 @@ defmodule NextLS do
           NextLS.Runtime.boot(lsp.assigns.dynamic_supervisor,
             path: Path.join(working_dir, ".elixir-tools"),
             name: name,
+            lsp: lsp,
+            lsp_pid: parent,
             registry: lsp.assigns.registry,
             runtime: [
               task_supervisor: lsp.assigns.runtime_task_supervisor,
@@ -942,36 +995,51 @@ defmodule NextLS do
   end
 
   def handle_notification(%WorkspaceDidChangeWatchedFiles{params: %DidChangeWatchedFilesParams{changes: changes}}, lsp) do
-    type = GenLSP.Enumerations.FileChangeType.deleted()
-
     lsp =
-      for %{type: ^type, uri: uri} <- changes, reduce: lsp do
+      for %{type: type, uri: uri} <- changes, reduce: lsp do
         lsp ->
-          dispatch(lsp.assigns.registry, :databases, fn entries ->
-            for {pid, _} <- entries do
-              file = URI.parse(uri).path
+          cond do
+            type == GenLSP.Enumerations.FileChangeType.created() ->
+              with {:ok, text} <- File.read(URI.parse(uri).path) do
+                put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
+              else
+                _ -> lsp
+              end
 
-              NextLS.DB.query(
-                pid,
-                ~Q"""
-                DELETE FROM symbols
-                WHERE symbols.file = ?;
-                """,
-                [file]
-              )
+            type == GenLSP.Enumerations.FileChangeType.changed() ->
+              with {:ok, text} <- File.read(URI.parse(uri).path) do
+                put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
+              else
+                _ -> lsp
+              end
 
-              NextLS.DB.query(
-                pid,
-                ~Q"""
-                DELETE FROM 'references' AS refs
-                WHERE refs.file = ?;
-                """,
-                [file]
-              )
-            end
-          end)
+            type == GenLSP.Enumerations.FileChangeType.deleted() ->
+              dispatch(lsp.assigns.registry, :databases, fn entries ->
+                for {pid, _} <- entries do
+                  file = URI.parse(uri).path
 
-          update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
+                  NextLS.DB.query(
+                    pid,
+                    ~Q"""
+                    DELETE FROM symbols
+                    WHERE symbols.file = ?;
+                    """,
+                    [file]
+                  )
+
+                  NextLS.DB.query(
+                    pid,
+                    ~Q"""
+                    DELETE FROM 'references' AS refs
+                    WHERE refs.file = ?;
+                    """,
+                    [file]
+                  )
+                end
+              end)
+
+              update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
+          end
       end
 
     {:noreply, lsp}
@@ -984,23 +1052,64 @@ defmodule NextLS do
   end
 
   def handle_notification(_notification, lsp) do
+    # dbg("unhandled notification")
+    # dbg(notification)
+
     {:noreply, lsp}
   end
 
-  def handle_info(:publish, lsp) do
-    all =
-      for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache), {file, diagnostics} <- cache, reduce: %{} do
-        d -> Map.update(d, file, diagnostics, fn value -> value ++ diagnostics end)
-      end
+  def handle_info({:compiler_result, caller_ref, name, result} = _msg, lsp) do
+    {{token, msg}, refs} = Map.pop(lsp.assigns.refresh_refs, caller_ref)
 
-    for {file, diagnostics} <- all do
-      GenLSP.notify(lsp, %GenLSP.Notifications.TextDocumentPublishDiagnostics{
-        params: %GenLSP.Structures.PublishDiagnosticsParams{
-          uri: "file://#{file}",
-          diagnostics: diagnostics
-        }
-      })
+    case result do
+      {_, diagnostics} when is_list(diagnostics) ->
+        Registry.dispatch(lsp.assigns.registry, :extensions, fn entries ->
+          for {pid, _} <- entries, do: send(pid, {:compiler, diagnostics})
+        end)
+
+        NextLS.Logger.info(lsp.assigns.logger, "Compiled #{name}!")
+
+      {:error, %Mix.Error{message: "Can't continue due to errors on dependencies"}} ->
+        send(self(), {:runtime_failed, name, {:error, :deps}})
+
+      unknown ->
+        NextLS.Logger.warning(
+          lsp.assigns.logger,
+          "Unexpected compiler response: #{inspect(unknown)}"
+        )
     end
+
+    Progress.stop(lsp, token, msg)
+
+    {:noreply, assign(lsp, refresh_refs: refs)}
+  end
+
+  def handle_info({:compiler_canceled, caller_ref}, lsp) do
+    {{token, msg}, refs} = Map.pop(lsp.assigns.refresh_refs, caller_ref)
+
+    Progress.stop(lsp, token, msg)
+
+    {:noreply, assign(lsp, refresh_refs: refs)}
+  end
+
+  def handle_info(:publish, lsp) do
+    Task.start(fn ->
+      all =
+        for {_namespace, cache} <- DiagnosticCache.get(lsp.assigns.cache),
+            {file, diagnostics} <- cache,
+            reduce: %{} do
+          d -> Map.update(d, file, diagnostics, fn value -> value ++ diagnostics end)
+        end
+
+      for {file, diagnostics} <- all do
+        GenLSP.notify(lsp, %GenLSP.Notifications.TextDocumentPublishDiagnostics{
+          params: %GenLSP.Structures.PublishDiagnosticsParams{
+            uri: "file://#{file}",
+            diagnostics: diagnostics
+          }
+        })
+      end
+    end)
 
     {:noreply, lsp}
   end
@@ -1009,17 +1118,15 @@ defmodule NextLS do
     token = Progress.token()
     Progress.start(lsp, token, "Compiling #{name}...")
 
-    task =
-      Task.Supervisor.async_nolink(lsp.assigns.task_supervisor, fn ->
-        {_, %{mode: mode}} =
-          dispatch(lsp.assigns.registry, :databases, fn entries ->
-            Enum.find(entries, fn {_, %{runtime: runtime}} -> runtime == name end)
-          end)
-
-        {name, Runtime.compile(runtime_pid, force: mode == :reindex)}
+    {_, %{mode: mode}} =
+      dispatch(lsp.assigns.registry, :databases, fn entries ->
+        Enum.find(entries, fn {_, %{runtime: runtime}} -> runtime == name end)
       end)
 
-    refresh_refs = Map.put(lsp.assigns.refresh_refs, task.ref, {token, "Compiled #{name}!"})
+    ref = make_ref()
+    Runtime.compile(runtime_pid, caller_ref: ref, force: mode == :reindex)
+
+    refresh_refs = Map.put(lsp.assigns.refresh_refs, ref, {token, "Compiled #{name}!"})
 
     {:noreply, assign(lsp, ready: true, refresh_refs: refresh_refs)}
   end
@@ -1073,7 +1180,10 @@ defmodule NextLS do
               NextLS.Logger.info(lsp.assigns.logger, msg)
 
               {:ok, _} =
-                DynamicSupervisor.start_child(lsp.assigns.dynamic_supervisor, {NextLS.Runtime.Supervisor, init_arg})
+                DynamicSupervisor.start_child(
+                  lsp.assigns.dynamic_supervisor,
+                  {NextLS.Runtime.Supervisor, init_arg}
+                )
 
             {msg, _} ->
               NextLS.Logger.warning(
@@ -1101,26 +1211,9 @@ defmodule NextLS do
     {:noreply, assign(lsp, refresh_refs: refs)}
   end
 
-  def handle_info({ref, _resp}, %{assigns: %{refresh_refs: refs}} = lsp) when is_map_key(refs, ref) do
-    Process.demonitor(ref, [:flush])
-    {{token, msg}, refs} = Map.pop(refs, ref)
-
-    Progress.stop(lsp, token, msg)
-
-    {:noreply, assign(lsp, refresh_refs: refs)}
-  end
-
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{refresh_refs: refs}} = lsp)
-      when is_map_key(refs, ref) do
-    {{token, _}, refs} = Map.pop(refs, ref)
-
-    Progress.stop(lsp, token)
-
-    {:noreply, assign(lsp, refresh_refs: refs)}
-  end
-
   def handle_info(message, lsp) do
     GenLSP.log(lsp, "[Next LS] Unhandled message: #{inspect(message)}")
+    GenLSP.log(lsp, "[Next LS] process assigns=#{inspect(lsp.assigns)}")
     {:noreply, lsp}
   end
 
@@ -1257,7 +1350,8 @@ defmodule NextLS do
   defp calc_match_score(_source_letters, [], _traits, score), do: score
 
   defp calc_match_score(source_letters, [query_letter | query_rest], traits, score) do
-    {rest_source_letters, new_traits, new_score} = calc_letter_score(source_letters, query_letter, traits, score)
+    {rest_source_letters, new_traits, new_score} =
+      calc_letter_score(source_letters, query_letter, traits, score)
 
     calc_match_score(rest_source_letters, query_rest, new_traits, new_score)
   end
