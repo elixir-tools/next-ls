@@ -119,7 +119,7 @@ defmodule NextLS.Runtime do
     new_path = String.replace(path, bindir <> ":", "")
 
     with dir when is_list(dir) <- :code.priv_dir(:next_ls),
-         elixir_exe when is_binary(elixir_exe) <- System.find_executable("elixir") do
+         elixir_exe when is_binary(elixir_exe) <- use_or_find_elixir_exec(opts) do
       exe =
         dir
         |> Path.join("cmd")
@@ -389,6 +389,18 @@ defmodule NextLS.Runtime do
       connect(node, port, attempts - 1)
     else
       true
+    end
+  end
+
+  defp use_or_find_elixir_exec(opts) do
+    with path when is_binary(path) <- opts[:elixir_exec],
+         exec = Path.expand(path),
+         true <- File.exists?(exec),
+         {_, 0} <- System.cmd(exec, ["--version"]) do
+      exec
+    else
+      _ ->
+        System.find_executable("elixir")
     end
   end
 end
