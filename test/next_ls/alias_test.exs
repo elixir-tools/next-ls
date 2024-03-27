@@ -74,7 +74,7 @@ defmodule NextLS.AliasTest do
       """)
 
     assert_request(client, "workspace/applyEdit", 500, fn params ->
-      assert %{"edit" => edit, "label" => "Pipe"} = params
+      assert %{"edit" => edit, "label" => "Refactored with an alias"} = params
 
       assert %{
                "changes" => %{

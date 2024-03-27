@@ -739,7 +739,7 @@ defmodule NextLS do
       %WorkspaceEdit{} = edit ->
         GenLSP.request(lsp, %WorkspaceApplyEdit{
           id: System.unique_integer([:positive]),
-          params: %ApplyWorkspaceEditParams{label: "Pipe", edit: edit}
+          params: %ApplyWorkspaceEditParams{label: NextLS.Commands.label(command), edit: edit}
         })
 
       _reply ->

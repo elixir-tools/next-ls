@@ -1,5 +1,8 @@
 defmodule NextLS.Commands.Alias do
-  @moduledoc false
+  @moduledoc """
+  Refactors a module with fully qualified calls to an alias.
+  The cursor position should be under the module name that you wish to alias.
+  """
   import Schematic
 
   alias GenLSP.Enumerations.ErrorCodes
@@ -23,7 +26,7 @@ defmodule NextLS.Commands.Alias do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
          {:ok, ast} = parse(text),
          {:ok, defm} <- ASTHelpers.get_nearest_module(ast, position),
-         {:ok, {{:., _contenxt, [{:__aliases__, _, modules} | _]}, _, _}} <- get_node(ast, position) do
+         {:ok, {:__aliases__, _, modules}} <- get_node(ast, position) do
       range = make_range(defm)
       indent = EditHelpers.get_indent(text, range.start.line)
       aliased = get_aliased(defm, modules)
@@ -81,7 +84,7 @@ defmodule NextLS.Commands.Alias do
         range = Sourceror.get_range(node)
 
         if not is_nil(range) and
-             match?({{:., _, [{:__aliases__, _context, _modules} | _]}, _, _args}, node) &&
+             match?({:__aliases__, _context, _modules}, node) &&
              Sourceror.compare_positions(range.start, pos) in [:lt, :eq] &&
              Sourceror.compare_positions(range.end, pos) in [:gt, :eq] do
           {tree, node}
