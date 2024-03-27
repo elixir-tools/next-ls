@@ -11,6 +11,7 @@ defmodule NextLS.Runtime.Supervisor do
   def init(init_arg) do
     name = init_arg[:name]
     lsp = init_arg[:lsp]
+    lsp_pid = init_arg[:lsp_pid]
     registry = init_arg[:registry]
     logger = init_arg[:logger]
     hidden_folder = init_arg[:path]
@@ -34,7 +35,8 @@ defmodule NextLS.Runtime.Supervisor do
        name: db_name,
        runtime: name,
        activity: db_activity},
-      {NextLS.Runtime, init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, db: db_name]}
+      {NextLS.Runtime,
+       init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, lsp_pid: lsp_pid, db: db_name]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
