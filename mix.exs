@@ -64,9 +64,7 @@ defmodule NextLS.MixProject do
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
       {:spitfire, github: "elixir-tools/spitfire"},
-      # {:sourceror, "~> 1.0"},
-      # {:sourceror, path: "../sourceror"},
-      {:sourceror, github: "mhanberg/sourceror", branch: "do-end-blocks-with-eoe"},
+      {:sourceror, "~> 1.0"},
 
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
