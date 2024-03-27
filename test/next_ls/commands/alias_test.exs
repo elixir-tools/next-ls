@@ -269,5 +269,50 @@ defmodule NextLS.Commands.AliasTest do
       assert range.end.line == 4
       assert range.end.character == 3
     end
+
+    test "works with top level macros" do
+      uri = "my_app.ex"
+
+      text =
+        String.split(
+          """
+          defmodule MyApp do
+            import Foo.Bar
+
+            require Foo.Bar
+            def baz() do
+              Foo.Bar.baz()
+            end
+          end
+          """,
+          "\n"
+        )
+
+      expected_edit =
+        String.trim("""
+        defmodule MyApp do
+          alias Foo.Bar
+          import Bar
+
+          require Bar
+
+          def baz() do
+            Bar.baz()
+          end
+        end
+        """)
+
+      line = 5
+      position = %{"line" => line, "character" => 6}
+
+      assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
+               Alias.run(%{uri: uri, text: text, position: position})
+
+      assert edit.new_text == expected_edit
+      assert range.start.line == 0
+      assert range.start.character == 0
+      assert range.end.line == 7
+      assert range.end.character == 3
+    end
   end
 end
