@@ -154,12 +154,15 @@ defmodule NextLS.ASTHelpers do
     end)
   end
 
-  @spec get_nearest_module(ast :: Macro.t(), position :: Position.t()) :: {:ok, Macro.t()} | {:error, String.t()}
-  def get_nearest_module(ast, position) do
+  @spec get_surrounding_module(ast :: Macro.t(), position :: Position.t()) :: {:ok, Macro.t()} | {:error, String.t()}
+  def get_surrounding_module(ast, position) do
     defm =
       ast
       |> Macro.prewalker()
       |> Enum.filter(fn node -> match?({:defmodule, _, _}, node) end)
+      |> Enum.filter(fn {_, ctx, _} ->
+        position.line + 1 - ctx[:line] >= 0
+      end)
       |> Enum.min_by(
         fn {_, ctx, _} ->
           abs(ctx[:line] - 1 - position.line)
