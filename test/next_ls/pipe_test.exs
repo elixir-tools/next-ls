@@ -68,7 +68,7 @@ defmodule NextLS.PipeTest do
     }
 
     assert_request(client, "workspace/applyEdit", 500, fn params ->
-      assert %{"edit" => edit, "label" => "Pipe"} = params
+      assert %{"edit" => edit, "label" => "Extracted to a pipe"} = params
 
       assert %{
                "changes" => %{
@@ -98,7 +98,7 @@ defmodule NextLS.PipeTest do
     }
 
     assert_request(client, "workspace/applyEdit", 500, fn params ->
-      assert %{"edit" => edit, "label" => "Pipe"} = params
+      assert %{"edit" => edit, "label" => "Inlined pipe"} = params
 
       assert %{
                "changes" => %{
