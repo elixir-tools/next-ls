@@ -95,14 +95,18 @@ defmodule NextLS.ASTHelpersTest do
 
       for line <- lines do
         position = %Position{line: line, character: 0}
-        assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Foo]} | _]}} = ASTHelpers.get_surrounding_module(ast, position)
+
+        assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Foo]} | _]}} =
+                 ASTHelpers.get_surrounding_module(ast, position)
       end
 
       lines = 5..7
 
       for line <- lines do
         position = %Position{line: line, character: 0}
-        assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Bar]} | _]}} = ASTHelpers.get_surrounding_module(ast, position)
+
+        assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Bar]} | _]}} =
+                 ASTHelpers.get_surrounding_module(ast, position)
       end
 
       position = %Position{line: 0, character: 0}
