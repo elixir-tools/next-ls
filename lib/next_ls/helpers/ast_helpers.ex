@@ -197,7 +197,7 @@ defmodule NextLS.ASTHelpers do
   defmodule Function do
     @moduledoc false
 
-    def find_aliased_function_call_within(ast, {line, column}) do
+    def find_remote_function_call_within(ast, {line, column}) do
       position = [line: line, column: column]
 
       result =

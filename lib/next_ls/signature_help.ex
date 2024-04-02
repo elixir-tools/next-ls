@@ -17,7 +17,7 @@ defmodule NextLS.SignatureHelp do
              {:ok, ast} -> ast
              {:error, ast, _} -> ast
            end),
-         {:ok, result} <- ASTHelpers.Function.find_aliased_function_call_within(ast, position) do
+         {:ok, result} <- ASTHelpers.Function.find_remote_function_call_within(ast, position) do
       case result do
         {{:., _, [{:__aliases__, _, modules}, name]}, _, _} -> {:ok, {Module.concat(modules), name}}
       end
