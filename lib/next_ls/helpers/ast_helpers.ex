@@ -193,4 +193,32 @@ defmodule NextLS.ASTHelpers do
       zipper -> {:ok, zipper}
     end
   end
+
+  defmodule Function do
+    @moduledoc false
+
+    def find_aliased_function_call_within(ast, {line, column}) do
+      position = [line: line, column: column]
+
+      result =
+        ast
+        |> Zipper.zip()
+        |> Zipper.find(fn
+          {{:., _, _}, _metadata, _} = node ->
+            range = Sourceror.get_range(node)
+
+            Sourceror.compare_positions(range.start, position) == :lt &&
+              Sourceror.compare_positions(range.end, position) == :gt
+
+          _ ->
+            false
+        end)
+
+      if result do
+        {:ok, Zipper.node(result)}
+      else
+        {:error, :not_found}
+      end
+    end
+  end
 end

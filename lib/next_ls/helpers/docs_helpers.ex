@@ -1,4 +1,4 @@
-defmodule NextLS.HoverHelpers do
+defmodule NextLS.DocsHelpers do
   @moduledoc false
 
   @spec to_markdown(String.t(), String.t() | list()) :: String.t()

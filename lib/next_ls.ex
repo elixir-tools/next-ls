@@ -414,7 +414,7 @@ defmodule NextLS do
                   """
                   ## #{reference.module}
 
-                  #{NextLS.HoverHelpers.to_markdown(content_type, mod_doc)}
+                  #{NextLS.DocsHelpers.to_markdown(content_type, mod_doc)}
                   """
 
                 "function" ->
@@ -428,7 +428,7 @@ defmodule NextLS do
                       """
                       ## #{Macro.to_string(mod)}.#{reference.identifier}/#{reference.arity}
 
-                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
+                      #{NextLS.DocsHelpers.to_markdown(content_type, fdoc)}
                       """
 
                     _ ->

@@ -20,6 +20,7 @@ defmodule NextLS.SignatureHelpTest do
 
       File.write!(remote, """
       defmodule Remote do
+        @doc "doc example"
         def bang!(bang) do
           bang
         end
@@ -116,7 +117,11 @@ defmodule NextLS.SignatureHelpTest do
             "parameters" => [
               %{"label" => "bang"}
             ],
-            "label" => "bang!(bang)"
+            "label" => "bang!(bang)",
+            "documentation" => %{
+              "kind" => "markdown",
+              "value" => "doc example"
+            }
           }
         ]
       }

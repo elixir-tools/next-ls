@@ -703,7 +703,7 @@ defmodule NextLS.Autocomplete do
               """
               ## #{Macro.to_string(mod)}.#{name}/#{arity}
 
-              #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
+              #{NextLS.DocsHelpers.to_markdown(content_type, fdoc)}
               """
 
             _ ->
