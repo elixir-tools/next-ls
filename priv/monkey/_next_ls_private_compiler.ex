@@ -254,11 +254,6 @@ defmodule :_next_ls_private_formatter do
     ins: [text: :green, space: :green_background]
   ]
 
-  @callback features(Keyword.t()) :: [sigils: [atom()], extensions: [binary()]]
-
-  @callback format(String.t(), Keyword.t()) :: String.t()
-
-  @impl true
   def run(args) do
     cwd = File.cwd!()
     {opts, args} = OptionParser.parse!(args, strict: @switches)
