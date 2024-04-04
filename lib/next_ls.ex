@@ -581,7 +581,10 @@ defmodule NextLS do
       document
       |> List.update_at(position.line, fn row ->
         {front, back} = String.split_at(row, position.character)
-        String.slice(front, -1..1) <> "__cursor__()" <> back
+        # all we need to do is insert the cursor so we can find the spot to then
+        # calculate the environment, it doens't really matter if its valid code,
+        # it probably isn't already
+        front <> "\n__cursor__()\n" <> back
       end)
       |> Enum.join("\n")
 
