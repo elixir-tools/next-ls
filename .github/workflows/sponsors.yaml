@@ -3,6 +3,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: 0 0 * * 0
+
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -31,3 +35,4 @@ jobs:
         with:
           branch: main
           folder: '.'
+          commit_message: "docs: update sponsors"
