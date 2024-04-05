@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   deploy:
@@ -30,9 +31,9 @@ jobs:
           minimum: 25000
           file: 'README.md'
 
-      - name: Deploy to GitHub Pages 🚀
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
         with:
-          branch: main
-          folder: '.'
-          commit_message: "docs: update sponsors"
+          commit-message: "docs: update sponsors"
+          title: "docs: update sponsors"
+          branch: create-pull-request/update-sponsors
