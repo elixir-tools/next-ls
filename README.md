@@ -20,6 +20,20 @@ Please see the [docs](https://www.elixir-tools.dev/docs/next-ls/quickstart) to g
 - [The elixir-tools Update Vol. 4](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-4/)
 - [The 2023 elixir-tools Update (Vol. 5) ](https://www.elixir-tools.dev/news/the-2023-elixir-tools-update-vol-5/)
 
+## Sponsors
+
+Next LS and elixir-tools is sponsored by a ton of amazing people and companies. I urge you to sponsor if you'd like to see the projects reach their maximum potential 🚀.
+
+https://github.com/sponsors/mhanberg
+
+### Platinum + Gold Tier
+
+<!-- gold --><!-- gold -->
+
+### Remaining tiers
+
+<!-- rest --><!-- rest -->
+
 ## Development
 
 ```bash
