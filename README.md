@@ -22,7 +22,7 @@ Please see the [docs](https://www.elixir-tools.dev/docs/next-ls/quickstart) to g
 
 ## Sponsors
 
-Next LS and elixir-tools is sponsored by a ton of amazing people and companies. I urge you to sponsor if you'd like to see the projects reach their maximum potential 🚀.
+Next LS and elixir-tools are sponsored by a ton of amazing people and companies. I urge you to sponsor if you'd like to see the projects reach their maximum potential 🚀.
 
 https://github.com/sponsors/mhanberg
 
