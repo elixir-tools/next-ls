@@ -36,7 +36,8 @@ defmodule NextLS.Runtime.Supervisor do
        runtime: name,
        activity: db_activity},
       {NextLS.Runtime,
-       init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, lsp_pid: lsp_pid, db: db_name]}
+       init_arg[:runtime] ++ [name: name, registry: registry, parent: sidecar_name, lsp_pid: lsp_pid, db: db_name]},
+      {NextLS.Runtime.Bonus, init_arg[:runtime] ++ [name: name, registry: registry, lsp_pid: lsp_pid]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

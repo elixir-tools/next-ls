@@ -12,10 +12,7 @@
   plugins: [Styler],
   inputs: [
     ".formatter.exs",
-    "{config,lib,}/**/*.{ex,exs}",
-    "test/next_ls_test.exs",
-    "test/test_helper.exs",
-    "test/next_ls/**/*.{ex,exs}",
+    "{config,lib,test}/**/*.{ex,exs}",
     "priv/**/*.ex"
   ]
 ]

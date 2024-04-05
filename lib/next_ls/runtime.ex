@@ -21,6 +21,11 @@ defmodule NextLS.Runtime do
     GenServer.call(server, {:call, mfa, ctx}, :infinity)
   end
 
+  @spec expand(pid(), Macro.t(), String.t()) :: any()
+  def expand(server, ast, file) do
+    GenServer.call(server, {:expand, ast, file}, :infinity)
+  end
+
   @spec ready?(pid()) :: boolean()
   def ready?(server), do: GenServer.call(server, :ready?)
 
@@ -32,11 +37,16 @@ defmodule NextLS.Runtime do
   end
 
   def await(server, count) do
-    if ready?(server) do
+    with {:alive, true} <- {:alive, Process.alive?(server)},
+         true <- ready?(server) do
       :ok
     else
-      Process.sleep(500)
-      await(server, count - 1)
+      {:alive, false} ->
+        :timeout
+
+      _ ->
+        Process.sleep(500)
+        await(server, count - 1)
     end
   end
 
@@ -100,8 +110,11 @@ defmodule NextLS.Runtime do
     db = Keyword.fetch!(opts, :db)
     mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
+    elixir_exe = Keyword.get(opts, :elixir_exe, System.find_executable("elixir"))
+    expand = Keyword.get(opts, :expand, false)
 
     Registry.register(registry, :runtimes, %{name: name, uri: uri, path: working_dir, db: db})
+    Registry.put_meta(registry, {:expand, self()}, expand)
 
     pid =
       cond do
@@ -120,7 +133,7 @@ defmodule NextLS.Runtime do
     new_path = String.replace(path, bindir <> ":", "")
 
     with dir when is_list(dir) <- :code.priv_dir(:next_ls),
-         elixir_exe when is_binary(elixir_exe) <- System.find_executable("elixir") do
+         elixir_exe when is_binary(elixir_exe) <- elixir_exe do
       exe =
         dir
         |> Path.join("cmd")
@@ -223,9 +236,14 @@ defmodule NextLS.Runtime do
               :ok
           end)
 
+          version = :rpc.call(node, System, :version, [])
+
+          expander = Version.match?(version, ">= 1.17.0-dev")
+          NextLS.Logger.info(logger, "version=#{version} expander=#{expander}")
+
           {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
 
-          send(me, {:node, node})
+          send(me, {:node, node, expander})
         else
           error ->
             send(me, {:cancel, error})
@@ -283,7 +301,28 @@ defmodule NextLS.Runtime do
     end
   end
 
-  def handle_call({:compile, opts}, _from, %{node: node} = state) do
+  # if this node is 1.17 or higher, we can just send the expansion request to it
+  def handle_call({:expand, ast, file}, _from, %{node: node, expander: true} = state) do
+    NextLS.Logger.info(state.logger, "expanding on the runtime node")
+    reply = :rpc.call(node, :_next_ls_private_spitfire_env, :expand, [ast, file])
+    {:reply, {:ok, reply}, state}
+  end
+
+  # else, we need to send it to the bonus runtime
+  def handle_call({:expand, ast, file}, _from, %{expander: false, name: name} = state) do
+    NextLS.Logger.info(state.logger, "expanding on the bonus node")
+
+    [reply] =
+      dispatch(state.registry, :bonus_runtimes, fn entries ->
+        for {pid, %{name: ^name}} <- entries do
+          NextLS.Runtime.Bonus.call(pid, {:_next_ls_private_spitfire_env, :expand, [ast, file]})
+        end
+      end)
+
+    {:reply, reply, state}
+  end
+
+  def handle_call({:compile, opts}, _from, %{node: node, name: name} = state) do
     opts =
       opts
       |> Keyword.put_new(:working_dir, state.working_dir)
@@ -294,11 +333,22 @@ defmodule NextLS.Runtime do
       NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
     end
 
+    with false <- state.expander,
+         [{:badrpc, error}] <-
+           dispatch(state.registry, :bonus_runtimes, fn entries ->
+             for {pid, %{name: ^name}} <- entries do
+               :ok = NextLS.Runtime.Bonus.await(pid)
+               NextLS.Runtime.Bonus.compile(pid, opts)
+             end
+           end) do
+      NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+    end
+
     {:reply, :ok, state}
   end
 
   @impl GenServer
-  # NOTE: these two callbacks are basically to forward the messages from the runtime to the LSP
+  # NOTE: these two callbacks are basically to forward the messages from the runtime to the
   #       LSP process so that progress messages can be dispatched
   def handle_info({:compiler_result, caller_ref, result}, state) do
     # we add the runtime name into the message
@@ -316,39 +366,41 @@ defmodule NextLS.Runtime do
       state.on_initialized.({:error, :portdown})
     end
 
-    {:stop, {:shutdown, :portdown}, state}
+    {:noreply, Map.delete(state, :node)}
   end
 
   def handle_info({:cancel, error}, state) do
     state.on_initialized.({:error, error})
-    {:stop, error, state}
+    {:noreply, Map.delete(state, :node)}
   end
 
-  def handle_info({:node, node}, state) do
+  def handle_info({:node, node, expander}, state) do
     Node.monitor(node, true)
     state.on_initialized.(:ready)
-    {:noreply, Map.put(state, :node, node)}
+    {:noreply, state |> Map.put(:node, node) |> Map.put(:expander, expander)}
   end
 
   def handle_info({:nodedown, node}, %{node: node} = state) do
     {:stop, {:shutdown, :nodedown}, state}
   end
 
-  def handle_info(
-        {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
-        %{port: port} = state
-      ) do
-    NextLS.Logger.log(state.logger, data)
-
-    state.on_initialized.({:error, :deps})
-    {:noreply, state}
-  end
+  # def handle_info(
+  #       {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
+  #       %{port: port} = state
+  #     ) do
+  #   NextLS.Logger.log(state.logger, data)
+  #   dbg(data)
+  #
+  #   state.on_initialized.({:error, :deps})
+  #   {:noreply, state}
+  # end
 
   def handle_info({port, {:data, "Unchecked dependencies" <> _ = data}}, %{port: port} = state) do
     NextLS.Logger.log(state.logger, data)
 
+    Port.close(port)
     state.on_initialized.({:error, :deps})
-    {:noreply, state}
+    {:stop, {:shutdown, :unchecked_dependencies}, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do
@@ -371,6 +423,21 @@ defmodule NextLS.Runtime do
       connect(node, port, attempts - 1)
     else
       true
+    end
+  end
+
+  defp dispatch(registry, key, callback) do
+    ref = make_ref()
+    me = self()
+
+    Registry.dispatch(registry, key, fn entries ->
+      result = callback.(entries)
+
+      send(me, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
     end
   end
 end

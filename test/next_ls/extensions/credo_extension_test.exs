@@ -2,8 +2,7 @@ defmodule NextLS.CredoExtensionTest do
   # this test installs and compiles credo from scratch everytime it runs
   # we need to determine a way to cache this without losing the utility of
   # the test.
-  # FIXME: make async: true
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import GenLSP.Test
   import NextLS.Support.Utils

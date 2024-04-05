@@ -1,12 +1,14 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
-  @version "0.20.2" # x-release-please-version
+  # x-release-please-version
+  @version "0.20.2"
 
   def project do
     [
       app: :next_ls,
-      description: "The language server for Elixir that just works. No longer published to Hex, please see our GitHub Releases for downloads.",
+      description:
+        "The language server for Elixir that just works. No longer published to Hex, please see our GitHub Releases for downloads.",
       version: @version,
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -40,13 +42,14 @@ defmodule NextLS.MixProject do
       next_ls: [
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
-          targets: inject_custom_erts([
-            darwin_arm64: [os: :darwin, cpu: :aarch64],
-            darwin_amd64: [os: :darwin, cpu: :x86_64],
-            linux_arm64: [os: :linux, cpu: :aarch64],
-            linux_amd64: [os: :linux, cpu: :x86_64],
-            windows_amd64: [os: :windows, cpu: :x86_64]
-          ])
+          targets:
+            inject_custom_erts(
+              darwin_arm64: [os: :darwin, cpu: :aarch64],
+              darwin_amd64: [os: :darwin, cpu: :x86_64],
+              linux_arm64: [os: :linux, cpu: :aarch64],
+              linux_amd64: [os: :linux, cpu: :x86_64],
+              windows_amd64: [os: :windows, cpu: :x86_64]
+            )
         ]
       ]
     ]
@@ -64,8 +67,8 @@ defmodule NextLS.MixProject do
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
       {:spitfire, github: "elixir-tools/spitfire"},
+      # {:spitfire, path: "../spitfire"},
       {:sourceror, "~> 1.0"},
-
       {:opentelemetry, "~> 1.3"},
       {:opentelemetry_api, "~> 1.2"},
       {:opentelemetry_exporter, "~> 1.4"},

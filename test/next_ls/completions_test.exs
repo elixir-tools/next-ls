@@ -1,6 +1,7 @@
 defmodule NextLS.CompletionsTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import GenLSP.Test
   import NextLS.Support.Utils
 
@@ -267,37 +268,44 @@ defmodule NextLS.CompletionsTest do
     end
     """)
 
-    request client, %{
-      method: "textDocument/completion",
-      id: 2,
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri
-        },
-        position: %{
-          line: 2,
-          character: 11
+    {results, log} =
+      with_log(fn ->
+        request client, %{
+          method: "textDocument/completion",
+          id: 2,
+          jsonrpc: "2.0",
+          params: %{
+            textDocument: %{
+              uri: uri
+            },
+            position: %{
+              line: 2,
+              character: 11
+            }
+          }
         }
-      }
-    }
 
-    assert_result 2, [_, _] = results
+        assert_result 2, [_, _] = results
+        results
+      end)
+
+    assert log =~ "Could not locate cursor"
+    assert log =~ "Source code that produced the above warning:"
 
     assert %{
              "data" => nil,
              "documentation" => "",
-             "insertText" => "next_ls.ex",
+             "insertText" => "bar.ex",
              "kind" => 17,
-             "label" => "next_ls.ex"
+             "label" => "bar.ex"
            } in results
 
     assert %{
              "data" => nil,
              "documentation" => "",
-             "insertText" => "next_ls/",
-             "kind" => 19,
-             "label" => "next_ls/"
+             "insertText" => "foo.ex",
+             "kind" => 17,
+             "label" => "foo.ex"
            } in results
   end
 

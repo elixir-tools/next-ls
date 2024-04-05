@@ -15,7 +15,7 @@ defmodule NextLS.ASTHelpers.Env do
     zipper = Zipper.prev(cursor)
 
     env =
-      ascend(zipper, %{variables: []}, fn node, zipper, acc ->
+      ascend(zipper, %{variables: [], attrs: []}, fn node, zipper, acc ->
         is_inside =
           with {_, _, _} <- node,
                range when not is_nil(range) <- Sourceror.get_range(node) do

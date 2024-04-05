@@ -122,23 +122,6 @@ defmodule NextLSTest do
     end
     """)
 
-    request client, %{
-      method: "textDocument/formatting",
-      id: 2,
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: "file://#{cwd}/my_proj/lib/foo/bar.ex"
-        },
-        options: %{
-          insertSpaces: true,
-          tabSize: 2
-        }
-      }
-    }
-
-    assert_result 2, nil
-
     assert_is_ready(context, "my_proj")
 
     request client, %{

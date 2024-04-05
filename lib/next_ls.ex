@@ -54,6 +54,8 @@ defmodule NextLS do
   alias NextLS.Progress
   alias NextLS.Runtime
 
+  require NextLS.Runtime
+
   def start_link(args) do
     {args, opts} =
       Keyword.split(args, [
@@ -588,13 +590,16 @@ defmodule NextLS do
       end)
       |> Enum.join("\n")
 
-    env =
+    ast =
       spliced
-      |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
       |> then(fn
         {:ok, ast} -> ast
         {:error, ast, _} -> ast
       end)
+
+    env =
+      ast
       |> NextLS.ASTHelpers.find_cursor()
       |> then(fn
         {:ok, cursor} ->
@@ -627,6 +632,23 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         [{wuri, result}] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+            ast =
+              spliced
+              |> Spitfire.parse()
+              |> then(fn
+                {:ok, ast} -> ast
+                {:error, ast, _} -> ast
+              end)
+
+            {:ok, {_, _, _, macro_env}} = Runtime.expand(runtime, ast, Path.basename(uri))
+
+            env =
+              env
+              |> Map.put(:functions, macro_env.functions)
+              |> Map.put(:macros, macro_env.macros)
+              |> Map.put(:aliases, macro_env.aliases)
+              |> Map.put(:attrs, macro_env.attrs)
+
             {wuri,
              document_slice
              |> String.to_charlist()
@@ -652,7 +674,7 @@ defmodule NextLS do
               {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
 
             :module ->
-              {name, GenLSP.Enumerations.CompletionItemKind.module(), ""}
+              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol.docs}
 
             :variable ->
               {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
@@ -665,6 +687,12 @@ defmodule NextLS do
 
             :keyword ->
               {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
+
+            :attribute ->
+              {name, GenLSP.Enumerations.CompletionItemKind.property(), ""}
+
+            :sigil ->
+              {name, GenLSP.Enumerations.CompletionItemKind.function(), ""}
 
             _ ->
               {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
@@ -870,7 +898,7 @@ defmodule NextLS do
                    for {pid, _} <- entries, do: send(pid, msg)
                  end)
 
-                 send(parent, msg)
+                 Process.send(parent, msg, [])
                else
                  Progress.stop(lsp, token)
 
@@ -1136,25 +1164,28 @@ defmodule NextLS do
   end
 
   def handle_info({:runtime_ready, name, runtime_pid}, lsp) do
-    token = Progress.token()
-    Progress.start(lsp, token, "Compiling #{name}...")
+    case NextLS.Registry.dispatch(lsp.assigns.registry, :databases, fn entries ->
+           Enum.find(entries, fn {_, %{runtime: runtime}} -> runtime == name end)
+         end) do
+      {_, %{mode: mode}} ->
+        token = Progress.token()
+        Progress.start(lsp, token, "Compiling #{name}...")
 
-    {_, %{mode: mode}} =
-      dispatch(lsp.assigns.registry, :databases, fn entries ->
-        Enum.find(entries, fn {_, %{runtime: runtime}} -> runtime == name end)
-      end)
+        ref = make_ref()
+        Runtime.compile(runtime_pid, caller_ref: ref, force: mode == :reindex)
 
-    ref = make_ref()
-    Runtime.compile(runtime_pid, caller_ref: ref, force: mode == :reindex)
+        refresh_refs = Map.put(lsp.assigns.refresh_refs, ref, {token, "Compiled #{name}!"})
 
-    refresh_refs = Map.put(lsp.assigns.refresh_refs, ref, {token, "Compiled #{name}!"})
+        {:noreply, assign(lsp, ready: true, refresh_refs: refresh_refs)}
 
-    {:noreply, assign(lsp, ready: true, refresh_refs: refresh_refs)}
+      nil ->
+        {:noreply, assign(lsp, ready: true)}
+    end
   end
 
   def handle_info({:runtime_failed, name, status}, lsp) do
     {pid, %{init_arg: init_arg}} =
-      dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
+      NextLS.Registry.dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
         Enum.find(entries, fn {_pid, %{name: n}} -> n == name end)
       end)
 
@@ -1186,6 +1217,7 @@ defmodule NextLS do
           )
 
           File.rm_rf!(Path.join(init_arg[:runtime][:working_dir], ".elixir-tools/_build"))
+          File.rm_rf!(Path.join(init_arg[:runtime][:working_dir], ".elixir-tools/_build2"))
 
           case System.cmd("mix", ["deps.get"],
                  env: [{"MIX_ENV", "dev"}, {"MIX_BUILD_ROOT", ".elixir-tools/_build"}],
@@ -1267,6 +1299,9 @@ defmodule NextLS do
 
     receive do
       {^ref, result} -> result
+    after
+      1000 ->
+        :timeout
     end
   end
 
