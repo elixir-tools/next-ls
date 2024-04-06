@@ -14,6 +14,8 @@ defmodule NextLS.Commands.Alias do
   alias NextLS.EditHelpers
   alias Sourceror.Zipper, as: Z
 
+  @line_length 98
+
   defp opts do
     map(%{
       position: Position.schematic(),
@@ -24,12 +26,16 @@ defmodule NextLS.Commands.Alias do
 
   def run(opts) do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
-         {:ok, ast} = parse(text),
+         {:ok, ast, comments} = parse(text),
          {:ok, defm} <- ASTHelpers.get_surrounding_module(ast, position),
          {:ok, {:__aliases__, _, modules}} <- get_node(ast, position) do
       range = make_range(defm)
       indent = EditHelpers.get_indent(text, range.start.line)
       aliased = get_aliased(defm, modules)
+
+      to_algebra_opts = [comments: comments]
+      doc = Code.Formatter.to_algebra(aliased, to_algebra_opts)
+      formatted = doc |> Inspect.Algebra.format(@line_length) |> Enum.join()
 
       %WorkspaceEdit{
         changes: %{
@@ -37,7 +43,7 @@ defmodule NextLS.Commands.Alias do
             %TextEdit{
               new_text:
                 EditHelpers.add_indent_to_edit(
-                  Macro.to_string(aliased),
+                  formatted,
                   indent
                 ),
               range: range
@@ -54,10 +60,10 @@ defmodule NextLS.Commands.Alias do
   defp parse(lines) do
     lines
     |> Enum.join("\n")
-    |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
+    |> Spitfire.parse_with_comments(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
     |> case do
-      {:error, ast, _errors} ->
-        {:ok, ast}
+      {:error, ast, comments, _errors} ->
+        {:ok, ast, comments}
 
       other ->
         other

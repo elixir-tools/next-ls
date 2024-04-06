@@ -314,5 +314,46 @@ defmodule NextLS.Commands.AliasTest do
       assert range.end.line == 7
       assert range.end.character == 3
     end
+
+    test "preserves comment metadata" do
+      uri = "my_app.ex"
+
+      text =
+        String.split(
+          """
+          defmodule MyApp do
+            # Comment
+            def to_list(map) do
+              # Also a comment
+              Foo.Bar.to_list(map)
+            end
+          end
+          """,
+          "\n"
+        )
+
+      expected_edit =
+        String.trim("""
+        defmodule MyApp do
+          alias Foo.Bar
+          # Comment
+          def to_list(map) do
+            # Also a comment
+            Bar.to_list(map)
+          end
+        end
+        """)
+
+      position = %{"line" => 4, "character" => 6}
+
+      assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
+               Alias.run(%{uri: uri, text: text, position: position})
+
+      assert edit.new_text == expected_edit
+      assert range.start.line == 0
+      assert range.start.character == 0
+      assert range.end.line == 6
+      assert range.end.character == 3
+    end
   end
 end
