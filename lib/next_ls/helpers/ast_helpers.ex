@@ -1,6 +1,7 @@
 defmodule NextLS.ASTHelpers do
   @moduledoc false
   alias GenLSP.Structures.Position
+  alias Sourceror.Zipper
 
   defmodule Attributes do
     @moduledoc false
@@ -174,6 +175,20 @@ defmodule NextLS.ASTHelpers do
       {:ok, defm}
     else
       {:error, "no defmodule definition"}
+    end
+  end
+
+  def find_cursor(ast) do
+    with nil <-
+           ast
+           |> Zipper.zip()
+           |> Zipper.find(fn
+             {:__cursor__, _, []} -> true
+             _ -> false
+           end) do
+      {:error, :not_found}
+    else
+      zipper -> {:ok, zipper}
     end
   end
 end

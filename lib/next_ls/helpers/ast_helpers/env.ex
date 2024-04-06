@@ -6,15 +6,11 @@ defmodule NextLS.ASTHelpers.Env do
     Sourceror.compare_positions(range.start, position) == :lt && Sourceror.compare_positions(range.end, position) == :gt
   end
 
-  def build(ast) do
-    cursor =
-      ast
-      |> Zipper.zip()
-      |> Zipper.find(fn
-        {:__cursor__, _, _} -> true
-        _ -> false
-      end)
+  def build(nil) do
+    %{variables: []}
+  end
 
+  def build(cursor) do
     position = cursor |> Zipper.node() |> Sourceror.get_range() |> Map.get(:start)
     zipper = Zipper.prev(cursor)
 
@@ -75,7 +71,8 @@ defmodule NextLS.ASTHelpers.Env do
               acc
             end
 
-          {def, _, [{_, _, args} | _]} when def in [:def, :defp, :defmacro, :defmacrop] and args != [] and is_inside ->
+          {def, _, [{_, _, args} | _]}
+          when def in [:def, :defp, :defmacro, :defmacrop] and args != [] and is_inside ->
             {_, vars} =
               Macro.prewalk(args, [], fn node, acc ->
                 case node do

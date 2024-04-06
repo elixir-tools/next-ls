@@ -19,14 +19,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["foo", "bar"]
     end
@@ -46,14 +39,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["two", "one"]
     end
@@ -76,14 +62,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["baz", "bar", "foo"]
     end
@@ -106,14 +85,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["three", "two", "one"]
     end
@@ -133,14 +105,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["foo", "bar"]
     end
@@ -161,14 +126,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["baz", "bar", "big_bar"]
     end
@@ -194,16 +152,22 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual =
-        code
-        |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-        |> then(fn
-          {:ok, ast} -> ast
-          {:error, ast, _} -> ast
-        end)
-        |> NextLS.ASTHelpers.Env.build()
+      actual = run(code)
 
       assert actual.variables == ["entries"]
     end
+  end
+
+  defp run(code) do
+    {:ok, zip} =
+      code
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
+      |> then(fn
+        {:ok, ast} -> ast
+        {:error, ast, _} -> ast
+      end)
+      |> NextLS.ASTHelpers.find_cursor()
+
+    NextLS.ASTHelpers.Env.build(zip)
   end
 end
