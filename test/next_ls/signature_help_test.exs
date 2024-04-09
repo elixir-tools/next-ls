@@ -51,42 +51,7 @@ defmodule NextLS.SignatureHelpTest do
       end
       """)
 
-      bar = Path.join(cwd, "my_proj/lib/bar.ex")
-
-      File.write!(bar, """
-      defmodule Bar do
-        alias Remote.NestedAlias
-
-        def run() do
-          Remote.bang!("bang")
-
-          Remote.bangs!("bang1", "bang2")
-
-          Remote.bangs!(
-            "bang1",
-            "bang2"
-          )
-
-         NestedAlias.bang!("bang")
-        end
-      end
-      """)
-
-      baz = Path.join(cwd, "my_proj/lib/baz.ex")
-
-      File.write!(baz, """
-      defmodule Baz do
-        import Imported
-
-        def run() do
-          boom([1, 2], 1)
-
-          get_in(%{boom: %{bar: 1}}, [:boom, :bar])
-        end
-      end
-      """)
-
-      [bar: bar, imported: imported, remote: remote, baz: baz, nested_alias: nested_alias]
+      [imported: imported, remote: remote, nested_alias: nested_alias]
     end
 
     setup :with_lsp
@@ -98,10 +63,17 @@ defmodule NextLS.SignatureHelpTest do
       assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
     end
 
-    test "get signature help", %{client: client, bar: bar} do
-      uri = uri(bar)
+    test "get signature help", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          Remote.bang!("bang1")
+        end
+      end
+      """)
 
-      did_open(client, bar, File.read!(bar))
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
+
       did_change(client, uri)
 
       request(client, %{
@@ -109,7 +81,7 @@ defmodule NextLS.SignatureHelpTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 4, character: 19},
+          position: %{line: 2, character: 15},
           textDocument: %{uri: uri}
         }
       })
@@ -124,16 +96,24 @@ defmodule NextLS.SignatureHelpTest do
             "documentation" => %{
               "kind" => "markdown",
               "value" => "doc example"
-            }
+            },
+            "activeParameter" => 0
           }
         ]
       }
     end
 
-    test "get signature help with multiple params", %{client: client, bar: bar} do
-      uri = uri(bar)
+    test "get signature help with multiple params", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          Remote.bangs!("bang1", "bang2")
+        end
+      end
+      """)
 
-      did_open(client, bar, File.read!(bar))
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
+
       did_change(client, uri)
 
       request(client, %{
@@ -141,7 +121,7 @@ defmodule NextLS.SignatureHelpTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 6, character: 13},
+          position: %{line: 2, character: 15},
           textDocument: %{uri: uri}
         }
       })
@@ -153,16 +133,24 @@ defmodule NextLS.SignatureHelpTest do
               %{"label" => "bang1"},
               %{"label" => "bang2"}
             ],
-            "label" => "bangs!(bang1, bang2)"
+            "label" => "bangs!(bang1, bang2)",
+            "activeParameter" => 0
           }
         ]
       }
     end
 
-    test "get signature help with parameters on multiple lines", %{client: client, bar: bar} do
-      uri = uri(bar)
+    test "get signature help with multiple params and active parameter 1", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          Remote.bangs!("bang1", "bang2")
+        end
+      end
+      """)
 
-      did_open(client, bar, File.read!(bar))
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
+
       did_change(client, uri)
 
       request(client, %{
@@ -170,7 +158,7 @@ defmodule NextLS.SignatureHelpTest do
         id: 4,
         jsonrpc: "2.0",
         params: %{
-          position: %{line: 9, character: 13},
+          position: %{line: 2, character: 22},
           textDocument: %{uri: uri}
         }
       })
@@ -182,87 +170,166 @@ defmodule NextLS.SignatureHelpTest do
               %{"label" => "bang1"},
               %{"label" => "bang2"}
             ],
-            "label" => "bangs!(bang1, bang2)"
+            "label" => "bangs!(bang1, bang2)",
+            "activeParameter" => 1
           }
         ]
       }
     end
 
-    # test "get signature help with aliased module", %{client: client, bar: bar} do
-    #   uri = uri(bar)
+    test "get signature help with parameters on multiple lines", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          Remote.bangs!(
+            "bang1",
+            "bang2"
+          )
+        end
+      end
+      """)
 
-    #   request(client, %{
-    #     method: "textDocument/signatureHelp",
-    #     id: 4,
-    #     jsonrpc: "2.0",
-    #     params: %{
-    #       position: %{line: 12, character: 13},
-    #       textDocument: %{uri: uri}
-    #     }
-    #   })
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
 
-    #   assert_result 4, %{
-    #     "signatures" => [
-    #       %{
-    #         "parameters" => [
-    #           %{"label" => "bang"}
-    #         ],
-    #         "label" => "bang!(bang)"
-    #       }
-    #     ]
-    #   }
-    # end
+      did_change(client, uri)
 
-    #   test "get signature from imported functions", %{client: client, baz: baz} do
-    #     uri = uri(baz)
+      request(client, %{
+        method: "textDocument/signatureHelp",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 4, character: 6},
+          textDocument: %{uri: uri}
+        }
+      })
 
-    #     request(client, %{
-    #       method: "textDocument/signatureHelp",
-    #       id: 4,
-    #       jsonrpc: "2.0",
-    #       params: %{
-    #         position: %{line: 4, character: 13},
-    #         textDocument: %{uri: uri}
-    #       }
-    #     })
+      assert_result 4, %{
+        "signatures" => [
+          %{
+            "parameters" => [
+              %{"label" => "bang1"},
+              %{"label" => "bang2"}
+            ],
+            "label" => "bangs!(bang1, bang2)",
+            "activeParameter" => 1
+          }
+        ]
+      }
+    end
 
-    #     assert_result 4, %{
-    #       "signatures" => [
-    #         %{
-    #           "parameters" => [
-    #             %{"label" => "boom1"},
-    #             %{"label" => "boom2"}
-    #           ],
-    #           "label" => "boom(boom1, boom2)"
-    #         }
-    #       ]
-    #     }
-    #   end
+    test "get signature help with pipe", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          "bang1" |> Remote.bangs!("bang2")
+        end
+      end
+      """)
 
-    #   test "get signature for kernel functions", %{client: client, baz: baz} do
-    #     uri = uri(baz)
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
 
-    #     request(client, %{
-    #       method: "textDocument/signatureHelp",
-    #       id: 4,
-    #       jsonrpc: "2.0",
-    #       params: %{
-    #         position: %{line: 9, character: 13},
-    #         textDocument: %{uri: uri}
-    #       }
-    #     })
+      did_change(client, uri)
 
-    #     assert_result 4, %{
-    #       "signatures" => [
-    #         %{
-    #           "parameters" => [
-    #             %{"label" => "boom1"},
-    #             %{"label" => "boom2"}
-    #           ],
-    #           "label" => "get_in(boom1, boom2)"
-    #         }
-    #       ]
-    #     }
-    #   end
+      request(client, %{
+        method: "textDocument/signatureHelp",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 2, character: 25},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4, %{
+        "signatures" => [
+          %{
+            "parameters" => [
+              %{"label" => "bang1"},
+              %{"label" => "bang2"}
+            ],
+            "label" => "bangs!(bang1, bang2)",
+            "activeParameter" => 1
+          }
+        ]
+      }
+    end
+
+    test "get signature help with multiple pipe", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          ["bang", "bang"]
+          |> Enum.map(fn name -> "super" <> name end)
+          |> Remote.bangs!()
+        end
+      end
+      """)
+
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
+
+      did_change(client, uri)
+
+      request(client, %{
+        method: "textDocument/signatureHelp",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 3, character: 25},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4, %{
+        "signatures" => [
+          %{
+            "parameters" => [
+              %{"label" => "enumerable"},
+              %{"label" => "fun"}
+            ],
+            "label" => "map(enumerable, fun)",
+            "activeParameter" => 1
+          }
+        ]
+      }
+    end
+
+    test "get signature help with param function on multiple lines", %{client: client, cwd: cwd} do
+      did_open(client, Path.join(cwd, "my_proj/lib/bar.ex"), """
+      defmodule Bar do
+        def run do
+          Enum.map([1, 2, 3], fn n ->
+            n + 1
+          end)
+        end
+      end
+      """)
+
+      uri = "file://#{cwd}/my_proj/lib/bar.ex"
+
+      did_change(client, uri)
+
+      request(client, %{
+        method: "textDocument/signatureHelp",
+        id: 4,
+        jsonrpc: "2.0",
+        params: %{
+          position: %{line: 3, character: 3},
+          textDocument: %{uri: uri}
+        }
+      })
+
+      assert_result 4, %{
+        "signatures" => [
+          %{
+            "parameters" => [
+              %{"label" => "enumerable"},
+              %{"label" => "fun"}
+            ],
+            "label" => "map(enumerable, fun)",
+            "activeParameter" => 1
+          }
+        ]
+      }
+    end
   end
 end

@@ -831,8 +831,8 @@ defmodule NextLS do
     text = Enum.join(lsp.assigns.documents[uri], "\n")
 
     signature_help =
-      case SignatureHelp.fetch_mod_and_name(text, {position.line + 1, position.character + 1}) do
-        {:ok, {mod, name}} ->
+      case SignatureHelp.fetch(text, {position.line + 1, position.character + 1}) do
+        {:ok, {mod, name, param_index}} ->
           docs =
             dispatch(lsp.assigns.registry, :runtimes, fn entries ->
               [result] =
@@ -844,7 +844,7 @@ defmodule NextLS do
             end)
 
           docs
-          |> SignatureHelp.format(name)
+          |> SignatureHelp.format(name, param_index)
           |> List.first()
 
         {:error, :not_found} ->
