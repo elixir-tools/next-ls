@@ -828,8 +828,10 @@ defmodule NextLS do
         %TextDocumentSignatureHelp{params: %SignatureHelpParams{text_document: %{uri: uri}, position: position}},
         lsp
       ) do
+    text = Enum.join(lsp.assigns.documents[uri], "\n")
+
     signature_help =
-      case SignatureHelp.fetch_mod_and_name(uri, {position.line + 1, position.character + 1}) do
+      case SignatureHelp.fetch_mod_and_name(text, {position.line + 1, position.character + 1}) do
         {:ok, {mod, name}} ->
           docs =
             dispatch(lsp.assigns.registry, :runtimes, fn entries ->

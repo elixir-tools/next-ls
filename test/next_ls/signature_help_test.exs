@@ -101,6 +101,9 @@ defmodule NextLS.SignatureHelpTest do
     test "get signature help", %{client: client, bar: bar} do
       uri = uri(bar)
 
+      did_open(client, bar, File.read!(bar))
+      did_change(client, uri)
+
       request(client, %{
         method: "textDocument/signatureHelp",
         id: 4,
@@ -130,6 +133,9 @@ defmodule NextLS.SignatureHelpTest do
     test "get signature help with multiple params", %{client: client, bar: bar} do
       uri = uri(bar)
 
+      did_open(client, bar, File.read!(bar))
+      did_change(client, uri)
+
       request(client, %{
         method: "textDocument/signatureHelp",
         id: 4,
@@ -155,6 +161,9 @@ defmodule NextLS.SignatureHelpTest do
 
     test "get signature help with parameters on multiple lines", %{client: client, bar: bar} do
       uri = uri(bar)
+
+      did_open(client, bar, File.read!(bar))
+      did_change(client, uri)
 
       request(client, %{
         method: "textDocument/signatureHelp",

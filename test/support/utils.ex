@@ -172,4 +172,21 @@ defmodule NextLS.Support.Utils do
                })
     end
   end
+
+  defmacro did_change(client, uri) do
+    quote do
+      assert :ok == notify(unquote(client), %{
+      method: "workspace/didChangeWatchedFiles",
+      jsonrpc: "2.0",
+      params: %{
+        changes: [
+          %{
+            type: GenLSP.Enumerations.FileChangeType.changed(),
+            uri: unquote(uri)
+          }
+        ]
+      }
+    })
+    end
+  end
 end

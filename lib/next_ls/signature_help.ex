@@ -8,16 +8,16 @@ defmodule NextLS.SignatureHelp do
   alias GenLSP.Structures.SignatureInformation
   alias NextLS.ASTHelpers
 
-  def fetch_mod_and_name(uri, position) do
-    with {:ok, text} <- File.read(URI.parse(uri).path),
-         ast =
-           text
-           |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
-           |> then(fn
-             {:ok, ast} -> ast
-             {:error, ast, _} -> ast
-           end),
-         {:ok, result} <- ASTHelpers.Function.find_remote_function_call_within(ast, position) do
+  def fetch_mod_and_name(text, position) do
+    ast =
+      text
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
+      |> then(fn
+        {:ok, ast} -> ast
+        {:error, ast, _} -> ast
+      end)
+
+    with {:ok, result} <- ASTHelpers.Function.find_remote_function_call_within(ast, position) do
       case result do
         {{:., _, [{:__aliases__, _, modules}, name]}, _, _} -> {:ok, {Module.concat(modules), name}}
       end
