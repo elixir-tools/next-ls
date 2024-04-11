@@ -137,9 +137,8 @@ defmodule NextLS.Runtime.Bonus do
         File.mkdir_p!(Path.expand("~/.cache/elixir-tools/nextls/elixir/1.17"))
         base = Path.expand("~/.cache/elixir-tools/nextls/elixir/1.17")
 
-        # ret =
         :zip.unzip(~c"#{Path.join(:code.priv_dir(:next_ls), "precompiled-1-17.zip")}",
-          cwd: base
+          cwd: ~c"#{base}"
         )
 
         for bin <- Path.wildcard(Path.join(base, "bin/*")) do
