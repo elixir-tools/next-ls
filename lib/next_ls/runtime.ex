@@ -384,16 +384,16 @@ defmodule NextLS.Runtime do
     {:stop, {:shutdown, :nodedown}, state}
   end
 
-  # def handle_info(
-  #       {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
-  #       %{port: port} = state
-  #     ) do
-  #   NextLS.Logger.log(state.logger, data)
-  #   dbg(data)
-  #
-  #   state.on_initialized.({:error, :deps})
-  #   {:noreply, state}
-  # end
+  def handle_info(
+        {port, {:data, "** (Mix) Can't continue due to errors on dependencies" <> _ = data}},
+        %{port: port} = state
+      ) do
+    NextLS.Logger.log(state.logger, data)
+
+    Port.close(port)
+    state.on_initialized.({:error, :deps})
+    {:stop, {:shutdown, :unchecked_dependencies}, state}
+  end
 
   def handle_info({port, {:data, "Unchecked dependencies" <> _ = data}}, %{port: port} = state) do
     NextLS.Logger.log(state.logger, data)
