@@ -65,7 +65,9 @@ defmodule NextLS do
         :runtime_task_supervisor,
         :dynamic_supervisor,
         :extensions,
-        :registry
+        :registry,
+        :bundle_base,
+        :mix_home
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -76,6 +78,8 @@ defmodule NextLS do
     task_supervisor = Keyword.fetch!(args, :task_supervisor)
     runtime_task_supervisor = Keyword.fetch!(args, :runtime_task_supervisor)
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
+    bundle_base = Keyword.get(args, :bundle_base, Path.expand("~/.cache/elixir-tools/nextls"))
+    mixhome = Keyword.get(args, :mix_home, Path.expand("~/.mix"))
 
     registry = Keyword.fetch!(args, :registry)
 
@@ -84,6 +88,8 @@ defmodule NextLS do
 
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
+
+    NextLS.Runtime.BundledElixir.install(bundle_base, logger, mix_home: mixhome)
 
     {:ok,
      assign(lsp,
@@ -866,6 +872,18 @@ defmodule NextLS do
 
     parent = self()
 
+    elixir_bin_path =
+      cond do
+        lsp.assigns.init_opts.elixir_bin_path != nil ->
+          lsp.assigns.init_opts.elixir_bin_path
+
+        lsp.assigns.init_opts.experimental.completions.enable ->
+          NextLS.Runtime.BundledElixir.binpath()
+
+        true ->
+          "elixir" |> System.find_executable() |> Path.dirname()
+      end
+
     for %{uri: uri, name: name} <- lsp.assigns.workspace_folders do
       token = Progress.token()
       Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
@@ -887,6 +905,7 @@ defmodule NextLS do
              uri: uri,
              mix_env: lsp.assigns.init_opts.mix_env,
              mix_target: lsp.assigns.init_opts.mix_target,
+             elixir_bin_path: elixir_bin_path,
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
@@ -912,7 +931,7 @@ defmodule NextLS do
         )
     end
 
-    {:noreply, lsp}
+    {:noreply, assign(lsp, elixir_bin_path: elixir_bin_path)}
   end
 
   def handle_notification(%TextDocumentDidSave{}, %{assigns: %{ready: false}} = lsp) do
@@ -984,7 +1003,7 @@ defmodule NextLS do
         },
         lsp
       ) do
-    dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
+    NextLS.Registry.dispatch(lsp.assigns.registry, :runtime_supervisors, fn entries ->
       names = Enum.map(entries, fn {_, %{name: name}} -> name end)
 
       for %{name: name, uri: uri} <- added, name not in names do
@@ -1004,6 +1023,7 @@ defmodule NextLS do
             runtime: [
               task_supervisor: lsp.assigns.runtime_task_supervisor,
               working_dir: working_dir,
+              elixir_bin_path: lsp.assigns.elixir_bin_path,
               uri: uri,
               mix_env: lsp.assigns.init_opts.mix_env,
               mix_target: lsp.assigns.init_opts.mix_target,
@@ -1047,47 +1067,51 @@ defmodule NextLS do
     lsp =
       for %{type: type, uri: uri} <- changes, reduce: lsp do
         lsp ->
+          file = URI.parse(uri).path
+
           cond do
             type == GenLSP.Enumerations.FileChangeType.created() ->
-              with {:ok, text} <- File.read(URI.parse(uri).path) do
+              with {:ok, text} <- File.read(file) do
                 put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
               else
                 _ -> lsp
               end
 
             type == GenLSP.Enumerations.FileChangeType.changed() ->
-              with {:ok, text} <- File.read(URI.parse(uri).path) do
+              with {:ok, text} <- File.read(file) do
                 put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
               else
                 _ -> lsp
               end
 
             type == GenLSP.Enumerations.FileChangeType.deleted() ->
-              dispatch(lsp.assigns.registry, :databases, fn entries ->
-                for {pid, _} <- entries do
-                  file = URI.parse(uri).path
+              if not File.exists?(file) do
+                dispatch(lsp.assigns.registry, :databases, fn entries ->
+                  for {pid, _} <- entries do
+                    NextLS.DB.query(
+                      pid,
+                      ~Q"""
+                      DELETE FROM symbols
+                      WHERE symbols.file = ?;
+                      """,
+                      [file]
+                    )
 
-                  NextLS.DB.query(
-                    pid,
-                    ~Q"""
-                    DELETE FROM symbols
-                    WHERE symbols.file = ?;
-                    """,
-                    [file]
-                  )
+                    NextLS.DB.query(
+                      pid,
+                      ~Q"""
+                      DELETE FROM 'references' AS refs
+                      WHERE refs.file = ?;
+                      """,
+                      [file]
+                    )
+                  end
+                end)
 
-                  NextLS.DB.query(
-                    pid,
-                    ~Q"""
-                    DELETE FROM 'references' AS refs
-                    WHERE refs.file = ?;
-                    """,
-                    [file]
-                  )
-                end
-              end)
-
-              update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
+                update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
+              else
+                lsp
+              end
           end
       end
 
@@ -1476,6 +1500,7 @@ defmodule NextLS do
 
     defstruct mix_target: "host",
               mix_env: "dev",
+              elixir_bin_path: nil,
               experimental: %NextLS.InitOpts.Experimental{},
               extensions: %NextLS.InitOpts.Extensions{}
 
@@ -1485,6 +1510,8 @@ defmodule NextLS do
           schema(__MODULE__, %{
             optional(:mix_target) => str(),
             optional(:mix_env) => str(),
+            optional(:mix_env) => str(),
+            optional(:elixir_bin_path) => str(),
             optional(:experimental) =>
               schema(NextLS.InitOpts.Experimental, %{
                 optional(:completions) =>

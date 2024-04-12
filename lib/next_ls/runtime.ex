@@ -110,11 +110,11 @@ defmodule NextLS.Runtime do
     db = Keyword.fetch!(opts, :db)
     mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
-    elixir_exe = Keyword.get(opts, :elixir_exe, System.find_executable("elixir"))
-    expand = Keyword.get(opts, :expand, false)
+    elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
+
+    elixir_exe = Path.join(elixir_bin_path, "elixir")
 
     Registry.register(registry, :runtimes, %{name: name, uri: uri, path: working_dir, db: db})
-    Registry.put_meta(registry, {:expand, self()}, expand)
 
     pid =
       cond do
@@ -132,8 +132,7 @@ defmodule NextLS.Runtime do
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
 
-    with dir when is_list(dir) <- :code.priv_dir(:next_ls),
-         elixir_exe when is_binary(elixir_exe) <- elixir_exe do
+    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
       exe =
         dir
         |> Path.join("cmd")
@@ -236,14 +235,9 @@ defmodule NextLS.Runtime do
               :ok
           end)
 
-          version = :rpc.call(node, System, :version, [])
-
-          expander = Version.match?(version, ">= 1.17.0-dev")
-          NextLS.Logger.info(logger, "version=#{version} expander=#{expander}")
-
           {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
 
-          send(me, {:node, node, expander})
+          send(me, {:node, node})
         else
           error ->
             send(me, {:cancel, error})
@@ -266,10 +260,7 @@ defmodule NextLS.Runtime do
        }}
     else
       _ ->
-        NextLS.Logger.error(
-          logger,
-          "Either failed to find the private cmd wrapper script or an `elixir`exe on your PATH"
-        )
+        NextLS.Logger.error(logger, "Either failed to find the private cmd wrapper script")
 
         {:stop, :failed_to_boot}
     end
@@ -301,28 +292,13 @@ defmodule NextLS.Runtime do
     end
   end
 
-  # if this node is 1.17 or higher, we can just send the expansion request to it
-  def handle_call({:expand, ast, file}, _from, %{node: node, expander: true} = state) do
+  def handle_call({:expand, ast, file}, _from, %{node: node} = state) do
     NextLS.Logger.info(state.logger, "expanding on the runtime node")
     reply = :rpc.call(node, :_next_ls_private_spitfire_env, :expand, [ast, file])
     {:reply, {:ok, reply}, state}
   end
 
-  # else, we need to send it to the bonus runtime
-  def handle_call({:expand, ast, file}, _from, %{expander: false, name: name} = state) do
-    NextLS.Logger.info(state.logger, "expanding on the bonus node")
-
-    [reply] =
-      dispatch(state.registry, :bonus_runtimes, fn entries ->
-        for {pid, %{name: ^name}} <- entries do
-          NextLS.Runtime.Bonus.call(pid, {:_next_ls_private_spitfire_env, :expand, [ast, file]})
-        end
-      end)
-
-    {:reply, reply, state}
-  end
-
-  def handle_call({:compile, opts}, _from, %{node: node, name: name} = state) do
+  def handle_call({:compile, opts}, _from, %{node: node} = state) do
     opts =
       opts
       |> Keyword.put_new(:working_dir, state.working_dir)
@@ -330,17 +306,6 @@ defmodule NextLS.Runtime do
       |> Keyword.put(:from, self())
 
     with {:badrpc, error} <- :rpc.call(node, :_next_ls_private_compiler_worker, :enqueue_compiler, [opts]) do
-      NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
-    end
-
-    with false <- state.expander,
-         [{:badrpc, error}] <-
-           dispatch(state.registry, :bonus_runtimes, fn entries ->
-             for {pid, %{name: ^name}} <- entries do
-               :ok = NextLS.Runtime.Bonus.await(pid)
-               NextLS.Runtime.Bonus.compile(pid, opts)
-             end
-           end) do
       NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
     end
 
@@ -374,10 +339,10 @@ defmodule NextLS.Runtime do
     {:noreply, Map.delete(state, :node)}
   end
 
-  def handle_info({:node, node, expander}, state) do
+  def handle_info({:node, node}, state) do
     Node.monitor(node, true)
     state.on_initialized.(:ready)
-    {:noreply, state |> Map.put(:node, node) |> Map.put(:expander, expander)}
+    {:noreply, Map.put(state, :node, node)}
   end
 
   def handle_info({:nodedown, node}, %{node: node} = state) do
@@ -423,21 +388,6 @@ defmodule NextLS.Runtime do
       connect(node, port, attempts - 1)
     else
       true
-    end
-  end
-
-  defp dispatch(registry, key, callback) do
-    ref = make_ref()
-    me = self()
-
-    Registry.dispatch(registry, key, fn entries ->
-      result = callback.(entries)
-
-      send(me, {ref, result})
-    end)
-
-    receive do
-      {^ref, result} -> result
     end
   end
 end

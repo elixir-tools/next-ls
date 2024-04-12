@@ -144,8 +144,6 @@ defmodule NextLS.Runtime.Bonus do
         for bin <- Path.wildcard(Path.join(base, "bin/*")) do
           File.chmod(bin, 0o755)
         end
-
-        # NextLS.Logger.info(logger, "return value of unzip #{inspect(ret)}")
       end
 
       bindir = Path.expand("~/.cache/elixir-tools/nextls/elixir/1.17/bin/")

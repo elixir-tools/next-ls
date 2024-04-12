@@ -415,6 +415,9 @@ defmodule NextLSTest do
 
     assert symbol in symbols
 
+    file = Path.join(cwd, "my_proj/lib/code_action.ex")
+    File.rm!(file)
+
     notify(client, %{
       method: "workspace/didChangeWatchedFiles",
       jsonrpc: "2.0",
@@ -422,7 +425,7 @@ defmodule NextLSTest do
         changes: [
           %{
             type: GenLSP.Enumerations.FileChangeType.deleted(),
-            uri: "file://#{Path.join(cwd, "my_proj/lib/code_action.ex")}"
+            uri: "file://#{file}"
           }
         ]
       }

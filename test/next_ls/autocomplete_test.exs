@@ -66,6 +66,7 @@ defmodule NextLS.AutocompleteTest do
          task_supervisor: tvisor,
          working_dir: cwd,
          uri: "file://#{cwd}",
+         elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
          parent: self(),
          lsp_pid: self(),
          logger: logger,
