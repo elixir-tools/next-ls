@@ -182,6 +182,18 @@ defmodule NextLS.Snippet do
     }
   end
 
+  def get("fn/1", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      fn $1 ->
+        $0
+      end
+      """
+    }
+  end
+
   def get(_label, _trigger_character, _opts) do
     nil
   end

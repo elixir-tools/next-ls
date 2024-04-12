@@ -17,10 +17,7 @@ defmodule NextLS.Progress do
       GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
         params: %GenLSP.Structures.ProgressParams{
           token: token,
-          value: %GenLSP.Structures.WorkDoneProgressBegin{
-            kind: "begin",
-            title: msg
-          }
+          value: %GenLSP.Structures.WorkDoneProgressBegin{kind: "begin", title: msg}
         }
       })
     end)

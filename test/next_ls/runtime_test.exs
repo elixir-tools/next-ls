@@ -44,76 +44,6 @@ defmodule NextLs.RuntimeTest do
     [logger: logger, cwd: Path.absname(tmp_dir), on_init: on_init]
   end
 
-  describe "errors" do
-    # FIXME(zachallaun): make these not flaky on CI
-    @describetag :pending
-    test "emitted on crash during initialization",
-         %{tmp_dir: tmp_dir, logger: logger, cwd: cwd, on_init: on_init} do
-      # obvious syntax error
-      bad_mix_exs = String.replace(mix_exs(), "defmodule", "")
-      File.write!(Path.join(tmp_dir, "mix.exs"), bad_mix_exs)
-
-      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
-
-      tvisor = start_supervised!(Task.Supervisor)
-
-      start_supervised!(
-        {Runtime,
-         task_supervisor: tvisor,
-         name: "my_proj",
-         on_initialized: on_init,
-         working_dir: cwd,
-         uri: "file://#{cwd}",
-         parent: self(),
-         logger: logger,
-         db: :some_db,
-         mix_env: "dev",
-         mix_target: "host",
-         registry: RuntimeTest.Registry},
-        restart: :temporary
-      )
-
-      assert_receive {:error, :portdown}
-
-      assert_receive {:log, :log, log_msg}
-      assert log_msg =~ "syntax error"
-
-      assert_receive {:log, :error, error_msg}
-      assert error_msg =~ "{:shutdown, :portdown}"
-    end
-
-    test "emitted on crash after initialization",
-         %{logger: logger, cwd: cwd, on_init: on_init} do
-      start_supervised!({Registry, keys: :duplicate, name: RuntimeTest.Registry})
-
-      tvisor = start_supervised!(Task.Supervisor)
-
-      pid =
-        start_supervised!(
-          {Runtime,
-           task_supervisor: tvisor,
-           name: "my_proj",
-           on_initialized: on_init,
-           working_dir: cwd,
-           uri: "file://#{cwd}",
-           parent: self(),
-           logger: logger,
-           db: :some_db,
-           mix_env: "dev",
-           mix_target: "host",
-           registry: RuntimeTest.Registry},
-          restart: :temporary
-        )
-
-      assert_receive :ready
-
-      assert {:ok, {:badrpc, :nodedown}} = Runtime.call(pid, {System, :halt, [1]})
-
-      assert_receive {:log, :error, error_msg}
-      assert error_msg =~ "{:shutdown, :nodedown}"
-    end
-  end
-
   describe "call/2" do
     test "responds with an ok tuple if the runtime has initialized",
          %{logger: logger, cwd: cwd, on_init: on_init} do
@@ -128,6 +58,7 @@ defmodule NextLs.RuntimeTest do
            task_supervisor: tvisor,
            working_dir: cwd,
            uri: "file://#{cwd}",
+           elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
            parent: self(),
            lsp_pid: self(),
            logger: logger,
@@ -157,6 +88,7 @@ defmodule NextLs.RuntimeTest do
            on_initialized: on_init,
            working_dir: cwd,
            uri: "file://#{cwd}",
+           elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
            parent: self(),
            lsp_pid: self(),
            logger: logger,
@@ -187,6 +119,7 @@ defmodule NextLs.RuntimeTest do
            task_supervisor: tvisor,
            working_dir: cwd,
            uri: "file://#{cwd}",
+           elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
            parent: self(),
            lsp_pid: self(),
            logger: logger,
@@ -250,6 +183,7 @@ defmodule NextLs.RuntimeTest do
            on_initialized: on_init,
            working_dir: cwd,
            uri: "file://#{cwd}",
+           elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
            parent: self(),
            lsp_pid: self(),
            logger: logger,

@@ -40,6 +40,10 @@ defmodule NextLS.Support.Utils do
         Path.absname(Path.join(tmp_dir, path))
       end
 
+    bundle_base = Path.join(tmp_dir, ".bundled")
+    mixhome = Path.join(tmp_dir, ".mix")
+    File.mkdir_p!(bundle_base)
+
     tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]}, id: :three)
@@ -63,7 +67,9 @@ defmodule NextLS.Support.Utils do
         dynamic_supervisor: rvisor,
         registry: context.module,
         extensions: extensions,
-        cache: cache
+        cache: cache,
+        bundle_base: bundle_base,
+        mix_home: mixhome
       )
 
     Process.link(server.lsp)
