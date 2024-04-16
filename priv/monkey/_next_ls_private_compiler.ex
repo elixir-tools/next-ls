@@ -1213,38 +1213,56 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       expand({form, meta, [arg, []]}, state, env)
     end
 
-    defp expand({:alias, meta, [arg, opts]}, state, env) do
+    defp expand({:alias, meta, [arg, opts]} = node, state, env) do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      # An actual compiler would raise if the alias fails.
-      case Macro.Env.define_alias(env, meta, arg, [trace: false] ++ opts) do
-        {:ok, env} -> {arg, state, env}
-        {:error, _} -> {arg, state, env}
+      case arg do
+        {:__aliases__, _, _} ->
+          # An actual compiler would raise if the alias fails.
+          case Macro.Env.define_alias(env, meta, arg, [trace: false] ++ opts) do
+            {:ok, env} -> {arg, state, env}
+            {:error, _} -> {arg, state, env}
+          end
+
+        _ ->
+          {node, state, env}
       end
     end
 
-    defp expand({:require, meta, [arg, opts]}, state, env) do
+    defp expand({:require, meta, [arg, opts]} = node, state, env) do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      # An actual compiler would raise if the module is not defined or if the require fails.
-      case Macro.Env.define_require(env, meta, arg, [trace: false] ++ opts) do
-        {:ok, env} -> {arg, state, env}
-        {:error, _} -> {arg, state, env}
+      case arg do
+        {:__aliases__, _, _} ->
+          # An actual compiler would raise if the module is not defined or if the require fails.
+          case Macro.Env.define_require(env, meta, arg, [trace: false] ++ opts) do
+            {:ok, env} -> {arg, state, env}
+            {:error, _} -> {arg, state, env}
+          end
+
+        _ ->
+          {node, state, env}
       end
     end
 
-    defp expand({:import, meta, [arg, opts]}, state, env) do
+    defp expand({:import, meta, [arg, opts]} = node, state, env) do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      # An actual compiler would raise if the module is not defined or if the import fails.
-      with true <- is_atom(arg) and Code.ensure_loaded?(arg),
-           {:ok, env} <- Macro.Env.define_import(env, meta, arg, [trace: false] ++ opts) do
-        {arg, state, env}
-      else
-        _ -> {arg, state, env}
+      case arg do
+        {:__aliases__, _, _} ->
+          # An actual compiler would raise if the module is not defined or if the import fails.
+          with true <- is_atom(arg) and Code.ensure_loaded?(arg),
+               {:ok, env} <- Macro.Env.define_import(env, meta, arg, [trace: false] ++ opts) do
+            {arg, state, env}
+          else
+            _ -> {arg, state, env}
+          end
+
+        _ ->
+          {node, state, env}
       end
     end
 
