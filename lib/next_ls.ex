@@ -133,6 +133,7 @@ defmodule NextLS do
     {:reply,
      %InitializeResult{
        capabilities: %ServerCapabilities{
+         position_encoding: GenLSP.Enumerations.PositionEncodingKind.utf8(),
          text_document_sync: %TextDocumentSyncOptions{
            open_close: true,
            save: %SaveOptions{include_text: true},
