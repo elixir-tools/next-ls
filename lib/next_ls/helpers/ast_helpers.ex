@@ -160,7 +160,7 @@ defmodule NextLS.ASTHelpers do
            |> Zipper.zip()
            |> Zipper.find(fn
              {:@, _, [{:__cursor__, _, []}]} -> true
-             {:__cursor__, _, []} -> true
+             {:__cursor__, _, _} -> true
              {{:., _, [_, :__cursor__]}, _, _} -> true
              _ -> false
            end) do
