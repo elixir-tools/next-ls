@@ -1217,16 +1217,14 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      case arg do
-        {:__aliases__, _, _} ->
-          # An actual compiler would raise if the alias fails.
-          case Macro.Env.define_alias(env, meta, arg, [trace: false] ++ opts) do
-            {:ok, env} -> {arg, state, env}
-            {:error, _} -> {arg, state, env}
-          end
-
-        _ ->
-          {node, state, env}
+      if is_atom(arg) do
+        # An actual compiler would raise if the alias fails.
+        case Macro.Env.define_alias(env, meta, arg, [trace: false] ++ opts) do
+          {:ok, env} -> {arg, state, env}
+          {:error, _} -> {arg, state, env}
+        end
+      else
+        {node, state, env}
       end
     end
 
@@ -1234,16 +1232,14 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      case arg do
-        {:__aliases__, _, _} ->
-          # An actual compiler would raise if the module is not defined or if the require fails.
-          case Macro.Env.define_require(env, meta, arg, [trace: false] ++ opts) do
-            {:ok, env} -> {arg, state, env}
-            {:error, _} -> {arg, state, env}
-          end
-
-        _ ->
-          {node, state, env}
+      if is_atom(arg) do
+        # An actual compiler would raise if the module is not defined or if the require fails.
+        case Macro.Env.define_require(env, meta, arg, [trace: false] ++ opts) do
+          {:ok, env} -> {arg, state, env}
+          {:error, _} -> {arg, state, env}
+        end
+      else
+        {node, state, env}
       end
     end
 
@@ -1251,18 +1247,16 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {arg, state, env} = expand(arg, state, env)
       {opts, state, env} = expand_directive_opts(opts, state, env)
 
-      case arg do
-        {:__aliases__, _, _} ->
-          # An actual compiler would raise if the module is not defined or if the import fails.
-          with true <- is_atom(arg) and Code.ensure_loaded?(arg),
-               {:ok, env} <- Macro.Env.define_import(env, meta, arg, [trace: false] ++ opts) do
-            {arg, state, env}
-          else
-            _ -> {arg, state, env}
-          end
-
-        _ ->
-          {node, state, env}
+      if is_atom(arg) do
+        # An actual compiler would raise if the module is not defined or if the import fails.
+        with true <- is_atom(arg) and Code.ensure_loaded?(arg),
+             {:ok, env} <- Macro.Env.define_import(env, meta, arg, [trace: false] ++ opts) do
+          {arg, state, env}
+        else
+          _ -> {arg, state, env}
+        end
+      else
+        {node, state, env}
       end
     end
 
@@ -1444,6 +1438,20 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(blocks), put_in(state.functions, functions), env}
     end
 
+    defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
+         when type in [:def, :defp] and is_list(params) and is_list(blocks) do
+      {blocks, state} =
+        for {type, block} <- blocks, reduce: {[], state} do
+          {acc, state} ->
+            {res, state, _env} = expand(block, state, env)
+            {[{type, res} | acc], state}
+        end
+
+      arity = length(List.wrap(params))
+
+      {Enum.reverse(blocks), state, env}
+    end
+
     defp expand_macro(meta, Kernel, :@, [{name, _, p}] = args, callback, state, env) when is_list(p) do
       state = update_in(state.attrs, &[to_string(name) | &1])
       expand_macro_callback(meta, Kernel, :@, args, callback, state, env)
@@ -1527,7 +1535,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(acc), state, env}
     end
 
-    defp expand_list([h | t], state, env, acc) do
+    defp expand_list([h | t] = list, state, env, acc) do
       {h, state, env} = expand(h, state, env)
       expand_list(t, state, env, [h | acc])
     end

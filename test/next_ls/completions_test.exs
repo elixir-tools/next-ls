@@ -5,6 +5,20 @@ defmodule NextLS.CompletionsTest do
   import GenLSP.Test
   import NextLS.Support.Utils
 
+  defmacrop assert_match({:in, _, [left, right]}) do
+    quote do
+      assert Enum.any?(unquote(right), fn x ->
+               match?(unquote(left), x)
+             end),
+             """
+             failed to find a match inside of list
+
+             left: #{unquote(Macro.to_string(left))}
+             right: #{inspect(unquote(right), pretty: true)}
+             """
+    end
+  end
+
   @moduletag tmp_dir: true, root_paths: ["my_proj"]
 
   setup %{tmp_dir: tmp_dir} do
@@ -34,7 +48,7 @@ defmodule NextLS.CompletionsTest do
     baz = Path.join(cwd, "my_proj/lib/baz.ex")
 
     File.write!(baz, """
-    defmodule Foo.Bar.Baz do
+    defmodule Foo.Bing.Baz do
       def run() do
         :ok
       end
@@ -361,12 +375,47 @@ defmodule NextLS.CompletionsTest do
     ]
   end
 
+  test "aliases in document", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      alias Foo.Bing
+
+      def run() do
+        B
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 4,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
+    )
+  end
+
   test "inside alias special form", %{client: client, foo: foo} do
     uri = uri(foo)
 
     did_open(client, foo, """
     defmodule Foo do
-      alias Foo.Bar.
+      alias Foo.Bing.
 
       def run() do
         :ok
@@ -390,7 +439,47 @@ defmodule NextLS.CompletionsTest do
     }
 
     assert_result 2, [
-      %{"data" => _, "documentation" => _, "insertText" => "Baz", "kind" => 9, "label" => "Baz"}
+      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"}
     ]
+  end
+
+  test "import functions appear", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      use ExUnit.Case
+      import ExUnit.CaptureLog
+
+      test "foo" do
+        cap
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 5,
+          character: 7
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "capture_log", "kind" => 3, "label" => "capture_log/1"} in results
+    )
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "capture_log", "kind" => 3, "label" => "capture_log/2"} in results
+    )
   end
 end

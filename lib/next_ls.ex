@@ -646,6 +646,7 @@ defmodule NextLS do
               |> then(fn
                 {:ok, ast} -> ast
                 {:error, ast, _} -> ast
+                {:error, :no_fuel_remaining} -> nil
               end)
 
             {:ok, {_, _, _, macro_env}} = Runtime.expand(runtime, ast, Path.basename(uri))
