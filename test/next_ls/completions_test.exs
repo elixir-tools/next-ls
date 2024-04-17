@@ -31,6 +31,16 @@ defmodule NextLS.CompletionsTest do
     end
     """)
 
+    baz = Path.join(cwd, "my_proj/lib/baz.ex")
+
+    File.write!(baz, """
+    defmodule Foo.Bar.Baz do
+      def run() do
+        :ok
+      end
+    end
+    """)
+
     [foo: foo, cwd: cwd]
   end
 
@@ -285,7 +295,7 @@ defmodule NextLS.CompletionsTest do
           }
         }
 
-        assert_result 2, [_, _] = results
+        assert_result 2, [_, _, _] = results
         results
       end)
 
@@ -298,6 +308,14 @@ defmodule NextLS.CompletionsTest do
              "insertText" => "bar.ex",
              "kind" => 17,
              "label" => "bar.ex"
+           } in results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "baz.ex",
+             "kind" => 17,
+             "label" => "baz.ex"
            } in results
 
     assert %{
@@ -340,6 +358,39 @@ defmodule NextLS.CompletionsTest do
         "label" => "defmodule/2",
         "insertTextFormat" => 2
       }
+    ]
+  end
+
+  test "inside alias special form", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      alias Foo.Bar.
+
+      def run() do
+        :ok
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 1,
+          character: 16
+        }
+      }
+    }
+
+    assert_result 2, [
+      %{"data" => _, "documentation" => _, "insertText" => "Baz", "kind" => 9, "label" => "Baz"}
     ]
   end
 end
