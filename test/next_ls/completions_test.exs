@@ -19,6 +19,20 @@ defmodule NextLS.CompletionsTest do
     end
   end
 
+  defmacrop assert_match({:not, _, [{:in, _, [left, right]}]}) do
+    quote do
+      refute Enum.any?(unquote(right), fn x ->
+               match?(unquote(left), x)
+             end),
+             """
+             found a match inside of list, expected none
+
+             left: #{unquote(Macro.to_string(left))}
+             right: #{inspect(unquote(right), pretty: true)}
+             """
+    end
+  end
+
   @moduletag tmp_dir: true, root_paths: ["my_proj"]
 
   setup %{tmp_dir: tmp_dir} do
@@ -481,5 +495,60 @@ defmodule NextLS.CompletionsTest do
     assert_match(
       %{"data" => _, "documentation" => _, "insertText" => "capture_log", "kind" => 3, "label" => "capture_log/2"} in results
     )
+  end
+
+  test "completions inside generator rhs", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        var = "hi"
+
+        for thing <- v do
+        end
+
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 4,
+          character: 18
+        }
+      }
+    }
+
+    assert_result 2, [
+      %{
+        "data" => nil,
+        "documentation" => "",
+        "insertText" => "var",
+        "kind" => 6,
+        "label" => "var"
+      },
+      %{
+        "data" => nil,
+        "documentation" => _,
+        "insertText" => "var!",
+        "kind" => 3,
+        "label" => "var!/1"
+      },
+      %{
+        "data" => nil,
+        "documentation" => _,
+        "insertText" => "var!",
+        "kind" => 3,
+        "label" => "var!/2"
+      }
+    ]
   end
 end

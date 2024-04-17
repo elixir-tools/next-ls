@@ -3,7 +3,8 @@ defmodule NextLS.ASTHelpers.Env do
   alias Sourceror.Zipper
 
   defp inside?(range, position) do
-    Sourceror.compare_positions(range.start, position) == :lt && Sourceror.compare_positions(range.end, position) == :gt
+    Sourceror.compare_positions(range.start, position) in [:lt, :eq] &&
+      Sourceror.compare_positions(range.end, position) in [:gt, :eq]
   end
 
   def build(nil) do
@@ -40,21 +41,28 @@ defmodule NextLS.ASTHelpers.Env do
 
             Map.update!(acc, :variables, &(vars ++ &1))
 
-          {match_op, _, [pm | _]} when match_op in [:<-] ->
+          {match_op, _, [pm | rhs]} when match_op in [:<-] ->
             up_node = zipper |> Zipper.up() |> Zipper.node()
 
             # in_match operator comes with for and with normally, so we need to 
             # check if we are inside the parent node, which is the for/with
-            is_inside =
-              with {_, _, _} <- up_node,
-                   range when not is_nil(range) <- Sourceror.get_range(up_node) do
+            is_inside_p =
+              with {_, _, _} <- up_node, range when not is_nil(range) <- Sourceror.get_range(up_node) do
                 inside?(range, position)
               else
                 _ ->
                   false
               end
 
-            if is_inside do
+            is_inside_rhs =
+              with range when not is_nil(range) <- Sourceror.get_range(rhs) do
+                inside?(range, position)
+              else
+                _ ->
+                  false
+              end
+
+            if is_inside_p and not is_inside_rhs do
               {_, vars} =
                 Macro.prewalk(pm, [], fn node, acc ->
                   case node do
