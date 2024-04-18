@@ -156,6 +156,50 @@ defmodule NextLS.ASTHelpers.EnvTest do
 
       assert actual.variables == ["entries"]
     end
+
+    test "comprehension lhs of generator do not leak into rhs " do
+      code = """
+      defmodule Foo do
+        def one(entries) do
+          for entry <- entries,
+              not_me <- __cursor__() do
+            :ok
+          end
+        end
+
+        def two do
+          baz = :bar
+        end
+      end
+      """
+
+      actual = run(code)
+
+      assert actual.variables == ["entries", "entry"]
+    end
+
+    test "multiple generators and filters in comprehension" do
+      code = """
+      defmodule Foo do
+        def one(entries) do
+          for entry <- entries,
+              foo = do_something(),
+              bar <- foo do
+            __cursor__()
+            :ok
+          end
+        end
+
+        def two do
+          baz = :bar
+        end
+      end
+      """
+
+      actual = run(code)
+
+      assert actual.variables == ["entries", "entry", "foo", "bar"]
+    end
   end
 
   defp run(code) do

@@ -1,7 +1,7 @@
 defmodule NextLS.DependencyTest do
-  # FIXME: make async: true
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import GenLSP.Test
   import NextLS.Support.Utils
 
@@ -53,6 +53,7 @@ defmodule NextLS.DependencyTest do
       end
 
       Process.unlink(context.server.lsp)
+
       shutdown_client!(context.client)
       shutdown_server!(context.server)
 
@@ -73,8 +74,21 @@ defmodule NextLS.DependencyTest do
       }
       """)
 
-      %{client: client} = context = Map.merge(context, Map.new(with_lsp(context)))
-      assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+      {%{client: client} = context, log} =
+        with_log(fn ->
+          %{client: client} = context = Map.merge(context, Map.new(with_lsp(context)))
+          assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
+
+          assert_notification "window/logMessage", %{
+            "message" => "[Next LS] Unchecked dependencies" <> _,
+            "type" => 4
+          }
+
+          context
+        end)
+
+      assert log =~
+               "The runtime for Elixir.NextLS.DependencyTest-my_proj has crashed with reason: {:shutdown, :unchecked_dependencies}"
 
       assert_request(client, "window/showMessageRequest", fn params ->
         assert %{
@@ -100,7 +114,8 @@ defmodule NextLS.DependencyTest do
       }
 
       assert_is_ready(context, "my_proj")
-      assert_compiled(context, "my_proj")
+
+      assert_compiled(context, "my_proj", 60_000)
     end
 
     test "successfully asks to refetch deps on compile",
@@ -129,27 +144,38 @@ defmodule NextLS.DependencyTest do
       }
       """)
 
-      notify client, %{
-        method: "textDocument/didSave",
-        jsonrpc: "2.0",
-        params: %{
-          text: new_text,
-          textDocument: %{uri: uri(mixexs)}
-        }
-      }
+      {_, log} =
+        with_log(fn ->
+          notify client, %{
+            method: "textDocument/didSave",
+            jsonrpc: "2.0",
+            params: %{
+              text: new_text,
+              textDocument: %{uri: uri(mixexs)}
+            }
+          }
 
-      assert_request(client, "window/showMessageRequest", fn params ->
-        assert %{
-                 "type" => 1,
-                 "actions" => [
-                   %{"title" => "yes"},
-                   %{"title" => "no"}
-                 ]
-               } = params
+          assert_notification "window/logMessage", %{
+            "message" => "[Next LS] Unchecked dependencies" <> _,
+            "type" => 4
+          }
 
-        # respond with yes
-        %{"title" => "yes"}
-      end)
+          assert_request(client, "window/showMessageRequest", fn params ->
+            assert %{
+                     "type" => 1,
+                     "actions" => [
+                       %{"title" => "yes"},
+                       %{"title" => "no"}
+                     ]
+                   } = params
+
+            # respond with yes
+            %{"title" => "yes"}
+          end)
+        end)
+
+      assert log =~
+               "The runtime for Elixir.NextLS.DependencyTest-my_proj has crashed with reason: {:shutdown, :unchecked_dependencies}"
 
       assert_notification "window/logMessage", %{
         "message" => "[Next LS] Running `mix deps.get` in directory" <> _,

@@ -1,8 +1,37 @@
 defmodule NextLS.CompletionsTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import GenLSP.Test
   import NextLS.Support.Utils
+
+  defmacrop assert_match({:in, _, [left, right]}) do
+    quote do
+      assert Enum.any?(unquote(right), fn x ->
+               match?(unquote(left), x)
+             end),
+             """
+             failed to find a match inside of list
+
+             left: #{unquote(Macro.to_string(left))}
+             right: #{inspect(unquote(right), pretty: true)}
+             """
+    end
+  end
+
+  defmacrop assert_match({:not, _, [{:in, _, [left, right]}]}) do
+    quote do
+      refute Enum.any?(unquote(right), fn x ->
+               match?(unquote(left), x)
+             end),
+             """
+             found a match inside of list, expected none
+
+             left: #{unquote(Macro.to_string(left))}
+             right: #{inspect(unquote(right), pretty: true)}
+             """
+    end
+  end
 
   @moduletag tmp_dir: true, root_paths: ["my_proj"]
 
@@ -27,6 +56,16 @@ defmodule NextLS.CompletionsTest do
     File.write!(bar, """
     defmodule Bar do
       defstruct [:one, :two, :three]
+    end
+    """)
+
+    baz = Path.join(cwd, "my_proj/lib/baz.ex")
+
+    File.write!(baz, """
+    defmodule Foo.Bing.Baz do
+      def run() do
+        :ok
+      end
     end
     """)
 
@@ -267,37 +306,52 @@ defmodule NextLS.CompletionsTest do
     end
     """)
 
-    request client, %{
-      method: "textDocument/completion",
-      id: 2,
-      jsonrpc: "2.0",
-      params: %{
-        textDocument: %{
-          uri: uri
-        },
-        position: %{
-          line: 2,
-          character: 11
+    {results, log} =
+      with_log(fn ->
+        request client, %{
+          method: "textDocument/completion",
+          id: 2,
+          jsonrpc: "2.0",
+          params: %{
+            textDocument: %{
+              uri: uri
+            },
+            position: %{
+              line: 2,
+              character: 11
+            }
+          }
         }
-      }
-    }
 
-    assert_result 2, [_, _] = results
+        assert_result 2, [_, _, _] = results
+        results
+      end)
+
+    assert log =~ "Could not locate cursor"
+    assert log =~ "Source code that produced the above warning:"
 
     assert %{
              "data" => nil,
              "documentation" => "",
-             "insertText" => "next_ls.ex",
+             "insertText" => "bar.ex",
              "kind" => 17,
-             "label" => "next_ls.ex"
+             "label" => "bar.ex"
            } in results
 
     assert %{
              "data" => nil,
              "documentation" => "",
-             "insertText" => "next_ls/",
-             "kind" => 19,
-             "label" => "next_ls/"
+             "insertText" => "baz.ex",
+             "kind" => 17,
+             "label" => "baz.ex"
+           } in results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "foo.ex",
+             "kind" => 17,
+             "label" => "foo.ex"
            } in results
   end
 
@@ -331,6 +385,169 @@ defmodule NextLS.CompletionsTest do
         "kind" => 15,
         "label" => "defmodule/2",
         "insertTextFormat" => 2
+      }
+    ]
+  end
+
+  test "aliases in document", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      alias Foo.Bing
+
+      def run() do
+        B
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 4,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
+    )
+  end
+
+  test "inside alias special form", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      alias Foo.Bing.
+
+      def run() do
+        :ok
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 1,
+          character: 16
+        }
+      }
+    }
+
+    assert_result 2, [
+      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"}
+    ]
+  end
+
+  test "import functions appear", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      use ExUnit.Case
+      import ExUnit.CaptureLog
+
+      test "foo" do
+        cap
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 5,
+          character: 7
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "capture_log", "kind" => 3, "label" => "capture_log/1"} in results
+    )
+
+    assert_match(
+      %{"data" => _, "documentation" => _, "insertText" => "capture_log", "kind" => 3, "label" => "capture_log/2"} in results
+    )
+  end
+
+  test "completions inside generator rhs", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run() do
+        var = "hi"
+
+        for thing <- v do
+        end
+
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 4,
+          character: 18
+        }
+      }
+    }
+
+    assert_result 2, [
+      %{
+        "data" => nil,
+        "documentation" => "",
+        "insertText" => "var",
+        "kind" => 6,
+        "label" => "var"
+      },
+      %{
+        "data" => nil,
+        "documentation" => _,
+        "insertText" => "var!",
+        "kind" => 3,
+        "label" => "var!/1"
+      },
+      %{
+        "data" => nil,
+        "documentation" => _,
+        "insertText" => "var!",
+        "kind" => 3,
+        "label" => "var!/2"
       }
     ]
   end

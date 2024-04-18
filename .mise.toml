@@ -3,5 +3,5 @@ KERL_BUILD_DOCS = "yes"
 
 [tools]
 erlang = "26.2.2"
-elixir = "ref:514615d0347cb9bb513faa44ae1e36406979e516"
+elixir = "ref:e3b6a91b173f7e836401a6a75c3906c26bd7fd39"
 zig = "0.11.0"

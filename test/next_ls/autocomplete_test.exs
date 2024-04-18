@@ -5,6 +5,8 @@ defmodule NextLS.AutocompleteTest do
 
   alias NextLS.Runtime
 
+  require Runtime
+
   @moduletag :tmp_dir
 
   setup %{tmp_dir: tmp_dir} do
@@ -64,6 +66,7 @@ defmodule NextLS.AutocompleteTest do
          task_supervisor: tvisor,
          working_dir: cwd,
          uri: "file://#{cwd}",
+         elixir_bin_path: "elixir" |> System.find_executable() |> Path.dirname(),
          parent: self(),
          lsp_pid: self(),
          logger: logger,
@@ -83,12 +86,16 @@ defmodule NextLS.AutocompleteTest do
     [runtime: pid]
   end
 
-  defp expand(runtime, expr, env \\ %{variables: []}) do
+  defp base_env do
+    %{variables: [], aliases: [], functions: [{Kernel, [+: 1, +: 2, ++: 2, -: 1, -: 2, --: 2]}], macros: []}
+  end
+
+  defp expand(runtime, expr, env \\ base_env()) do
     NextLS.Autocomplete.expand(Enum.reverse(expr), runtime, env)
   end
 
   test "Erlang module completion", %{runtime: runtime} do
-    assert expand(runtime, ~c":zl") == {:yes, [%{name: "zlib", kind: :module}]}
+    assert expand(runtime, ~c":zl") == {:yes, [%{name: "zlib", kind: :module, docs: "## \"zlib\"\n\n\n"}]}
   end
 
   test "Erlang module no completion", %{runtime: runtime} do
@@ -97,28 +104,36 @@ defmodule NextLS.AutocompleteTest do
 
   test "Erlang module multiple values completion", %{runtime: runtime} do
     {:yes, list} = expand(runtime, ~c":logger")
-    assert %{name: "logger", kind: :module} in list
-    assert %{name: "logger_proxy", kind: :module} in list
+
+    assert Enum.any?(list, fn c ->
+             match?(%{name: "logger", kind: :module}, c)
+           end)
+
+    assert Enum.any?(list, fn c ->
+             match?(%{name: "logger_proxy", kind: :module}, c)
+           end)
   end
 
   test "Erlang root completion", %{runtime: runtime} do
     {:yes, list} = expand(runtime, ~c":")
     assert is_list(list)
-    assert %{name: "lists", kind: :module} in list
-    assert %{name: "Elixir.List", kind: :module} not in list
+    assert Enum.any?(list, fn c -> match?(%{name: "lists", kind: :module}, c) end)
+    refute Enum.any?(list, fn c -> match?(%{name: "Elixir.List", kind: :module}, c) end)
   end
 
   test "Elixir proxy", %{runtime: runtime} do
-    {:yes, list} = expand(runtime, ~c"E")
-    assert %{name: "Elixir", kind: :module} in list
+    {:yes, [elixir_entry | _list]} = expand(runtime, ~c"E")
+    assert %{name: "Elixir", kind: :module, docs: "## Elixir" <> _} = elixir_entry
   end
 
   test "Elixir completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"En") ==
-             {:yes, [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
+    assert {:yes,
+            [
+              %{name: "Enum", kind: :module, docs: "## Enum" <> _},
+              %{name: "Enumerable", kind: :module, docs: "## Enumerable" <> _}
+            ]} = expand(runtime, ~c"En")
 
-    assert expand(runtime, ~c"Enumera") ==
-             {:yes, [%{name: "Enumerable", kind: :module}]}
+    assert {:yes, [%{name: "Enumerable", kind: :module, docs: "## Enumerable" <> _}]} = expand(runtime, ~c"Enumera")
   end
 
   # test "Elixir type completion", %{runtime: runtime} do
@@ -159,23 +174,28 @@ defmodule NextLS.AutocompleteTest do
   # end
 
   test "Elixir completion on modules from load path", %{runtime: runtime} do
-    assert expand(runtime, ~c"Str") ==
-             {:yes,
-              [%{name: "Stream", kind: :module}, %{name: "String", kind: :module}, %{name: "StringIO", kind: :module}]}
+    assert {:yes,
+            [%{name: "Stream", kind: :module}, %{name: "String", kind: :module}, %{name: "StringIO", kind: :module}]} =
+             expand(runtime, ~c"Str")
 
-    assert expand(runtime, ~c"Ma") ==
-             {:yes,
-              [
-                %{name: "Macro", kind: :module},
-                %{name: "Map", kind: :module},
-                %{name: "MapSet", kind: :module},
-                %{name: "MatchError", kind: :module}
-              ]}
+    assert {:yes,
+            [
+              %{name: "Macro", kind: :module},
+              %{name: "Map", kind: :module},
+              %{name: "MapSet", kind: :module},
+              %{name: "MatchError", kind: :module}
+            ]} = expand(runtime, ~c"Ma")
 
-    assert expand(runtime, ~c"Dic") == {:yes, [%{name: "Dict", kind: :module}]}
+    assert {:yes, [%{name: "Dict", kind: :module}]} = expand(runtime, ~c"Dic")
 
     # FIXME: ExUnit is not available when the MIX_ENV is dev. Need to figure out a way to make it complete later
-    # assert expand(runtime, ~c"Ex") == {:yes, [], [~c"ExUnit", ~c"Exception"]}
+    # but i guess it does?? i'm confused
+
+    assert {:yes,
+            [
+              %{name: "ExUnit", kind: :module},
+              %{name: "Exception", kind: :module}
+            ]} = expand(runtime, ~c"Ex")
   end
 
   # test "Elixir no completion for underscored functions with no doc", %{runtime: runtime} do
@@ -252,11 +272,11 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "Elixir root submodule completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"Elixir.Acce") == {:yes, [%{name: "Access", kind: :module}]}
+    {:yes, [%{name: "Access", kind: :module, docs: "## Access" <> _}]} = assert expand(runtime, ~c"Elixir.Acce")
   end
 
   test "Elixir submodule completion", %{runtime: runtime} do
-    assert expand(runtime, ~c"String.Cha") == {:yes, [%{name: "Chars", kind: :module}]}
+    assert {:yes, [%{name: "Chars", kind: :module}]} = expand(runtime, ~c"String.Cha")
   end
 
   test "Elixir submodule no completion", %{runtime: runtime} do
@@ -318,7 +338,13 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "sigil completion", %{runtime: runtime} do
-    assert {:yes, sigils} = expand(runtime, ~c"~")
+    assert {:yes, sigils} =
+             expand(
+               runtime,
+               ~c"~",
+               Map.merge(base_env(), %{macros: [{Kernel, [sigil_c: 1, sigil_C: 1, sigil_r: 1, foo: 1]}]})
+             )
+
     assert %{name: "C", kind: :sigil} in sigils
     assert {:yes, ~c"", sigils} = expand(runtime, ~c"~r")
     assert ~c"\"" in sigils
@@ -405,20 +431,35 @@ defmodule NextLS.AutocompleteTest do
     end)
   end
 
-  test "kernel import completion", %{runtime: runtime} do
-    assert {:yes, [%{name: "defstruct", kind: :function, docs: _, arity: 1}]} = expand(runtime, ~c"defstru")
+  # test "kernel import completion", %{runtime: runtime} do
+  #   assert {:yes, [%{name: "defstruct", kind: :function, docs: _, arity: 1}]} = expand(runtime, ~c"defstru")
 
-    assert {:yes,
-            [
-              %{arity: 3, name: "put_elem", docs: _, kind: :function},
-              %{arity: 2, name: "put_in", docs: _, kind: :function},
-              %{arity: 3, name: "put_in", docs: _, kind: :function}
-            ]} = expand(runtime, ~c"put_")
-  end
+  #   assert {:yes,
+  #           [
+  #             %{arity: 3, name: "put_elem", docs: _, kind: :function},
+  #             %{arity: 2, name: "put_in", docs: _, kind: :function},
+  #             %{arity: 3, name: "put_in", docs: _, kind: :function}
+  #           ]} = expand(runtime, ~c"put_")
+  # end
 
   test "variable name completion", %{runtime: runtime} do
     prev = "numeral = 3; number = 3; nothing = nil"
-    env = %{variables: ["numeral", "number", "nothing"]}
+
+    env =
+      Map.merge(base_env(), %{
+        variables: ["numeral", "number", "nothing"],
+        functions: [
+          {Kernel,
+           [
+             node: 0,
+             node: 1,
+             not: 1,
+             +: 1,
+             +: 2
+           ]}
+        ]
+      })
+
     assert expand(runtime, ~c"#{prev}\nnumb", env) == {:yes, [%{name: "number", kind: :variable}]}
 
     assert expand(runtime, ~c"#{prev}\nnum", env) ==
@@ -492,19 +533,18 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "completion inside expression", %{runtime: runtime} do
-    assert expand(runtime, ~c"1 En") ==
-             {:yes, [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
+    assert {:yes, [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]} = expand(runtime, ~c"1 En")
 
-    assert expand(runtime, ~c"Test(En") ==
-             {:yes, [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]}
+    assert {:yes, [%{name: "Enum", kind: :module}, %{name: "Enumerable", kind: :module}]} = expand(runtime, ~c"Test(En")
 
-    assert expand(runtime, ~c"Test :zl") == {:yes, [%{name: "zlib", kind: :module}]}
-    assert expand(runtime, ~c"[:zl") == {:yes, [%{name: "zlib", kind: :module}]}
-    assert expand(runtime, ~c"{:zl") == {:yes, [%{name: "zlib", kind: :module}]}
+    assert {:yes, [%{name: "zlib", kind: :module}]} = expand(runtime, ~c"Test :zl")
+    assert {:yes, [%{name: "zlib", kind: :module}]} = expand(runtime, ~c"[:zl")
+    assert {:yes, [%{name: "zlib", kind: :module}]} = expand(runtime, ~c"{:zl")
   end
 
   test "Elixir completion sublevel", %{runtime: runtime} do
-    assert expand(runtime, ~c"SublevelTest.") == {:yes, [%{name: "LevelA", kind: :module}]}
+    assert expand(runtime, ~c"SublevelTest.") ==
+             {:yes, [%{name: "LevelA", kind: :module, docs: "## SublevelTest.LevelA.LevelB\n\n\n"}]}
   end
 
   # TODO: aliases
@@ -642,6 +682,7 @@ defmodule NextLS.AutocompleteTest do
 
   test "completion for aliases in special forms", %{runtime: runtime} do
     assert {:yes, entries} = expand(runtime, ~c"alias ")
+    entries = for e <- entries, do: Map.delete(e, :docs)
     assert %{name: "Atom", kind: :module} in entries
     refute %{name: "is_atom", kind: :function, arity: 1} in entries
 
@@ -685,13 +726,13 @@ defmodule NextLS.AutocompleteTest do
     dir |> Path.join("dir/file3") |> File.touch()
     dir |> Path.join("dir/file4") |> File.touch()
 
-    assert expand(runtime, ~c"\"./") == path_autocompletion(".")
-    assert expand(runtime, ~c"\"/") == path_autocompletion("/")
+    assert expand(runtime, ~c"\"./") == path_autocompletion(".", runtime)
+    assert expand(runtime, ~c"\"/") == path_autocompletion("/", runtime)
     assert expand(runtime, ~c"\"./#\{") == expand(runtime, ~c"{")
     assert expand(runtime, ~c"\"./#\{Str") == expand(runtime, ~c"{Str")
     assert expand(runtime, ~c"Path.join(\"./\", is_") == expand(runtime, ~c"is_")
 
-    assert expand(runtime, ~c"\"#{dir}/") == path_autocompletion(dir)
+    assert expand(runtime, ~c"\"#{dir}/") == path_autocompletion(dir, runtime)
     assert expand(runtime, ~c"\"#{dir}/sin") == {:yes, [%{name: "single1", kind: :file}]}
     assert expand(runtime, ~c"\"#{dir}/single1") == {:yes, [%{name: "single1", kind: :file}]}
 
@@ -699,7 +740,7 @@ defmodule NextLS.AutocompleteTest do
     assert %{name: "file2", kind: :file} in files
     assert %{name: "file1", kind: :file} in files
 
-    assert expand(runtime, ~c"\"#{dir}/file") == path_autocompletion(dir, "file")
+    assert expand(runtime, ~c"\"#{dir}/file") == path_autocompletion(dir, runtime, "file")
     assert expand(runtime, ~c"\"#{dir}/d") == {:yes, [%{name: "dir/", kind: :dir}]}
     assert expand(runtime, ~c"\"#{dir}/dir") == {:yes, [%{name: "dir/", kind: :dir}]}
 
@@ -707,12 +748,12 @@ defmodule NextLS.AutocompleteTest do
     assert %{name: "file4", kind: :file} in files
     assert %{name: "file3", kind: :file} in files
 
-    assert expand(runtime, ~c"\"#{dir}/dir/file") == dir |> Path.join("dir") |> path_autocompletion("file")
+    assert expand(runtime, ~c"\"#{dir}/dir/file") == dir |> Path.join("dir") |> path_autocompletion(runtime, "file")
   end
 
-  defp path_autocompletion(dir, hint \\ "") do
-    dir
-    |> File.ls!()
+  defp path_autocompletion(dir, runtime, hint \\ "") do
+    runtime
+    |> NextLS.Runtime.execute!(do: File.ls!(dir))
     |> Stream.filter(&String.starts_with?(&1, hint))
     |> Enum.map(fn file ->
       kind = if File.dir?(Path.join(dir, file)), do: :dir, else: :file

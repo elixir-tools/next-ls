@@ -21,6 +21,11 @@ defmodule NextLS.Runtime do
     GenServer.call(server, {:call, mfa, ctx}, :infinity)
   end
 
+  @spec expand(pid(), Macro.t(), String.t()) :: any()
+  def expand(server, ast, file) do
+    GenServer.call(server, {:expand, ast, file}, :infinity)
+  end
+
   @spec ready?(pid()) :: boolean()
   def ready?(server), do: GenServer.call(server, :ready?)
 
@@ -32,11 +37,16 @@ defmodule NextLS.Runtime do
   end
 
   def await(server, count) do
-    if ready?(server) do
+    with {:alive, true} <- {:alive, Process.alive?(server)},
+         true <- ready?(server) do
       :ok
     else
-      Process.sleep(500)
-      await(server, count - 1)
+      {:alive, false} ->
+        :timeout
+
+      _ ->
+        Process.sleep(500)
+        await(server, count - 1)
     end
   end
 
@@ -100,6 +110,9 @@ defmodule NextLS.Runtime do
     db = Keyword.fetch!(opts, :db)
     mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
+    elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
+
+    elixir_exe = Path.join(elixir_bin_path, "elixir")
 
     Registry.register(registry, :runtimes, %{name: name, uri: uri, path: working_dir, db: db})
 
@@ -119,8 +132,7 @@ defmodule NextLS.Runtime do
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
 
-    with dir when is_list(dir) <- :code.priv_dir(:next_ls),
-         elixir_exe when is_binary(elixir_exe) <- System.find_executable("elixir") do
+    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
       exe =
         dir
         |> Path.join("cmd")
@@ -248,10 +260,7 @@ defmodule NextLS.Runtime do
        }}
     else
       _ ->
-        NextLS.Logger.error(
-          logger,
-          "Either failed to find the private cmd wrapper script or an `elixir`exe on your PATH"
-        )
+        NextLS.Logger.error(logger, "Either failed to find the private cmd wrapper script")
 
         {:stop, :failed_to_boot}
     end
@@ -283,6 +292,12 @@ defmodule NextLS.Runtime do
     end
   end
 
+  def handle_call({:expand, ast, file}, _from, %{node: node} = state) do
+    NextLS.Logger.info(state.logger, "expanding on the runtime node")
+    reply = :rpc.call(node, :_next_ls_private_spitfire_env, :expand, [ast, file])
+    {:reply, {:ok, reply}, state}
+  end
+
   def handle_call({:compile, opts}, _from, %{node: node} = state) do
     opts =
       opts
@@ -298,7 +313,7 @@ defmodule NextLS.Runtime do
   end
 
   @impl GenServer
-  # NOTE: these two callbacks are basically to forward the messages from the runtime to the LSP
+  # NOTE: these two callbacks are basically to forward the messages from the runtime to the
   #       LSP process so that progress messages can be dispatched
   def handle_info({:compiler_result, caller_ref, result}, state) do
     # we add the runtime name into the message
@@ -316,12 +331,12 @@ defmodule NextLS.Runtime do
       state.on_initialized.({:error, :portdown})
     end
 
-    {:stop, {:shutdown, :portdown}, state}
+    {:noreply, Map.delete(state, :node)}
   end
 
   def handle_info({:cancel, error}, state) do
     state.on_initialized.({:error, error})
-    {:stop, error, state}
+    {:noreply, Map.delete(state, :node)}
   end
 
   def handle_info({:node, node}, state) do
@@ -340,15 +355,17 @@ defmodule NextLS.Runtime do
       ) do
     NextLS.Logger.log(state.logger, data)
 
+    Port.close(port)
     state.on_initialized.({:error, :deps})
-    {:noreply, state}
+    {:stop, {:shutdown, :unchecked_dependencies}, state}
   end
 
   def handle_info({port, {:data, "Unchecked dependencies" <> _ = data}}, %{port: port} = state) do
     NextLS.Logger.log(state.logger, data)
 
+    Port.close(port)
     state.on_initialized.({:error, :deps})
-    {:noreply, state}
+    {:stop, {:shutdown, :unchecked_dependencies}, state}
   end
 
   def handle_info({port, {:data, data}}, %{port: port} = state) do

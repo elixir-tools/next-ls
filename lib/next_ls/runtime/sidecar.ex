@@ -29,6 +29,9 @@ defmodule NextLS.Runtime.Sidecar do
     DB.insert_symbol(state.db, payload)
 
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 
   def handle_info({{:tracer, :reference, :alias}, payload}, state) do
@@ -58,6 +61,9 @@ defmodule NextLS.Runtime.Sidecar do
     end
 
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 
   def handle_info({{:tracer, :reference, :attribute}, payload}, state) do
@@ -69,22 +75,34 @@ defmodule NextLS.Runtime.Sidecar do
     end
 
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 
   def handle_info({{:tracer, :reference}, payload}, state) do
     DB.insert_reference(state.db, payload)
 
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 
   def handle_info({{:tracer, :start}, filename}, state) do
     DB.clean_references(state.db, filename)
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 
   def handle_info({{:tracer, :dbg}, payload}, state) do
     # credo:disable-for-next-line
     dbg(payload)
     {:noreply, state}
+  rescue
+    _ ->
+      {:noreply, state}
   end
 end

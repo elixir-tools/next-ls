@@ -183,7 +183,9 @@ defmodule NextLS.ASTHelpers do
            ast
            |> Zipper.zip()
            |> Zipper.find(fn
-             {:__cursor__, _, []} -> true
+             {:@, _, [{:__cursor__, _, []}]} -> true
+             {:__cursor__, _, _} -> true
+             {{:., _, [_, :__cursor__]}, _, _} -> true
              _ -> false
            end) do
       {:error, :not_found}

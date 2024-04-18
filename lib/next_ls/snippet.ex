@@ -182,6 +182,78 @@ defmodule NextLS.Snippet do
     }
   end
 
+  def get("fn/1", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      fn $1 ->
+        $0
+      end
+      """
+    }
+  end
+
+  def get("test/2", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      test "$1" do
+        $0
+      end
+      """
+    }
+  end
+
+  def get("test/3", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      test "$1", %{$2: $3} do
+        $0
+      end
+      """
+    }
+  end
+
+  def get("describe/2", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      describe "$1" do
+        $0
+      end
+      """
+    }
+  end
+
+  def get("setup/1", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      setup do
+        $0
+      end
+      """
+    }
+  end
+
+  def get("setup/2", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      setup ${1:context} do
+        $0
+      end
+      """
+    }
+  end
+
   def get(_label, _trigger_character, _opts) do
     nil
   end
