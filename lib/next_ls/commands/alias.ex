@@ -14,7 +14,7 @@ defmodule NextLS.Commands.Alias do
   alias NextLS.EditHelpers
   alias Sourceror.Zipper, as: Z
 
-  @line_length 98
+  @line_length 120
 
   defp opts do
     map(%{
