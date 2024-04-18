@@ -323,9 +323,12 @@ defmodule NextLS.Commands.AliasTest do
           """
           defmodule MyApp do
             # Comment
-            def to_list(map) do
-              # Also a comment
-              Foo.Bar.to_list(map)
+            defmodule Baz do
+              # Another comment
+              def to_list(map) do
+                # Also a comment
+                Foo.Bar.to_list(map)
+              end
             end
           end
           """,
@@ -334,26 +337,26 @@ defmodule NextLS.Commands.AliasTest do
 
       expected_edit =
         String.trim("""
-        defmodule MyApp do
-          alias Foo.Bar
-          # Comment
-          def to_list(map) do
-            # Also a comment
-            Bar.to_list(map)
+          defmodule Baz do
+            alias Foo.Bar
+            # Another comment
+            def to_list(map) do
+              # Also a comment
+              Bar.to_list(map)
+            end
           end
-        end
         """)
 
-      position = %{"line" => 4, "character" => 6}
+      position = %{"line" => 6, "character" => 8}
 
       assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
                Alias.run(%{uri: uri, text: text, position: position})
 
       assert edit.new_text == expected_edit
-      assert range.start.line == 0
-      assert range.start.character == 0
-      assert range.end.line == 6
-      assert range.end.character == 3
+      assert range.start.line == 2
+      assert range.start.character == 2
+      assert range.end.line == 8
+      assert range.end.character == 5
     end
   end
 end
