@@ -33,9 +33,10 @@ defmodule NextLS.Commands.Alias do
       indent = EditHelpers.get_indent(text, range.start.line)
       aliased = get_aliased(defm, modules)
 
-       comments = Enum.filter(comments, fn comment ->
-         comment.line > range.start.line && comment.line <= range.end.line
-       end)
+      comments =
+        Enum.filter(comments, fn comment ->
+          comment.line > range.start.line && comment.line <= range.end.line
+        end)
 
       to_algebra_opts = [comments: comments]
       doc = Code.Formatter.to_algebra(aliased, to_algebra_opts)
