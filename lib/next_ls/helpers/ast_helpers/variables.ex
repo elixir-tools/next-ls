@@ -43,41 +43,45 @@ defmodule NextLS.ASTHelpers.Variables do
   # end
 
   @spec list_variable_references(String.t(), {integer(), integer()}) :: [{atom(), {Range.t(), Range.t()}}]
-  def list_variable_references(file, position) do
+  def list_variable_references(file, position) when is_binary(file) do
     file = File.read!(file)
 
     case NextLS.Parser.parse(file, columns: true) do
       {:ok, ast} ->
-        {_ast, %{vars: vars}} =
-          Macro.traverse(
-            ast,
-            %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
-            &prewalk/2,
-            &postwalk/2
-          )
-
-        symbol =
-          Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
-            if position_in_range?(position, ref_range), do: {name, range}, else: nil
-          end)
-
-        position =
-          case symbol do
-            nil -> position
-            {_, {line.._//_, column.._//_}} -> {line, column}
-          end
-
-        Enum.reduce(vars, [], fn val, acc ->
-          if position_in_range?(position, val.sym_range) do
-            [{val.name, val.ref_range} | acc]
-          else
-            acc
-          end
-        end)
+        list_variable_references(ast, position)
 
       _error ->
         []
     end
+  end
+
+  def list_variable_references(ast, position) when is_tuple(ast) do
+    {_ast, %{vars: vars}} =
+      Macro.traverse(
+        ast,
+        %{vars: [], symbols: %{}, sym_ranges: [], scope: []},
+        &prewalk/2,
+        &postwalk/2
+      )
+
+    symbol =
+      Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
+        if position_in_range?(position, ref_range), do: {name, range}, else: nil
+      end)
+
+    position =
+      case symbol do
+        nil -> position
+        {_, {line.._//_, column.._//_}} -> {line, column}
+      end
+
+    Enum.reduce(vars, [], fn val, acc ->
+      if position_in_range?(position, val.sym_range) do
+        [{val.name, val.ref_range} | acc]
+      else
+        acc
+      end
+    end)
   end
 
   # search symbols in function and macro definition args and increase scope

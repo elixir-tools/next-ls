@@ -1,5 +1,7 @@
 defmodule NextLS.EditHelpers do
   @moduledoc false
+  # Having the format length to 121 would produce the least amount of churn in the case of the formatter
+  @line_length 121
 
   @doc """
   This adds indentation to all lines except the first since the LSP expects a range for edits,
@@ -37,5 +39,18 @@ defmodule NextLS.EditHelpers do
     |> Enum.at(line)
     |> then(&Regex.run(~r/^(\s*).*/, &1))
     |> List.last()
+  end
+
+  @doc """
+  Formats back the ast with the comments.
+  """
+  @spec to_string(ast :: Macro.t(), comments :: list(term)) :: String.t()
+  def to_string(ast, comments) do
+    to_algebra_opts = [comments: comments]
+
+    ast
+    |> Code.quoted_to_algebra(to_algebra_opts)
+    |> Inspect.Algebra.format(@line_length)
+    |> IO.iodata_to_binary()
   end
 end

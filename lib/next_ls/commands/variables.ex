@@ -1,8 +1,5 @@
-defmodule NextLS.Commands.Alias do
-  @moduledoc """
-  Refactors a module with fully qualified calls to an alias.
-  The cursor position should be under the module name that you wish to alias.
-  """
+defmodule NextLS.Commands.Variables do
+  @moduledoc false
   import Schematic
 
   alias GenLSP.Enumerations.ErrorCodes
@@ -11,6 +8,7 @@ defmodule NextLS.Commands.Alias do
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
   alias NextLS.ASTHelpers
+  alias NextLS.ASTHelpers.Variables
   alias NextLS.EditHelpers
   alias Sourceror.Zipper, as: Z
 
@@ -22,21 +20,21 @@ defmodule NextLS.Commands.Alias do
     })
   end
 
-  def run(opts) do
+  def extract(opts) do
     with {:ok, %{text: text, uri: uri, position: position}} <- unify(opts(), Map.new(opts)),
          {:ok, ast, comments} = parse(text),
          {:ok, defm} <- ASTHelpers.get_surrounding_module(ast, position),
-         {:ok, {:__aliases__, _, modules}} <- get_node(ast, position) do
+         {:ok, assign} <- get_node(ast, position) do
       range = make_range(defm)
       indent = EditHelpers.get_indent(text, range.start.line)
-      aliased = get_aliased(defm, modules)
+      extracted = extract_variable(defm, assign)
 
       comments =
         Enum.filter(comments, fn comment ->
           comment.line > range.start.line && comment.line <= range.end.line
         end)
 
-      formatted = EditHelpers.to_string(aliased, comments)
+      formatted = EditHelpers.to_string(extracted, comments)
 
       %WorkspaceEdit{
         changes: %{
@@ -91,10 +89,13 @@ defmodule NextLS.Commands.Alias do
         range = Sourceror.get_range(node)
 
         if not is_nil(range) and
-             match?({:__aliases__, _context, _modules}, node) &&
-             Sourceror.compare_positions(range.start, pos) in [:lt, :eq] &&
-             Sourceror.compare_positions(range.end, pos) in [:gt, :eq] do
-          {tree, node}
+             match?({:=, _match_ctx, [{_variable, _ctx, nil}, _value]}, node) do
+          if Sourceror.compare_positions(range.start, pos) == :lt &&
+               Sourceror.compare_positions(range.end, pos) == :gt do
+            {tree, node}
+          else
+            {tree, acc}
+          end
         else
           {tree, acc}
         end
@@ -102,35 +103,51 @@ defmodule NextLS.Commands.Alias do
 
     case result do
       {_, nil} ->
-        {:error, "could not find a module to alias at the cursor position"}
+        {:error, "could not find a variable to extract at the cursor position"}
 
-      {_, {_t, _m, []}} ->
-        {:error, "could not find a module to alias at the cursor position"}
-
-      {_, {_t, _m, [_argument | _rest]} = node} ->
+      {_, {:=, _, [{_name, _, nil}, _value]} = node} ->
         {:ok, node}
     end
   end
 
-  defp get_aliased(defm, modules) do
-    last = List.last(modules)
+  defp extract_variable(defm, {:=, _, [{name, var_ctx, _} = var, value]} = assign) do
+    definition = {:@, [], [{name, [], [value]}]}
+    usage = {:@, [], [var]}
+
+    refs = Variables.list_variable_references(defm, {var_ctx[:line], var_ctx[:column]})
+    refs_ctx = Enum.map(refs, fn {_, {line.._line_end//_, column.._column_end//_}} -> {line, column} end)
 
     replaced =
-      Macro.prewalk(defm, fn
-        {:__aliases__, context, ^modules} -> {:__aliases__, context, [last]}
-        ast -> ast
-      end)
+      defm
+      |> Z.zip()
+      |> Z.traverse(fn zipper ->
+        node = Z.node(zipper)
 
-    alias_to_add = {:alias, [alias: false], [{:__aliases__, [], modules}]}
+        case node do
+          ^assign ->
+            Z.remove(zipper)
+
+          {^name, ctx, _} ->
+            if {ctx[:line], ctx[:column]} in refs_ctx do
+              Z.replace(zipper, usage)
+            else
+              zipper
+            end
+
+          _ ->
+            zipper
+        end
+      end)
+      |> Z.node()
 
     {:defmodule, context, [module, [{do_block, block}]]} = replaced
 
     case block do
       {:__block__, block_context, defs} ->
-        {:defmodule, context, [module, [{do_block, {:__block__, block_context, [alias_to_add | defs]}}]]}
+        {:defmodule, context, [module, [{do_block, {:__block__, block_context, [definition | defs]}}]]}
 
       {_, _, _} = original ->
-        {:defmodule, context, [module, [{do_block, {:__block__, [], [alias_to_add, original]}}]]}
+        {:defmodule, context, [module, [{do_block, {:__block__, [], [definition, original]}}]]}
     end
   end
 end

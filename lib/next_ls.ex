@@ -735,6 +735,12 @@ defmodule NextLS do
       {:reply, [], lsp}
   end
 
+  @workspace_commands %{
+    "to-pipe" => {NextLS.Commands.Pipe, :to},
+    "from-pipe" => {NextLS.Commands.Pipe, :from},
+    "alias-refactor" => {NextLS.Commands.Pipe, :to},
+    "extract-variable" => {NextLS.Commands.Variables, :extract}
+  }
   def handle_request(
         %GenLSP.Requests.WorkspaceExecuteCommand{
           params: %GenLSP.Structures.ExecuteCommandParams{command: command} = params
@@ -743,48 +749,26 @@ defmodule NextLS do
       ) do
     reply =
       case command do
-        "from-pipe" ->
+        command when is_map_key(@workspace_commands, command) ->
           [arguments] = params.arguments
 
           uri = arguments["uri"]
-          position = arguments["position"]
-          text = lsp.assigns.documents[uri]
 
-          NextLS.Commands.Pipe.from(%{
-            uri: uri,
-            text: text,
-            position: position
-          })
+          arguments = [
+            %{
+              uri: uri,
+              position: arguments["position"],
+              text: lsp.assigns.documents[uri]
+            }
+          ]
 
-        "to-pipe" ->
-          [arguments] = params.arguments
+          {module, function} = @workspace_commands[command]
 
-          uri = arguments["uri"]
-          position = arguments["position"]
-          text = lsp.assigns.documents[uri]
-
-          NextLS.Commands.Pipe.to(%{
-            uri: uri,
-            text: text,
-            position: position
-          })
-
-        "alias-refactor" ->
-          [arguments] = params.arguments
-
-          uri = arguments["uri"]
-          position = arguments["position"]
-          text = lsp.assigns.documents[uri]
-
-          NextLS.Commands.Alias.run(%{
-            uri: uri,
-            text: text,
-            position: position
-          })
+          apply(module, function, arguments)
 
         _ ->
           NextLS.Logger.show_message(
-            lsp.logger,
+            lsp.assigns.logger,
             :warning,
             "[Next LS] Unknown workspace command: #{command}"
           )

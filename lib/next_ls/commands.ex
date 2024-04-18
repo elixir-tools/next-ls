@@ -4,7 +4,8 @@ defmodule NextLS.Commands do
   @labels %{
     "from-pipe" => "Inlined pipe",
     "to-pipe" => "Extracted to a pipe",
-    "alias-refactor" => "Refactored with an alias"
+    "alias-refactor" => "Refactored with an alias",
+    "extract-variable" => "Extracted variable to a module attribute"
   }
   @doc "Creates a label for the workspace apply struct from the command name"
   def label(command) when is_map_key(@labels, command), do: @labels[command]
