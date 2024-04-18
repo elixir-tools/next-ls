@@ -358,5 +358,44 @@ defmodule NextLS.Commands.AliasTest do
       assert range.end.line == 8
       assert range.end.character == 5
     end
+
+    test "preserves newlines" do
+      uri = "my_app.ex"
+
+      text =
+        String.split(
+          """
+          defmodule MyApp do
+            def to_list(map) do
+              Foo.Bar.to_list(map, "\nfoo")
+            end
+          end
+          """,
+          "\n"
+        )
+
+      expected_edit =
+        String.trim("""
+        defmodule MyApp do
+          alias Foo.Bar
+
+          def to_list(map) do
+            Bar.to_list(map, "\\nfoo")
+          end
+        end
+        """)
+
+      line = 2
+      position = %{"line" => line, "character" => 6}
+
+      assert %WorkspaceEdit{changes: %{^uri => [edit = %TextEdit{range: range}]}} =
+               Alias.run(%{uri: uri, text: text, position: position})
+
+      assert edit.new_text == expected_edit
+      assert range.start.line == 0
+      assert range.start.character == 0
+      assert range.end.line == 5
+      assert range.end.character == 3
+    end
   end
 end

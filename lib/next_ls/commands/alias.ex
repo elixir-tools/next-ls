@@ -39,8 +39,8 @@ defmodule NextLS.Commands.Alias do
         end)
 
       to_algebra_opts = [comments: comments]
-      doc = Code.Formatter.to_algebra(aliased, to_algebra_opts)
-      formatted = doc |> Inspect.Algebra.format(@line_length) |> Enum.join()
+      doc = Code.quoted_to_algebra(aliased, to_algebra_opts)
+      formatted = doc |> Inspect.Algebra.format(@line_length) |> IO.iodata_to_binary()
 
       %WorkspaceEdit{
         changes: %{
