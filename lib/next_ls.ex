@@ -154,7 +154,8 @@ defmodule NextLS do
          execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
            commands: [
              "to-pipe",
-             "from-pipe"
+             "from-pipe",
+             "alias-refactor"
            ]
          },
          hover_provider: true,
@@ -769,6 +770,19 @@ defmodule NextLS do
             position: position
           })
 
+        "alias-refactor" ->
+          [arguments] = params.arguments
+
+          uri = arguments["uri"]
+          position = arguments["position"]
+          text = lsp.assigns.documents[uri]
+
+          NextLS.Commands.Alias.run(%{
+            uri: uri,
+            text: text,
+            position: position
+          })
+
         _ ->
           NextLS.Logger.show_message(
             lsp.logger,
@@ -783,7 +797,7 @@ defmodule NextLS do
       %WorkspaceEdit{} = edit ->
         GenLSP.request(lsp, %WorkspaceApplyEdit{
           id: System.unique_integer([:positive]),
-          params: %ApplyWorkspaceEditParams{label: "Pipe", edit: edit}
+          params: %ApplyWorkspaceEditParams{label: NextLS.Commands.label(command), edit: edit}
         })
 
       _reply ->
