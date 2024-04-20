@@ -738,7 +738,7 @@ defmodule NextLS do
   @workspace_commands %{
     "to-pipe" => {NextLS.Commands.Pipe, :to},
     "from-pipe" => {NextLS.Commands.Pipe, :from},
-    "alias-refactor" => {NextLS.Commands.Pipe, :to},
+    "alias-refactor" => {NextLS.Commands.Alias, :run},
     "extract-variable" => {NextLS.Commands.Variables, :extract}
   }
   def handle_request(
