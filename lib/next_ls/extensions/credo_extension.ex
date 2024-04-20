@@ -111,15 +111,17 @@ defmodule NextLS.CredoExtension do
     {{:credo, path} = namespace, refs} = Map.pop(refs, ref)
 
     for issue <- issues do
+      column = (issue.column || 1) - 1
+
       diagnostic = %Diagnostic{
         range: %Range{
           start: %Position{
             line: issue.line_no - 1,
-            character: (issue.column || 1) - 1
+            character: column
           },
           end: %Position{
             line: issue.line_no - 1,
-            character: 999
+            character: column + String.length(issue.trigger)
           }
         },
         severity: category_to_severity(issue.category),

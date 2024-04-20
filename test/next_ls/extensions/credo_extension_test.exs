@@ -108,7 +108,7 @@ defmodule NextLS.CredoExtensionTest do
           },
           "message" => "There should be no calls to `dbg/1`.",
           "range" => %{
-            "end" => %{"character" => 999, "line" => 2},
+            "end" => %{"character" => 7, "line" => 2},
             "start" => %{"character" => 4, "line" => 2}
           },
           "severity" => 2,
@@ -146,7 +146,7 @@ defmodule NextLS.CredoExtensionTest do
           },
           "message" => "There should be no calls to `dbg/1`.",
           "range" => %{
-            "end" => %{"character" => 999, "line" => 2},
+            "end" => %{"character" => 7, "line" => 2},
             "start" => %{"character" => 4, "line" => 2}
           },
           "severity" => 2,
@@ -163,7 +163,7 @@ defmodule NextLS.CredoExtensionTest do
           },
           "message" => "Modules should have a @moduledoc tag.",
           "range" => %{
-            "end" => %{"character" => 999, "line" => 0},
+            "end" => %{"character" => 13, "line" => 0},
             "start" => %{"character" => 10, "line" => 0}
           },
           "severity" => 3,
