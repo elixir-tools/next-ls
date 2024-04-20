@@ -14,6 +14,7 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
     cwd = Path.join(tmp_dir, "my_proj")
 
     foo_path = Path.join(cwd, "lib/foo.ex")
+    bar_path = Path.join(cwd, "lib/bar.ex")
 
     foo = """
     defmodule MyProj.Foo do
@@ -28,9 +29,20 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
     end
     """
 
-    File.write!(foo_path, foo)
+    bar = """
+    defmodule MyProj.Bar do
+      def foo() do
+        a = :bar
+        IO.inspect(a)
+        a
+      end
+    end
+    """
 
-    [foo: foo, foo_path: foo_path]
+    File.write!(foo_path, foo)
+    File.write!(bar_path, bar)
+
+    [foo: foo, foo_path: foo_path, bar: bar, bar_path: bar_path]
   end
 
   setup :with_lsp
@@ -118,6 +130,41 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
                      "result" => [
                        %{"edit" => %{"changes" => %{^foo_uri => [%{"newText" => "_"}]}}},
                        %{"edit" => %{"changes" => %{^foo_uri => [%{"newText" => "  require Logger\n"}]}}}
+                     ]
+                   },
+                   500
+  end
+
+  test "sends back a remove inspect action", %{client: client, bar_path: bar} do
+    bar_uri = uri(bar)
+    id = 1
+
+    request client, %{
+      method: "textDocument/codeAction",
+      id: id,
+      jsonrpc: "2.0",
+      params: %{
+        context: %{
+          "diagnostics" => [
+            %{
+              "data" => %{"namespace" => "credo", "check" => "Elixir.Credo.Check.Warning.IoInspect"},
+              "message" => "There should be no calls to `IO.inspect/1`.",
+              "range" => %{"end" => %{"character" => 999, "line" => 2}, "start" => %{"character" => 4, "line" => 2}},
+              "severity" => 2,
+              "source" => "Elixir"
+            }
+          ]
+        },
+        range: %{start: %{line: 2, character: 0}, end: %{line: 7, character: 999}},
+        textDocument: %{uri: bar_uri}
+      }
+    }
+
+    assert_receive %{
+                     "jsonrpc" => "2.0",
+                     "id" => 1,
+                     "result" => [
+                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => ""}]}}}
                      ]
                    },
                    500
