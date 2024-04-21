@@ -23,7 +23,7 @@ defmodule NextLS.DB.Schema do
 
   alias NextLS.DB
 
-  @version 6
+  @version 7
 
   def init(conn) do
     # FIXME: this is odd tech debt. not a big deal but is confusing
@@ -83,6 +83,7 @@ defmodule NextLS.DB.Schema do
                 params blob,
                 line integer NOT NULL,
                 column integer NOT NULL,
+                end_column integer NOT NULL,
                 source text NOT NULL DEFAULT 'user',
                 inserted_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
