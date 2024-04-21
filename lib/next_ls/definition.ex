@@ -19,7 +19,12 @@ defmodule NextLS.Definition do
             AND ? <= refs.end_line
             AND refs.start_column <= ?
             AND ? <= refs.end_column
-        ORDER BY refs.id asc
+        ORDER BY 
+          (CASE refs.type
+             WHEN 'function' THEN 0
+             WHEN 'module' THEN 1
+             ELSE 2
+           END) asc
         LIMIT 1;
         """,
         [file, line, line, col, col]

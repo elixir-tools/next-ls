@@ -108,10 +108,10 @@ defmodule NextLS.DB do
     __query__(
       {conn, s.logger},
       ~Q"""
-      INSERT INTO symbols (module, file, type, name, line, 'column', source)
-          VALUES (?, ?, ?, ?, ?, ?, ?);
+      INSERT INTO symbols (module, file, type, name, line, 'column', 'end_column', source)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?);
       """,
-      [mod, file, "defmodule", mod, module_line, 1, source]
+      [mod, file, "defmodule", mod, module_line, 1, String.length(Macro.to_string(mod)), source]
     )
 
     if struct do
@@ -120,10 +120,19 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', 'end_column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, "defstruct", "%#{Macro.to_string(mod)}{}", meta[:line], 1, source]
+        [
+          mod,
+          file,
+          "defstruct",
+          "%#{Macro.to_string(mod)}{}",
+          meta[:line],
+          meta[:column] || 1,
+          meta[:column] || 1,
+          source
+        ]
       )
     end
 
@@ -131,8 +140,8 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, params, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, params, line, 'column', end_column, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """,
         [
           mod,
@@ -142,6 +151,7 @@ defmodule NextLS.DB do
           :erlang.term_to_binary(params),
           meta[:line],
           meta[:column] || 1,
+          (meta[:column] || 1) + String.length(to_string(name)) - 1,
           source
         ]
       )
@@ -151,10 +161,10 @@ defmodule NextLS.DB do
       __query__(
         {conn, s.logger},
         ~Q"""
-        INSERT INTO symbols (module, file, type, name, line, 'column', source)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO symbols (module, file, type, name, line, 'column', 'end_column', source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """,
-        [mod, file, type, name, line, column, source]
+        [mod, file, type, name, line, column, column + String.length(to_string(name)) - 1, source]
       )
     end
 
