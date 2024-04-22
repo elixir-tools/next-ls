@@ -22,7 +22,10 @@ defmodule NextLS.Test do
 
     replacement = prefix <> text <> suffix
 
-    Enum.join(Enum.slice(lines, 0, startl) ++ [replacement] ++ Enum.slice(lines, endl + 1, Enum.count(lines)))
+    new_lines = Enum.slice(lines, 0, startl) ++ [replacement] ++ Enum.slice(lines, endl + 1, Enum.count(lines))
+    new_lines
+    |> Enum.join("\n")
+    |> String.trim()
   end
 
   defmacro assert_is_text_edit(code, edit, expected) do

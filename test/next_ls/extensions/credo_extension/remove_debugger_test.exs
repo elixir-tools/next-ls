@@ -18,8 +18,8 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
         """
         defmodule Test.Debug do
           def hello(arg) do
-            IO.inspect(arg, label: "DEBUG")
-            arg
+            IO.inspect(arg)
+            foo(arg)
           end
         end
         """,
@@ -31,6 +31,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
       defmodule Test.Debug do
         def hello(arg) do
           arg
+          foo(arg)
         end
       end
       """)
@@ -41,7 +42,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
     assert [code_action] = RemoveDebugger.new(diagnostic, text, @uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title == "Remove debugger"
+    assert code_action.title == "Remove IO.inspect(arg) column(8)"
 
     assert %WorkspaceEdit{
              changes: %{
@@ -54,15 +55,16 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
 
   test "works for all credo checks" do
     checks = [
-      {"Elixir.Credo.Check.Warning.Dbg", "dbg()"},
-      {"Elixir.Credo.Check.Warning.Dbg", "Kernel.dbg()"},
-      {"Elixir.Credo.Check.Warning.IExPry", "IEx.pry()"},
-      {"Elixir.Credo.Check.Warning.IoInspect", "IO.inspect(foo)"},
-      {"Elixir.Credo.Check.Warning.IoPuts", "IO.puts(arg)"},
-      {"Elixir.Credo.Check.Warning.MixEnv", "Mix.env()"}
+      {"Elixir.Credo.Check.Warning.Dbg", "dbg()", ""},
+      {"Elixir.Credo.Check.Warning.Dbg", "dbg(arg)", "arg"},
+      {"Elixir.Credo.Check.Warning.Dbg", "Kernel.dbg()", ""},
+      {"Elixir.Credo.Check.Warning.IExPry", "IEx.pry()", ""},
+      {"Elixir.Credo.Check.Warning.IoInspect", "IO.inspect(foo)", "foo"},
+      {"Elixir.Credo.Check.Warning.IoPuts", "IO.puts(arg)", ""},
+      {"Elixir.Credo.Check.Warning.MixEnv", "Mix.env()", ""}
     ]
 
-    for {check, code} <- checks do
+    for {check, code, edit} <- checks do
       text =
         String.split(
           """
@@ -80,6 +82,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
         String.trim("""
         defmodule Test.Debug do
           def hello(arg) do
+            #{edit}
             arg
           end
         end
@@ -106,7 +109,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
         """
         defmodule Test.Debug do
           def hello(arg) do
-            IO.inspect(arg, label: "DEBUG"); arg
+            IO.inspect(arg, label: "Debugging"); world(arg)
           end
         end
         """,
@@ -117,7 +120,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
       String.trim("""
       defmodule Test.Debug do
         def hello(arg) do
-          arg
+          arg; world(arg)
         end
       end
       """)
@@ -218,6 +221,42 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
     assert_is_text_edit(text, edit, expected)
   end
 
+  test "handles pipe calls after an expr" do
+    text =
+      String.split(
+        """
+        defmodule Test.Debug do
+          def hello(arg) do
+            arg |> IO.inspect()
+          end
+        end
+        """,
+        "\n"
+      )
+
+    expected =
+      String.trim("""
+      defmodule Test.Debug do
+        def hello(arg) do
+          arg
+        end
+      end
+      """)
+
+    start = %Position{character: 10, line: 2}
+    diagnostic = get_diagnostic(start)
+
+    assert [code_action] = RemoveDebugger.new(diagnostic, text, @uri)
+
+    assert %WorkspaceEdit{
+             changes: %{
+               @uri => [edit]
+             }
+           } = code_action.edit
+
+    assert_is_text_edit(text, edit, expected)
+  end
+
   test "handles empty function bodies" do
     text =
       String.split(
@@ -235,7 +274,42 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
       String.trim("""
       defmodule Test.Debug do
         def hello(arg) do
+          arg
         end
+      end
+      """)
+
+    start = %Position{character: 4, line: 2}
+    diagnostic = get_diagnostic(start)
+
+    assert [code_action] = RemoveDebugger.new(diagnostic, text, @uri)
+
+    assert %WorkspaceEdit{
+             changes: %{
+               @uri => [edit]
+             }
+           } = code_action.edit
+
+    assert_is_text_edit(text, edit, expected)
+  end
+
+  test "handles inspects in module bodies" do
+    text =
+      String.split(
+        """
+        defmodule Test.Debug do
+          @attr "foo"
+          IO.inspect(@attr)
+        end
+        """,
+        "\n"
+      )
+
+    expected =
+      String.trim("""
+      defmodule Test.Debug do
+        @attr "foo"
+        @attr
       end
       """)
 

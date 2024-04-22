@@ -33,7 +33,7 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
     defmodule MyProj.Bar do
       def foo() do
         a = :bar
-        IO.inspect(a)
+        foo(dbg(a), IO.inspect(a))
         a
       end
     end
@@ -54,6 +54,7 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
     assert_notification "$/progress", %{"value" => %{"kind" => "end", "message" => "Finished indexing!"}}
 
     did_open(context.client, context.foo_path, context.foo)
+    did_open(context.client, context.bar_path, context.bar)
     context
   end
 
@@ -72,7 +73,7 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
               "data" => %{"namespace" => "elixir", "type" => "unused_variable"},
               "message" =>
                 "variable \"foo\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
-              "range" => %{"end" => %{"character" => 999, "line" => 2}, "start" => %{"character" => 4, "line" => 2}},
+              "range" => %{"end" => %{"character" => 999, "line" => 3}, "start" => %{"character" => 4, "line" => 3}},
               "severity" => 2,
               "source" => "Elixir"
             }
@@ -147,15 +148,22 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
         context: %{
           "diagnostics" => [
             %{
+              "data" => %{"namespace" => "credo", "check" => "Elixir.Credo.Check.Warning.Dbg"},
+              "message" => "There should be no calls to `dbg/1`.",
+              "range" => %{"end" => %{"character" => 13, "line" => 3}, "start" => %{"character" => 8, "line" => 3}},
+              "severity" => 2,
+              "source" => "Elixir"
+            },
+            %{
               "data" => %{"namespace" => "credo", "check" => "Elixir.Credo.Check.Warning.IoInspect"},
               "message" => "There should be no calls to `IO.inspect/1`.",
-              "range" => %{"end" => %{"character" => 999, "line" => 2}, "start" => %{"character" => 4, "line" => 2}},
+              "range" => %{"end" => %{"character" => 28, "line" => 3}, "start" => %{"character" => 20, "line" => 3}},
               "severity" => 2,
               "source" => "Elixir"
             }
           ]
         },
-        range: %{start: %{line: 2, character: 0}, end: %{line: 7, character: 999}},
+        range: %{start: %{line: 0, character: 0}, end: %{line: 7, character: 999}},
         textDocument: %{uri: bar_uri}
       }
     }
@@ -164,9 +172,12 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
                      "jsonrpc" => "2.0",
                      "id" => 1,
                      "result" => [
-                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => ""}]}}}
+                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range"  => range1}]}}},
+                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range"  => range2}]}}}
                      ]
                    },
                    500
+      assert %{"start" => %{"character" => 8, "line" => 3}, "end" => %{"character" => 14, "line" => 3}} == range1
+      assert %{"start" => %{"character" => 16, "line" => 3}, "end" => %{"character" => 29, "line" => 3}} == range2
   end
 end
