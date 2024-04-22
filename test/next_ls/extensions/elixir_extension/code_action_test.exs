@@ -172,12 +172,13 @@ defmodule NextLS.Extensions.ElixirExtension.CodeActionTest do
                      "jsonrpc" => "2.0",
                      "id" => 1,
                      "result" => [
-                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range"  => range1}]}}},
-                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range"  => range2}]}}}
+                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range" => range1}]}}},
+                       %{"edit" => %{"changes" => %{^bar_uri => [%{"newText" => "a", "range" => range2}]}}}
                      ]
                    },
                    500
-      assert %{"start" => %{"character" => 8, "line" => 3}, "end" => %{"character" => 14, "line" => 3}} == range1
-      assert %{"start" => %{"character" => 16, "line" => 3}, "end" => %{"character" => 29, "line" => 3}} == range2
+
+    assert %{"start" => %{"character" => 8, "line" => 3}, "end" => %{"character" => 14, "line" => 3}} == range1
+    assert %{"start" => %{"character" => 16, "line" => 3}, "end" => %{"character" => 29, "line" => 3}} == range2
   end
 end

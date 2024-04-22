@@ -115,6 +115,5 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
   defp remove_debugger({:dbg, _, [arg | _]}), do: arg
   defp remove_debugger(_node), do: {:__block__, [], []}
 
-
-  defp make_title(node = {_, ctx, _}), do: "Remove #{Macro.to_string(node)} column(#{ctx[:column]})"
+  defp make_title({_, ctx, _} = node), do: "Remove #{Macro.to_string(node)} column(#{ctx[:column]})"
 end

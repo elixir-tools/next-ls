@@ -23,6 +23,7 @@ defmodule NextLS.Test do
     replacement = prefix <> text <> suffix
 
     new_lines = Enum.slice(lines, 0, startl) ++ [replacement] ++ Enum.slice(lines, endl + 1, Enum.count(lines))
+
     new_lines
     |> Enum.join("\n")
     |> String.trim()
