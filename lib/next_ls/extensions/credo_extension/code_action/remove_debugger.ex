@@ -1,15 +1,17 @@
 defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
   @moduledoc false
 
+  alias GenLSP.Enumerations.ErrorCodes
   alias GenLSP.Structures.CodeAction
-  alias GenLSP.Structures.Position
   alias GenLSP.Structures.Diagnostic
+  alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
   alias NextLS.ASTHelpers
   alias NextLS.EditHelpers
   alias Sourceror.Zipper, as: Z
+
   @line_length 121
 
   def new(diagnostic, text, uri) do
@@ -55,22 +57,22 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
 
   defp remove_debugger(ast, position) do
     pos = [line: position.line + 1, column: position.character + 1]
-    result =
-      ast
-      |> Z.zip()
-      |> Z.traverse(fn tree ->
-        node = Z.node(tree)
-        range = Sourceror.get_range(node)
 
-        if matches_debug?(node, pos) &&
-          Sourceror.compare_positions(range.start, pos) in [:lt, :eq] &&
-          Sourceror.compare_positions(range.end, pos) in [:gt, :eq] do
-          Z.remove(tree)
-        else
-          tree
-        end
-      end)
-      |> Z.node()
+    ast
+    |> Z.zip()
+    |> Z.traverse(fn tree ->
+      node = Z.node(tree)
+      range = Sourceror.get_range(node)
+
+      if (matches_debug?(node, pos) || matches_pipe?(node, pos)) &&
+           Sourceror.compare_positions(range.start, pos) in [:lt, :eq] &&
+           Sourceror.compare_positions(range.end, pos) in [:gt, :eq] do
+        handle(node, tree)
+      else
+        tree
+      end
+    end)
+    |> Z.node()
   end
 
   defp parse(lines) do
@@ -95,10 +97,21 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
     }
   end
 
-  defp matches_debug?({:|>, ctx, [_, {{:., ctx, [{:__aliases__, _, [:IO]}, f]}, _, _}]}, pos), do: pos[:line] == ctx[:line]
+  defp matches_pipe?({:|>, ctx, [_, arg]}, pos), do: pos[:line] == ctx[:line] && matches_debug?(arg, pos)
+  defp matches_pipe?(_, _), do: false
+
   defp matches_debug?({:dbg, ctx, []}, pos), do: pos[:line] == ctx[:line]
-  defp matches_debug?({{:., ctx, [{:__aliases__, _, [:IO]}, f]}, _, _}, pos) when f in [:puts, :inspect], do: pos[:line] == ctx[:line]
+
+  defp matches_debug?({{:., ctx, [{:__aliases__, _, [:IO]}, f]}, _, _}, pos) when f in [:puts, :inspect],
+    do: pos[:line] == ctx[:line]
+
   defp matches_debug?({{:., ctx, [{:__aliases__, _, [:IEx]}, :pry]}, _, _}, pos), do: pos[:line] == ctx[:line]
   defp matches_debug?({{:., ctx, [{:__aliases__, _, [:Mix]}, :env]}, _, _}, pos), do: pos[:line] == ctx[:line]
+  defp matches_debug?({{:., ctx, [{:__aliases__, _, [:Kernel]}, :dbg]}, _, _}, pos), do: pos[:line] == ctx[:line]
+  defp matches_debug?({{:__block__, _ctx1, _}, expr}, pos), do: matches_debug?(expr, pos)
   defp matches_debug?(_, _), do: false
+
+  defp handle({:|>, _, [arg, _function]}, tree), do: Z.replace(tree, arg)
+  defp handle({{:__block__, _, _}, _expr}, tree), do: Z.replace(tree, {:do, {:__block__, [], []}})
+  defp handle(_, tree), do: Z.remove(tree)
 end
