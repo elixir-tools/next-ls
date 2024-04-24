@@ -1,7 +1,7 @@
 defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
   use ExUnit.Case, async: true
 
-  import NextLS.Test
+  import NextLS.Support.Utils, only: [assert_is_text_edit: 3]
 
   alias GenLSP.Structures.CodeAction
   alias GenLSP.Structures.Position
