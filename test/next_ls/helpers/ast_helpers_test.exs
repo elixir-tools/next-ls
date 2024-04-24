@@ -91,26 +91,26 @@ defmodule NextLS.ASTHelpersTest do
         end
         """)
 
-      lines = 1..3
+      for {line, character} <- [{0, 2}, {1, 1}, {4, 0}, {5, 1}, {8, 2}] do
+        position = %Position{line: line, character: character}
 
-      for line <- lines do
-        position = %Position{line: line, character: 0}
+        assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Test]} | _]}} =
+                 ASTHelpers.get_surrounding_module(ast, position)
+      end
+
+      for {line, character} <- [{1, 2}, {1, 6}, {2, 5}, {3, 3}] do
+        position = %Position{line: line, character: character}
 
         assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Foo]} | _]}} =
                  ASTHelpers.get_surrounding_module(ast, position)
       end
 
-      lines = 5..7
-
-      for line <- lines do
-        position = %Position{line: line, character: 0}
+      for {line, character} <- [{5, 4}, {6, 1}, {7, 0}, {7, 3}] do
+        position = %Position{line: line, character: character}
 
         assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Bar]} | _]}} =
                  ASTHelpers.get_surrounding_module(ast, position)
       end
-
-      position = %Position{line: 0, character: 0}
-      assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Test]} | _]}} = ASTHelpers.get_surrounding_module(ast, position)
     end
 
     test "errors out when it can't find a module" do
@@ -120,25 +120,7 @@ defmodule NextLS.ASTHelpersTest do
         """)
 
       position = %Position{line: 0, character: 0}
-      assert {:error, "no defmodule definition"} = ASTHelpers.get_surrounding_module(ast, position)
-    end
-
-    test "it finds the nearest surrounding module" do
-      {:ok, ast} =
-        Spitfire.parse("""
-        defmodule Test do
-          alias Foo
-          alias Bar
-          alias Baz
-
-          defmodule Quix do
-            defstruct [:key]
-          end
-        end
-        """)
-
-      position = %Position{line: 4, character: 0}
-      assert {:ok, {:defmodule, _, [{:__aliases__, _, [:Test]} | _]}} = ASTHelpers.get_surrounding_module(ast, position)
+      assert {:error, :not_found} = ASTHelpers.get_surrounding_module(ast, position)
     end
   end
 end
