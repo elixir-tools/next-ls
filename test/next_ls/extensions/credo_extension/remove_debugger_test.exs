@@ -42,7 +42,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
     assert [code_action] = RemoveDebugger.new(diagnostic, text, @uri)
     assert is_struct(code_action, CodeAction)
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title == "Remove IO.inspect(arg) column(8)"
+    assert code_action.title == "Remove `&IO.inspect/1` 3:8"
 
     assert %WorkspaceEdit{
              changes: %{
@@ -55,16 +55,16 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
 
   test "works for all credo checks" do
     checks = [
-      {"Elixir.Credo.Check.Warning.Dbg", "dbg()", ""},
-      {"Elixir.Credo.Check.Warning.Dbg", "dbg(arg)", "arg"},
-      {"Elixir.Credo.Check.Warning.Dbg", "Kernel.dbg()", ""},
-      {"Elixir.Credo.Check.Warning.IExPry", "IEx.pry()", ""},
-      {"Elixir.Credo.Check.Warning.IoInspect", "IO.inspect(foo)", "foo"},
-      {"Elixir.Credo.Check.Warning.IoPuts", "IO.puts(arg)", ""},
-      {"Elixir.Credo.Check.Warning.MixEnv", "Mix.env()", ""}
+      {"Elixir.Credo.Check.Warning.Dbg", "dbg()", "dbg/0", ""},
+      {"Elixir.Credo.Check.Warning.Dbg", "dbg(arg)", "dbg/1", "arg"},
+      {"Elixir.Credo.Check.Warning.Dbg", "Kernel.dbg()", "Kernel.dbg/0", ""},
+      {"Elixir.Credo.Check.Warning.IExPry", "IEx.pry()", "IEx.pry/0", ""},
+      {"Elixir.Credo.Check.Warning.IoInspect", "IO.inspect(foo, label: ~s/bar/)", "IO.inspect/2", "foo"},
+      {"Elixir.Credo.Check.Warning.IoPuts", "IO.puts(arg)", "IO.puts/1", ""},
+      {"Elixir.Credo.Check.Warning.MixEnv", "Mix.env()", "Mix.env/0", ""}
     ]
 
-    for {check, code, edit} <- checks do
+    for {check, code, title, edit} <- checks do
       text =
         String.split(
           """
@@ -90,8 +90,10 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
 
       start = %Position{character: 4, line: 2}
       diagnostic = get_diagnostic(start, check: check, code: code)
+      title = "Remove `&#{title}` #{start.line + 1}"
 
       assert [code_action] = RemoveDebugger.new(diagnostic, text, @uri)
+      assert code_action.title =~ title
 
       assert %WorkspaceEdit{
                changes: %{
@@ -257,7 +259,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
     assert_is_text_edit(text, edit, expected)
   end
 
-  test "handles empty function bodies" do
+  test "handles functions with only one expression" do
     text =
       String.split(
         """

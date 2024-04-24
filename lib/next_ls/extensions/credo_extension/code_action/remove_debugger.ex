@@ -10,8 +10,6 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
   alias NextLS.EditHelpers
   alias Sourceror.Zipper, as: Z
 
-  @line_length 121
-
   def new(diagnostic, text, uri) do
     %Diagnostic{} = diagnostic
     start = diagnostic.range.start
@@ -22,9 +20,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
       ast_without_debugger = remove_debugger(debugger_node)
       range = make_range(debugger_node)
 
-      to_algebra_opts = []
-      doc = Code.quoted_to_algebra(ast_without_debugger, to_algebra_opts)
-      formatted = doc |> Inspect.Algebra.format(@line_length) |> IO.iodata_to_binary()
+      formatted = Macro.to_string(ast_without_debugger)
 
       [
         %CodeAction{
@@ -115,5 +111,12 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
   defp remove_debugger({:dbg, _, [arg | _]}), do: arg
   defp remove_debugger(_node), do: {:__block__, [], []}
 
-  defp make_title({_, ctx, _} = node), do: "Remove #{Macro.to_string(node)} column(#{ctx[:column]})"
+  defp make_title({_, ctx, _} = node), do: "Remove `#{format_node(node)}` #{ctx[:line]}:#{ctx[:column]}"
+  defp format_node({:|>, _, [_arg, function]}), do: format_node(function)
+
+  defp format_node({{:., _, [{:__aliases__, _, [module]}, function]}, _, args}),
+    do: "&#{module}.#{function}/#{Enum.count(args)}"
+
+  defp format_node({:dbg, _, args}), do: "&dbg/#{Enum.count(args)}"
+  defp format_node(node), do: Macro.to_string(node)
 end
