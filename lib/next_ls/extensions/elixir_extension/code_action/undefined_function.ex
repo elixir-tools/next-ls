@@ -9,44 +9,25 @@ defmodule NextLS.ElixirExtension.CodeAction.UndefinedFunction do
   alias NextLS.ASTHelpers
 
   def new(diagnostic, text, uri) do
-    %Diagnostic{range: range, data: %{"info" => info}} = diagnostic
+    %Diagnostic{range: range, data: %{"info" => %{"name" => name, "arity" => arity}}} = diagnostic
 
     with {:ok, ast} <-
            text
            |> Enum.join("\n")
-           |> Spitfire.parse(
-             literal_encoder:
-               &{:ok,
-                {
-                  :__block__,
-                  &2,
-                  [&1]
-                }}
-           ),
-         {:ok, {:defmodule, meta, _} = defm} <- ASTHelpers.get_surrounding_module(ast, range.start),
-         indentation <- get_indent(text, defm) do
+           |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}}),
+         {:ok, {:defmodule, meta, _} = defm} <- ASTHelpers.get_surrounding_module(ast, range.start) do
+      indentation = get_indent(text, defm)
+
       position = %GenLSP.Structures.Position{
         line: meta[:end][:line] - 1,
         character: 0
       }
 
-      %{
-        "name" => name,
-        "arity" => arity
-      } = info
-
       params = if arity == "0", do: "", else: Enum.map_join(1..String.to_integer(arity), ", ", fn i -> "param#{i}" end)
 
-      new_text = """
-
-      #{indentation}defp #{name}(#{params}) do
-
-      #{indentation}end
-      """
-
-      [
+      action = fn title, new_text ->
         %CodeAction{
-          title: "Create local private function #{info["name"]}/#{info["arity"]}",
+          title: title,
           diagnostics: [diagnostic],
           edit: %WorkspaceEdit{
             changes: %{
@@ -62,6 +43,21 @@ defmodule NextLS.ElixirExtension.CodeAction.UndefinedFunction do
             }
           }
         }
+      end
+
+      [
+        action.("Create public function #{name}/#{arity}", """
+
+        #{indentation}def #{name}(#{params}) do
+
+        #{indentation}end
+        """),
+        action.("Create private function #{name}/#{arity}", """
+
+        #{indentation}defp #{name}(#{params}) do
+
+        #{indentation}end
+        """)
       ]
     end
   end

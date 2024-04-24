@@ -56,10 +56,30 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
 
     uri = "file:///home/owner/my_project/hello.ex"
 
-    assert [code_action] = UndefinedFunction.new(diagnostic, text, uri)
-    assert %CodeAction{} = code_action
-    assert [diagnostic] == code_action.diagnostics
-    assert code_action.title == "Create local private function bar/2"
+    assert [public, private] = UndefinedFunction.new(diagnostic, text, uri)
+    assert [diagnostic] == public.diagnostics
+    assert public.title == "Create public function bar/2"
+
+    edit_position = %Position{line: 16, character: 0}
+
+    assert %WorkspaceEdit{
+             changes: %{
+               ^uri => [
+                 %TextEdit{
+                   new_text: """
+
+                     def bar(param1, param2) do
+
+                     end
+                   """,
+                   range: %Range{start: ^edit_position, end: ^edit_position}
+                 }
+               ]
+             }
+           } = public.edit
+
+    assert [diagnostic] == private.diagnostics
+    assert private.title == "Create private function bar/2"
 
     edit_position = %Position{line: 16, character: 0}
 
@@ -77,7 +97,7 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
                  }
                ]
              }
-           } = code_action.edit
+           } = private.edit
   end
 
   test "in inner module creates new private function inside current module" do
