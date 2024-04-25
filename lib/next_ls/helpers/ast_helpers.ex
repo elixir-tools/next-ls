@@ -155,26 +155,52 @@ defmodule NextLS.ASTHelpers do
     end)
   end
 
+  defp sourceror_inside?(range, position) do
+    Sourceror.compare_positions(range.start, position) in [:lt, :eq] &&
+      Sourceror.compare_positions(range.end, position) in [:gt, :eq]
+  end
+
   @spec get_surrounding_module(ast :: Macro.t(), position :: Position.t()) :: {:ok, Macro.t()} | {:error, String.t()}
   def get_surrounding_module(ast, position) do
-    defm =
-      ast
-      |> Macro.prewalker()
-      |> Enum.filter(fn node -> match?({:defmodule, _, _}, node) end)
-      |> Enum.filter(fn {_, ctx, _} ->
-        position.line + 1 - ctx[:line] >= 0
-      end)
-      |> Enum.min_by(
-        fn {_, ctx, _} ->
-          abs(ctx[:line] - 1 - position.line)
-        end,
-        fn -> nil end
-      )
+    # TODO: this should take elixir positions and not LSP positions
+    position = [line: position.line + 1, column: position.character + 1]
 
-    if defm do
-      {:ok, defm}
-    else
-      {:error, "no defmodule definition"}
+    {_zipper, acc} =
+      ast
+      |> Zipper.zip()
+      |> Zipper.traverse_while(nil, fn tree, acc ->
+        node = Zipper.node(tree)
+        node_range = Sourceror.get_range(node)
+
+        is_inside =
+          with nil <- node_range do
+            false
+          else
+            _ -> sourceror_inside?(node_range, position)
+          end
+
+        acc =
+          with true <- is_inside,
+               {:defmodule, _, _} <- node do
+            node
+          else
+            _ -> acc
+          end
+
+        cond do
+          is_inside and match?({_, _, [_ | _]}, node) ->
+            {:cont, tree, acc}
+
+          is_inside and match?({_, _, []}, node) ->
+            {:halt, tree, acc}
+
+          true ->
+            {:cont, tree, acc}
+        end
+      end)
+
+    with {:ok, nil} <- {:ok, acc} do
+      {:error, :not_found}
     end
   end
 
@@ -192,5 +218,18 @@ defmodule NextLS.ASTHelpers do
     else
       zipper -> {:ok, zipper}
     end
+  end
+
+  def top(nil, acc, _callback), do: acc
+
+  def top(%Zipper{path: nil} = zipper, acc, callback), do: callback.(Zipper.node(zipper), zipper, acc)
+
+  def top(zipper, acc, callback) do
+    node = Zipper.node(zipper)
+    acc = callback.(node, zipper, acc)
+
+    zipper = Zipper.up(zipper)
+
+    top(zipper, acc, callback)
   end
 end
