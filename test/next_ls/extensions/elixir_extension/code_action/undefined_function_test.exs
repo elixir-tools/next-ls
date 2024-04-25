@@ -144,10 +144,10 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
 
     uri = "file:///home/owner/my_project/hello.ex"
 
-    assert [code_action] = UndefinedFunction.new(diagnostic, text, uri)
+    assert [_, code_action] = UndefinedFunction.new(diagnostic, text, uri)
     assert %CodeAction{} = code_action
     assert [diagnostic] == code_action.diagnostics
-    assert code_action.title == "Create local private function bar/2"
+    assert code_action.title == "Create private function bar/2"
 
     edit_position = %Position{line: 5, character: 0}
 
