@@ -339,7 +339,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebuggerTest do
       source: "Elixir",
       range: %Range{
         start: start,
-        end: %{start | character: 999}
+        end: start
       }
     }
   end
