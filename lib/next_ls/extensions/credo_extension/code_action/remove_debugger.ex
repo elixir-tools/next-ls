@@ -14,6 +14,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
 
   def new(%Diagnostic{} = diagnostic, text, uri) do
     range = diagnostic.range
+
     with {:ok, ast, comments} <- parse(text),
          {:ok, debugger_node} <- find_debugger(ast, range) do
       indent = EditHelpers.get_indent(text, range.start.line)
@@ -74,16 +75,18 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
         end
       end)
 
-    result = Enum.min_by(results, fn node ->
-      range = Sourceror.get_range(node)
+    result =
+      Enum.min_by(results, fn node ->
+        range = Sourceror.get_range(node)
 
-      pos.start[:column] - range.start[:column] + range.end[:column] - pos.end[:column]
-    end)
+        pos.start[:column] - range.start[:column] + range.end[:column] - pos.end[:column]
+      end)
 
-    result = Enum.find(results, result, fn
-      {:|>, _, [_first, ^result]} -> true
-      _ -> false
-    end)
+    result =
+      Enum.find(results, result, fn
+        {:|>, _, [_first, ^result]} -> true
+        _ -> false
+      end)
 
     case result do
       nil -> {:error, "could find a debugger to remove"}
@@ -118,8 +121,7 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
 
   defp matches_debug?({:dbg, _, _}), do: true
 
-  defp matches_debug?({{:., _, [{:__aliases__, _, [:IO]}, f]}, _, _}) when f in [:puts, :inspect],
-    do: true
+  defp matches_debug?({{:., _, [{:__aliases__, _, [:IO]}, f]}, _, _}) when f in [:puts, :inspect], do: true
 
   defp matches_debug?({{:., _, [{:__aliases__, _, [:IEx]}, :pry]}, _, _}), do: true
   defp matches_debug?({{:., _, [{:__aliases__, _, [:Mix]}, :env]}, _, _}), do: true
@@ -131,9 +133,6 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
   defp remove_debugger({{:., _, [{:__aliases__, _, [:Kernel]}, :dbg]}, _, [arg | _]}), do: arg
   defp remove_debugger({:dbg, _, [arg | _]}), do: arg
   defp remove_debugger(_node), do: {:__block__, [], []}
-
-  defp pipe?({:|>, _, _}), do: true
-  defp pipe?(_), do: false
 
   defp make_title({_, ctx, _} = node), do: "Remove `#{format_node(node)}` #{ctx[:line]}:#{ctx[:column]}"
   defp format_node({:|>, _, [_arg, function]}), do: format_node(function)
