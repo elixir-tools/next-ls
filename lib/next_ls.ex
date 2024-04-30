@@ -588,21 +588,43 @@ defmodule NextLS do
 
     source = Enum.join(document, "\n")
 
-    ast =
-      source
-      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, [{:literal, true} | &2], [&1]}})
-      |> then(fn
-        {:ok, ast} -> ast
-        {:error, ast, _} -> ast
-        {:error, :no_fuel_remaining} -> nil
-      end)
+    {ms, ast} =
+      :timer.tc(
+        fn ->
+          source
+          |> Spitfire.parse()
+          |> then(fn
+            {:ok, ast} -> ast
+            {:error, ast, _} -> ast
+            {:error, :no_fuel_remaining} -> nil
+          end)
+        end,
+        :millisecond
+      )
 
-    with_cursor_zipper =
-      NextLS.ASTHelpers.find_cursor(ast, line: position.line + 1, column: position.character + 1)
+    Logger.debug("parsing: #{ms}ms")
+
+    {ms, with_cursor_zipper} =
+      :timer.tc(
+        fn ->
+          NextLS.ASTHelpers.find_cursor(ast, line: position.line + 1, column: position.character + 1)
+        end,
+        :millisecond
+      )
+
+    Logger.debug("find_cursor: #{ms}ms")
 
     # dbg(Sourceror.Zipper.node(with_cursor_zipper))
 
-    env = NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
+    {ms, env} =
+      :timer.tc(
+        fn ->
+          NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
+        end,
+        :millisecond
+      )
+
+    Logger.debug("build env: #{ms}ms")
 
     document_slice =
       document
@@ -621,8 +643,15 @@ defmodule NextLS do
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
             ast = Sourceror.Zipper.node(with_cursor_zipper)
 
-            {:ok, {_, _, _, macro_env}} =
-              Runtime.expand(runtime, ast, Path.basename(uri))
+            {ms, {:ok, {_, _, _, macro_env}}} =
+              :timer.tc(
+                fn ->
+                  Runtime.expand(runtime, ast, Path.basename(uri))
+                end,
+                :millisecond
+              )
+
+            Logger.debug("expand: #{ms}ms")
 
             env =
               env
@@ -631,11 +660,22 @@ defmodule NextLS do
               |> Map.put(:aliases, macro_env.aliases)
               |> Map.put(:attrs, macro_env.attrs)
 
-            {wuri,
-             document_slice
-             |> String.to_charlist()
-             |> Enum.reverse()
-             |> NextLS.Autocomplete.expand(runtime, env)}
+            doc =
+              document_slice
+              |> String.to_charlist()
+              |> Enum.reverse()
+
+            {ms, result} =
+              :timer.tc(
+                fn ->
+                  NextLS.Autocomplete.expand(doc, runtime, env)
+                end,
+                :millisecond
+              )
+
+            Logger.debug("complete: #{ms}ms")
+
+            {wuri, result}
           end
 
         case result do

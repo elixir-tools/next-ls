@@ -4,6 +4,8 @@ defmodule NextLS.CompletionsTest do
   import GenLSP.Test
   import NextLS.Support.Utils
 
+  @moduletag init_options: %{"experimental" => %{"completions" => %{"enable" => true}}}
+
   defmacrop assert_match({:in, _, [left, right]}) do
     quote do
       assert Enum.any?(unquote(right), fn x ->
@@ -344,6 +346,44 @@ defmodule NextLS.CompletionsTest do
              "insertText" => "foo.ex",
              "kind" => 17,
              "label" => "foo.ex"
+           } in results
+  end
+
+  test "inside interpolation in strings", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, ~S"""
+    defmodule Foo do
+      def run(thing) do
+        "./lib/#{t}"
+        :ok
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 2,
+          character: 13
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "thing",
+             "kind" => 6,
+             "label" => "thing"
            } in results
   end
 

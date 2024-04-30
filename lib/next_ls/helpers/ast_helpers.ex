@@ -207,86 +207,66 @@ defmodule NextLS.ASTHelpers do
   def find_cursor(ast, position) do
     ast = {:__block__, [], [ast]}
 
-    {tree, id} =
+    {tree, cursor_tree} =
       ast
       |> Zipper.zip()
-      |> Zipper.traverse(0, fn tree, id ->
+      |> Zipper.traverse(nil, fn tree, acc ->
         node = Zipper.node(tree)
         node_range = Sourceror.Range.get_range(node)
+        is_literal = Macro.quoted_literal?(node)
 
         is_inside =
-          with nil <- node_range do
+          with nil <- node_range, is_literal do
             false
           else
             _ -> sourceror_inside?(node_range, position)
           end
 
-        tree =
-          case node do
-            {_, [{:literal, true} | _], [literal]} -> Zipper.replace(tree, literal)
-            _ -> tree
-          end
+        cond do
+          is_literal ->
+            {tree, acc}
 
-        if is_inside do
-          id = id + 1
+          is_inside ->
+            {tree, tree}
 
-          tree =
-            Zipper.update(tree, fn node ->
-              Macro.update_meta(node, fn meta ->
-                Keyword.put(meta, :id, id)
-              end)
-            end)
-
-          {tree, id}
-        else
-          {tree, id}
+          true ->
+            {tree, acc}
         end
       end)
 
-    # PERF: doing a second pass, can we improve?
-    Zipper.traverse(tree, fn tree ->
-      node = Zipper.node(tree)
+    if cursor_tree do
+      left = Zipper.left(cursor_tree)
+      up = Zipper.up(cursor_tree)
 
-      case node do
-        {_, [{:id, cid} | _], _} ->
-          tree =
-            Zipper.update(tree, fn node ->
-              Macro.update_meta(node, fn meta ->
-                Keyword.delete(meta, :id)
-              end)
+      cond_result =
+        cond do
+          up && match?({:"::", _, _}, Zipper.node(up)) ->
+            up
+            |> Zipper.up()
+            |> Zipper.update(fn n ->
+              {:__block__, [],
+               [
+                 {:__cursor__, [], []},
+                 n
+               ]}
             end)
 
-          tree =
-            if cid == id do
-              # insert our "cursor" node
-              left = Zipper.left(tree)
-              up = Zipper.up(tree)
+          up && match?({:<-, _, _}, Zipper.node(up)) ->
+            up |> Zipper.insert_left({:__cursor__, [], []}) |> Zipper.down() |> Zipper.rightmost()
 
-              tree =
-                cond do
-                  up && match?({:<-, _, _}, Zipper.node(up)) ->
-                    up |> Zipper.insert_left({:__cursor__, [], []}) |> Zipper.down() |> Zipper.rightmost()
+          left && Zipper.node(left) == :do ->
+            Zipper.update(cursor_tree, fn n ->
+              {:__block__, [], [n, {:__cursor__, [], []}]}
+            end)
 
-                  left && Zipper.node(left) == :do ->
-                    Zipper.update(tree, fn n ->
-                      {:__block__, [], [n, {:__cursor__, [], []}]}
-                    end)
+          true ->
+            Zipper.insert_right(cursor_tree, {:__cursor__, [], []})
+        end
 
-                  true ->
-                    Zipper.insert_right(tree, {:__cursor__, [], []})
-                end
-
-              tree
-            else
-              tree
-            end
-
-          tree
-
-        _ ->
-          tree
-      end
-    end)
+      Zipper.top(cond_result)
+    else
+      tree
+    end
   end
 
   def top(nil, acc, _callback), do: acc
