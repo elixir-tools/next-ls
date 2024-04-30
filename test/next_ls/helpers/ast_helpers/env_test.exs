@@ -10,7 +10,8 @@ defmodule NextLS.ASTHelpers.EnvTest do
           
           Enum.map([foo], fn ->
             bar = x
-            __cursor__()
+
+            b
         end
 
         def two do
@@ -19,7 +20,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, %{line: 8, column: 7})
 
       assert actual.variables == ["foo", "bar"]
     end
@@ -53,7 +54,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
 
         def one(foo, bar, baz) do
           
-          __cursor__()
+          f
         end
 
         def two do
@@ -62,7 +63,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 8, column: 5)
 
       assert actual.variables == ["baz", "bar", "foo"]
     end
@@ -76,7 +77,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
               :ok
 
             one, two, three ->
-              __cursor__()
+              o
         end
 
         def two do
@@ -85,7 +86,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 8, column: 9)
 
       assert actual.variables == ["three", "two", "one"]
     end
@@ -96,7 +97,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
         def one() do
           with [foo] <- thing(),
                bar <- thang() do
-            __cursor__()
+            b
         end
 
         def two do
@@ -105,7 +106,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 5, column: 7)
 
       assert actual.variables == ["foo", "bar"]
     end
@@ -117,7 +118,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
           baz = Some.thing()
           foo = Enum.map(two(), fn bar ->
             big_bar = bar * 2
-            __cursor__()
+            b
         end
 
         def two do
@@ -126,7 +127,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 6, column: 7)
 
       assert actual.variables == ["baz", "bar", "big_bar"]
     end
@@ -143,7 +144,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
             :ok
           end
 
-          __cursor__()
+          e
         end
 
         def two do
@@ -152,7 +153,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 11, column: 5)
 
       assert actual.variables == ["entries"]
     end
@@ -162,7 +163,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       defmodule Foo do
         def one(entries) do
           for entry <- entries,
-              not_me <- __cursor__() do
+              not_me <- e do
             :ok
           end
         end
@@ -173,7 +174,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 4, column: 19)
 
       assert actual.variables == ["entries", "entry"]
     end
@@ -185,7 +186,7 @@ defmodule NextLS.ASTHelpers.EnvTest do
           for entry <- entries,
               foo = do_something(),
               bar <- foo do
-            __cursor__()
+            b
             :ok
           end
         end
@@ -196,22 +197,22 @@ defmodule NextLS.ASTHelpers.EnvTest do
       end
       """
 
-      actual = run(code)
+      actual = run(code, line: 6, column: 7)
 
       assert actual.variables == ["entries", "entry", "foo", "bar"]
     end
   end
 
-  defp run(code) do
-    {:ok, zip} =
+  defp run(code, position \\ %{}) do
+    zip =
       code
-      |> Spitfire.parse(literal_encoder: &{:ok, {:__literal__, &2, [&1]}})
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, [{:literal, true} | &2], [&1]}})
       |> then(fn
         {:ok, ast} -> ast
         {:error, ast, _} -> ast
       end)
-      |> NextLS.ASTHelpers.find_cursor()
+      |> NextLS.ASTHelpers.find_cursor(Keyword.new(position))
 
-    NextLS.ASTHelpers.Env.build(zip)
+    NextLS.ASTHelpers.Env.build(zip, Map.new(position))
   end
 end

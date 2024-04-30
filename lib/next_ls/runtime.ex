@@ -224,8 +224,9 @@ defmodule NextLS.Runtime do
 
           :next_ls
           |> :code.priv_dir()
-          |> Path.join("monkey/_next_ls_private_compiler.ex")
-          |> then(&:rpc.call(node, Code, :compile_file, [&1]))
+          |> Path.join("monkey/**/*.ex")
+          |> Path.wildcard()
+          |> then(&:rpc.call(node, Kernel.ParallelCompiler, :compile, [&1]))
           |> tap(fn
             {:badrpc, error} ->
               NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")

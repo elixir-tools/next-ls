@@ -586,44 +586,23 @@ defmodule NextLS do
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    spliced =
-      document
-      |> List.update_at(position.line, fn row ->
-        {front, back} = String.split_at(row, position.character)
-        # all we need to do is insert the cursor so we can find the spot to then
-        # calculate the environment, it doens't really matter if its valid code,
-        # it probably isn't already
-        front <> "\n__cursor__()\n" <> back
-      end)
-      |> Enum.join("\n")
+    source = Enum.join(document, "\n")
 
     ast =
-      spliced
-      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
+      source
+      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, [{:literal, true} | &2], [&1]}})
       |> then(fn
         {:ok, ast} -> ast
         {:error, ast, _} -> ast
         {:error, :no_fuel_remaining} -> nil
       end)
 
-    env =
-      ast
-      |> NextLS.ASTHelpers.find_cursor()
-      |> then(fn
-        {:ok, cursor} ->
-          cursor
+    with_cursor_zipper =
+      NextLS.ASTHelpers.find_cursor(ast, line: position.line + 1, column: position.character + 1)
 
-        {:error, :not_found} ->
-          NextLS.Logger.warning(lsp.assigns.logger, "Could not locate cursor when building environment")
+    # dbg(Sourceror.Zipper.node(with_cursor_zipper))
 
-          NextLS.Logger.warning(
-            lsp.assigns.logger,
-            "Source code that produced the above warning: #{spliced}"
-          )
-
-          nil
-      end)
-      |> NextLS.ASTHelpers.Env.build()
+    env = NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
 
     document_slice =
       document
@@ -640,16 +619,10 @@ defmodule NextLS do
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         [{wuri, result}] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            ast =
-              spliced
-              |> Spitfire.parse()
-              |> then(fn
-                {:ok, ast} -> ast
-                {:error, ast, _} -> ast
-                {:error, :no_fuel_remaining} -> nil
-              end)
+            ast = Sourceror.Zipper.node(with_cursor_zipper)
 
-            {:ok, {_, _, _, macro_env}} = Runtime.expand(runtime, ast, Path.basename(uri))
+            {:ok, {_, _, _, macro_env}} =
+              Runtime.expand(runtime, ast, Path.basename(uri))
 
             env =
               env
@@ -731,6 +704,8 @@ defmodule NextLS do
         lsp,
         "[Next LS] Failed to run completion request: #{Exception.format(:error, e, __STACKTRACE__)}"
       )
+
+      IO.puts(Exception.format(:error, e, __STACKTRACE__))
 
       {:reply, [], lsp}
   end

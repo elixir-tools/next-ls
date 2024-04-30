@@ -1116,7 +1116,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
                 cursor_env.functions,
             macros:
               Enum.filter(Map.get(state, :macros, []), fn {m, _} -> m == cursor_env.module end) ++ cursor_env.macros,
-            attrs: Map.get(cursor_state, :attrs, [])
+            attrs: Enum.uniq(Map.get(cursor_state, :attrs, []))
           }
         )
 
@@ -1128,15 +1128,15 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {node, state, env}
     end
 
-    defp expand({{:., _, [_, :__cursor__]}, _, _} = node, state, env) do
-      Process.put(:cursor_env, {state, env})
-      {node, state, env}
-    end
+    # defp expand({{:., _, [_, :__cursor__]}, _, _} = node, state, env) do
+    #   Process.put(:cursor_env, {state, env})
+    #   {node, state, env}
+    # end
 
-    defp expand({:@, _, [{:__cursor__, _, _}]} = node, state, env) do
-      Process.put(:cursor_env, {state, env})
-      {node, state, env}
-    end
+    # defp expand({:@, _, [{:__cursor__, _, _}]} = node, state, env) do
+    #   Process.put(:cursor_env, {state, env})
+    #   {node, state, env}
+    # end
 
     defp expand([_ | _] = list, state, env) do
       expand_list(list, state, env)
