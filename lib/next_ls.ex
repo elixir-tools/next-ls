@@ -144,7 +144,8 @@ defmodule NextLS do
          completion_provider:
            if init_opts.experimental.completions.enable do
              %GenLSP.Structures.CompletionOptions{
-               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"]
+               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"],
+               resolve_provider: true
              }
            else
              nil
@@ -583,6 +584,76 @@ defmodule NextLS do
     resp
   end
 
+  def handle_request(%GenLSP.Requests.CompletionItemResolve{params: completion_item}, lsp) do
+    completion_item =
+      with nil <- completion_item.data do
+        completion_item
+      else
+        %{"uri" => uri, "data" => data} ->
+          docs =
+            case data |> Base.decode64!() |> :erlang.binary_to_term() do
+              {mod, function, arity} ->
+                result =
+                  dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+                    [result] =
+                      for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+                        Runtime.call(runtime, {Code, :fetch_docs, [mod]})
+                      end
+
+                    result
+                  end)
+
+                with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => _mod_doc}, _, fdocs}} <- result do
+                  doc =
+                    Enum.find(fdocs, fn {{type, name, a}, _some_number, _signature, doc, _other} ->
+                      type in [:function, :macro] and to_string(name) == function and doc != :hidden and a >= arity
+                    end)
+
+                  case doc do
+                    {_, _, [signature], %{"en" => fdoc}, _} ->
+                      """
+                      ## #{Macro.to_string(mod)}.#{function}/#{arity}
+
+                      `#{signature}`
+
+                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
+                      """
+
+                    _ ->
+                      nil
+                  end
+                else
+                  _ -> nil
+                end
+
+              mod ->
+                result =
+                  dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+                    [result] =
+                      for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+                        Runtime.call(runtime, {Code, :fetch_docs, [mod]})
+                      end
+
+                    result
+                  end)
+
+                with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => doc}, _, _fdocs}} <- result do
+                  """
+                  ## #{Macro.to_string(mod)}
+
+                  #{NextLS.HoverHelpers.to_markdown(content_type, doc)}
+                  """
+                else
+                  _ -> nil
+                end
+            end
+
+          %{completion_item | documentation: docs}
+      end
+
+    {:reply, completion_item, lsp}
+  end
+
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
 
@@ -592,7 +663,7 @@ defmodule NextLS do
       :timer.tc(
         fn ->
           source
-          |> Spitfire.parse()
+          |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
           |> then(fn
             {:ok, ast} -> ast
             {:error, ast, _} -> ast
@@ -616,15 +687,15 @@ defmodule NextLS do
 
     # dbg(Sourceror.Zipper.node(with_cursor_zipper))
 
-    {ms, env} =
-      :timer.tc(
-        fn ->
-          NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
-        end,
-        :millisecond
-      )
+    # {ms, env} =
+    #   :timer.tc(
+    #     fn ->
+    #       NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
+    #     end,
+    #     :millisecond
+    #   )
 
-    Logger.debug("build env: #{ms}ms")
+    # Logger.debug("build env: #{ms}ms")
 
     document_slice =
       document
@@ -653,12 +724,13 @@ defmodule NextLS do
 
             Logger.debug("expand: #{ms}ms")
 
-            env =
-              env
-              |> Map.put(:functions, macro_env.functions)
-              |> Map.put(:macros, macro_env.macros)
-              |> Map.put(:aliases, macro_env.aliases)
-              |> Map.put(:attrs, macro_env.attrs)
+            env = macro_env
+            # env
+            # |> Map.put(:functions, macro_env.functions)
+            # |> Map.put(:macros, macro_env.macros)
+            # |> Map.put(:aliases, macro_env.aliases)
+            # |> Map.put(:attrs, macro_env.attrs)
+            # |> Map.put(:variables, macro_env.variables)
 
             doc =
               document_slice
@@ -693,13 +765,13 @@ defmodule NextLS do
               {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
 
             :function ->
-              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
+              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol[:docs]}
 
             :module ->
-              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol.docs}
+              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol[:docs]}
 
             :variable ->
-              {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+              {to_string(name), GenLSP.Enumerations.CompletionItemKind.variable(), ""}
 
             :dir ->
               {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
@@ -724,8 +796,14 @@ defmodule NextLS do
           %GenLSP.Structures.CompletionItem{
             label: label,
             kind: kind,
-            insert_text: name,
-            documentation: docs
+            insert_text: to_string(name),
+            documentation: docs,
+            data:
+              if symbol[:data] do
+                %{uri: uri, data: symbol[:data] |> :erlang.term_to_binary() |> Base.encode64()}
+              else
+                nil
+              end
           }
 
         root_path = root_path |> URI.parse() |> Map.get(:path)

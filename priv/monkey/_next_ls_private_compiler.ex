@@ -1116,7 +1116,8 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
                 cursor_env.functions,
             macros:
               Enum.filter(Map.get(state, :macros, []), fn {m, _} -> m == cursor_env.module end) ++ cursor_env.macros,
-            attrs: Enum.uniq(Map.get(cursor_state, :attrs, []))
+            attrs: Enum.uniq(Map.get(cursor_state, :attrs, [])),
+            variables: Macro.Env.vars(cursor_env)
           }
         )
 
@@ -1365,11 +1366,11 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # For the language server, we only want to capture definitions,
     # we don't care when they are used.
 
-    # defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
-    #   ctx = Keyword.get(meta, :context, ctx)
-    #   # state = update_in(state.vars, &[{var, ctx} | &1])
-    #   {ast, state, env}
-    # end
+    defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
+      ctx = Keyword.get(meta, :context, ctx)
+      vv = Map.update(env.versioned_vars, var, %{var => ctx}, fn _ -> ctx end)
+      {ast, state, %{env | versioned_vars: vv}}
+    end
 
     ## Fallback
 
@@ -1384,7 +1385,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # definition, fully replacing the actual implementation. You could also
     # use this to capture module attributes (optionally delegating to the actual
     # implementation), function expansion, and more.
-    defp expand_macro(_meta, Kernel, :defmodule, [alias, [do: block]], _callback, state, env) do
+    defp expand_macro(_meta, Kernel, :defmodule, [alias, [{_, block}]], _callback, state, env) do
       {expanded, state, env} = expand(alias, state, env)
 
       if is_atom(expanded) do

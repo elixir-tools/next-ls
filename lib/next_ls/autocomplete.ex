@@ -291,7 +291,7 @@ defmodule NextLS.Autocomplete do
   defp match_var(code, hint, _runtime, env) do
     code
     |> variables_from_binding(env)
-    |> Enum.filter(&String.starts_with?(&1, hint))
+    |> Enum.filter(&String.starts_with?(to_string(&1), hint))
     |> Enum.sort()
     |> Enum.map(&%{kind: :variable, name: &1})
   end
@@ -304,23 +304,24 @@ defmodule NextLS.Autocomplete do
 
   defp match_erlang_modules(hint, runtime) do
     for mod <- match_modules(hint, false, runtime), usable_as_unquoted_module?(mod) do
-      {content_type, mdoc} =
-        case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(mod)) do
-          {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
-            {content_type, mdoc}
+      # {content_type, mdoc} =
+      #   case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(mod)) do
+      #     {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
+      #       {content_type, mdoc}
 
-          _ ->
-            {"text/markdown", nil}
-        end
+      #     _ ->
+      #       {"text/markdown", nil}
+      #   end
 
       %{
         kind: :module,
         name: mod,
-        docs: """
-        ## #{Macro.to_string(mod)}
+        data: mod
+        # docs: """
+        ### #{Macro.to_string(mod)}
 
-        #{NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
-        """
+        ## {NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
+        # """
       }
     end
   end
@@ -512,28 +513,29 @@ defmodule NextLS.Autocomplete do
     end
   end
 
-  defp match_aliases(hint, runtime, env) do
+  defp match_aliases(hint, _runtime, env) do
     for {alias, module} <- aliases_from_env(env),
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
-      {content_type, mdoc} =
-        case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(module)) do
-          {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
-            {content_type, mdoc}
+      # {content_type, mdoc} =
+      #   case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(module)) do
+      #     {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
+      #       {content_type, mdoc}
 
-          _ ->
-            {"text/markdown", nil}
-        end
+      #     _ ->
+      #       {"text/markdown", nil}
+      #   end
 
       %{
         kind: :module,
         name: name,
-        module: module,
-        docs: """
-        ## #{Macro.to_string(module)}
+        data: module,
+        module: module
+        # docs: """
+        ### #{Macro.to_string(module)}
 
-        #{NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
-        """
+        ## {NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
+        # """
       }
     end
   end
@@ -551,23 +553,24 @@ defmodule NextLS.Autocomplete do
           valid_alias_piece?("." <> name) do
         alias = Module.concat([mod])
 
-        {content_type, mdoc} =
-          case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(alias)) do
-            {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
-              {content_type, mdoc}
+        # {content_type, mdoc} =
+        #   case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(alias)) do
+        #     {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
+        #       {content_type, mdoc}
 
-            _ ->
-              {"text/markdown", nil}
-          end
+        #     _ ->
+        #       {"text/markdown", nil}
+        #   end
 
         %{
           kind: :module,
-          name: name,
-          docs: """
-          ## #{Macro.to_string(alias)}
+          data: alias,
+          name: name
+          # docs: """
+          ### #{Macro.to_string(alias)}
 
-          #{NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
-          """
+          ## {NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
+          # """
         }
       end
 
@@ -678,43 +681,44 @@ defmodule NextLS.Autocomplete do
     apps
   end
 
-  defp match_module_funs(runtime, mod, funs, hint, exact?) do
-    {content_type, fdocs} =
-      case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(mod)) do
-        {:ok, {:docs_v1, _, _lang, content_type, _, _, fdocs}} ->
-          {content_type, fdocs}
+  defp match_module_funs(_runtime, mod, funs, hint, exact?) do
+    # {content_type, fdocs} =
+    #   case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(mod)) do
+    #     {:ok, {:docs_v1, _, _lang, content_type, _, _, fdocs}} ->
+    #       {content_type, fdocs}
 
-        _ ->
-          {"text/markdown", []}
-      end
+    #     _ ->
+    #       {"text/markdown", []}
+    #   end
 
     functions =
       for {fun, arity} <- funs,
           name = Atom.to_string(fun),
           if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
-        doc =
-          Enum.find(fdocs, fn {{type, fname, _a}, _, _, _doc, _} ->
-            type in [:function, :macro] and to_string(fname) == name
-          end)
+        # doc =
+        #  Enum.find(fdocs, fn {{type, fname, _a}, _, _, _doc, _} ->
+        #    type in [:function, :macro] and to_string(fname) == name
+        #  end)
 
-        doc =
-          case doc do
-            {_, _, _, %{"en" => fdoc}, _} ->
-              """
-              ## #{Macro.to_string(mod)}.#{name}/#{arity}
+        # doc =
+        #  case doc do
+        #    {_, _, _, %{"en" => fdoc}, _} ->
+        #      """
+        #      ## #{Macro.to_string(mod)}.#{name}/#{arity}
 
-              #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
-              """
+        #      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
+        #      """
 
-            _ ->
-              nil
-          end
+        #    _ ->
+        #      nil
+        #  end
 
         %{
           kind: :function,
+          data: {mod, name, arity},
           name: name,
-          arity: arity,
-          docs: doc
+          arity: arity
+          # docs: doc
         }
       end
 
@@ -783,18 +787,19 @@ defmodule NextLS.Autocomplete do
   #   end
   # end
 
-  defp get_docs(mod, kinds, fun \\ nil) do
-    case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, _, _, _, docs} ->
-        if is_nil(fun) do
-          for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-        else
-          for {{kind, ^fun, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-        end
+  defp get_docs(_mod, _kinds, _fun \\ nil) do
+    # case Code.fetch_docs(mod) do
+    #   {:docs_v1, _, _, _, _, _, docs} ->
+    #     if is_nil(fun) do
+    #       for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+    #     else
+    #       for {{kind, ^fun, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+    #     end
 
-      {:error, _} ->
-        nil
-    end
+    #   {:error, _} ->
+    #     nil
+    # end
+    nil
   end
 
   defp default_arg_functions_with_doc_false(docs) do

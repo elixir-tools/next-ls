@@ -212,25 +212,21 @@ defmodule NextLS.ASTHelpers do
       |> Zipper.zip()
       |> Zipper.traverse(nil, fn tree, acc ->
         node = Zipper.node(tree)
-        node_range = Sourceror.Range.get_range(node)
-        is_literal = Macro.quoted_literal?(node)
+        node_range = Sourceror.get_range(node)
 
         is_inside =
-          with nil <- node_range, is_literal do
+          with nil <- node_range do
             false
           else
             _ -> sourceror_inside?(node_range, position)
           end
 
         cond do
-          is_literal ->
-            {tree, acc}
-
           is_inside ->
             {tree, tree}
 
           true ->
-            {tree, acc}
+            {Zipper.skip(tree) || tree, acc}
         end
       end)
 
