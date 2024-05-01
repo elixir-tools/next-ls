@@ -76,7 +76,7 @@ defmodule NextLS.MixProject do
       {:burrito, "~> 1.0", only: [:dev, :prod]},
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
-      {:credo, github: "mhanberg/credo", branch: "fix-debugger-columns", only: [:dev, :test], runtime: false},
+      {:credo, github: "rrrene/credo", branch: "master", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:styler, "~> 0.8", only: :dev}
     ]
