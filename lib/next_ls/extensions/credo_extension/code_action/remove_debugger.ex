@@ -76,11 +76,15 @@ defmodule NextLS.CredoExtension.CodeAction.RemoveDebugger do
       end)
 
     result =
-      Enum.min_by(results, fn node ->
-        range = Sourceror.get_range(node)
+      Enum.min_by(
+        results,
+        fn node ->
+          range = Sourceror.get_range(node)
 
-        pos.start[:column] - range.start[:column] + range.end[:column] - pos.end[:column]
-      end)
+          pos.start[:column] - range.start[:column] + range.end[:column] - pos.end[:column]
+        end,
+        fn -> nil end
+      )
 
     result =
       Enum.find(results, result, fn
