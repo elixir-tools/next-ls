@@ -402,32 +402,16 @@ defmodule NextLS do
             end)
 
           value =
-            with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mod_doc}, _, fdocs}} <- result do
+            with {:ok, result} <- result,
+                 %NextLS.Docs{} = doc <- NextLS.Docs.new(result, reference.module) do
               case reference.type do
                 "alias" ->
-                  """
-                  ## #{reference.module}
-
-                  #{NextLS.HoverHelpers.to_markdown(content_type, mod_doc)}
-                  """
+                  NextLS.Docs.module(doc)
 
                 "function" ->
-                  doc =
-                    Enum.find(fdocs, fn {{type, name, _a}, _, _, _doc, _} ->
-                      type in [:function, :macro] and to_string(name) == reference.identifier
-                    end)
-
-                  case doc do
-                    {_, _, _, %{"en" => fdoc}, _} ->
-                      """
-                      ## #{Macro.to_string(mod)}.#{reference.identifier}/#{reference.arity}
-
-                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
-                      """
-
-                    _ ->
-                      nil
-                  end
+                  NextLS.Docs.function(doc, fn name, a, documentation, _other ->
+                    to_string(name) == reference.identifier and documentation != :hidden and a >= reference.arity
+                  end)
 
                 _ ->
                   nil
@@ -590,62 +574,33 @@ defmodule NextLS do
         completion_item
       else
         %{"uri" => uri, "data" => data} ->
+          data = data |> Base.decode64!() |> :erlang.binary_to_term()
+
+          module =
+            case data do
+              {mod, _function, _arity} -> mod
+              mod -> mod
+            end
+
+          result =
+            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime ->
+              Runtime.call(runtime, {Code, :fetch_docs, [module]})
+            end)
+
           docs =
-            case data |> Base.decode64!() |> :erlang.binary_to_term() do
-              {mod, function, arity} ->
-                result =
-                  dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-                    [result] =
-                      for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-                        Runtime.call(runtime, {Code, :fetch_docs, [mod]})
-                      end
-
-                    result
+            with {:ok, doc} <- result,
+                 %NextLS.Docs{} = doc <- NextLS.Docs.new(doc, module) do
+              case data do
+                {_mod, function, arity} ->
+                  NextLS.Docs.function(doc, fn name, a, documentation, _other ->
+                    to_string(name) == function and documentation != :hidden and a >= arity
                   end)
 
-                with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => _mod_doc}, _, fdocs}} <- result do
-                  doc =
-                    Enum.find(fdocs, fn {{type, name, a}, _some_number, _signature, doc, _other} ->
-                      type in [:function, :macro] and to_string(name) == function and doc != :hidden and a >= arity
-                    end)
-
-                  case doc do
-                    {_, _, [signature], %{"en" => fdoc}, _} ->
-                      """
-                      ## #{Macro.to_string(mod)}.#{function}/#{arity}
-
-                      `#{signature}`
-
-                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
-                      """
-
-                    _ ->
-                      nil
-                  end
-                else
-                  _ -> nil
-                end
-
-              mod ->
-                result =
-                  dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-                    [result] =
-                      for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-                        Runtime.call(runtime, {Code, :fetch_docs, [mod]})
-                      end
-
-                    result
-                  end)
-
-                with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => doc}, _, _fdocs}} <- result do
-                  """
-                  ## #{Macro.to_string(mod)}
-
-                  #{NextLS.HoverHelpers.to_markdown(content_type, doc)}
-                  """
-                else
-                  _ -> nil
-                end
+                mod when is_atom(mod) ->
+                  NextLS.Docs.module(doc)
+              end
+            else
+              _ -> nil
             end
 
           %{completion_item | documentation: docs}
@@ -1426,6 +1381,27 @@ defmodule NextLS do
 
     Registry.dispatch(registry, key, fn entries ->
       result = callback.(entries)
+
+      send(me, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    after
+      1000 ->
+        :timeout
+    end
+  end
+
+  defp dispatch_to_workspace(registry, uri, callback) do
+    ref = make_ref()
+    me = self()
+
+    Registry.dispatch(registry, :runtimes, fn entries ->
+      [result] =
+        for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+          callback.(runtime)
+        end
 
       send(me, {ref, result})
     end)

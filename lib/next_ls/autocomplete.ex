@@ -316,7 +316,7 @@ defmodule NextLS.Autocomplete do
       %{
         kind: :module,
         name: mod,
-        data: mod
+        data: String.to_atom(mod)
         # docs: """
         ### #{Macro.to_string(mod)}
 
