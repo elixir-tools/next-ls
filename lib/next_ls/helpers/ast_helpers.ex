@@ -250,7 +250,18 @@ defmodule NextLS.ASTHelpers do
           up && match?({:<-, _, _}, Zipper.node(up)) ->
             up |> Zipper.insert_left({:__cursor__, [], []}) |> Zipper.down() |> Zipper.rightmost()
 
-          left && Zipper.node(left) == :do ->
+          up && match?([{{:__block__, _dom, [:do]}, _children}], Zipper.node(up)) ->
+            Zipper.update(up, fn [{{:__block__, dom, [:do]}, children}] ->
+              case children do
+                {:__block__, bom, children} ->
+                  [{{:__block__, dom, [:do]}, {:__block__, bom, children ++ [{:__cursor__, [], []}]}}]
+
+                child ->
+                  [{{:__block__, dom, [:do]}, {:__block__, [], [child, {:__cursor__, [], []}]}}]
+              end
+            end)
+
+          left && match?({:__block__, _, [:do]}, Zipper.node(left)) ->
             Zipper.update(cursor_tree, fn n ->
               {:__block__, [], [n, {:__cursor__, [], []}]}
             end)

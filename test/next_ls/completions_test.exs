@@ -409,16 +409,14 @@ defmodule NextLS.CompletionsTest do
       }
     }
 
-    assert_result 2, [
-      %{
-        "data" => nil,
-        "documentation" => _,
-        "insertText" => "defmodule ${1:Foo} do\n  $0\nend\n",
-        "kind" => 15,
-        "label" => "defmodule/2",
-        "insertTextFormat" => 2
-      }
-    ]
+    assert_result 2, results
+
+    assert_match %{
+                   "insertText" => "defmodule ${1:Foo} do\n  $0\nend\n",
+                   "kind" => 15,
+                   "label" => "defmodule/2",
+                   "insertTextFormat" => 2
+                 } in results
   end
 
   test "aliases in document", %{client: client, foo: foo} do
@@ -451,9 +449,7 @@ defmodule NextLS.CompletionsTest do
 
     assert_result 2, results
 
-    assert_match(
-      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
-    )
+    assert_match %{"data" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
   end
 
   test "inside alias special form", %{client: client, foo: foo} do
@@ -582,5 +578,43 @@ defmodule NextLS.CompletionsTest do
         "label" => "var!/2"
       }
     ]
+  end
+
+  test "variable and param completions", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run({vampire, %{foo: villain}}, [vim | vrest], vroom) do
+        var = "hi"
+
+        v
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 4,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "vampire"} in results
+    assert_match %{"kind" => 6, "label" => "villain"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
+    assert_match %{"kind" => 6, "label" => "vrest"} in results
+    assert_match %{"kind" => 6, "label" => "vroom"} in results
+    assert_match %{"kind" => 6, "label" => "var"} in results
   end
 end

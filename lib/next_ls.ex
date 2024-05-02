@@ -669,6 +669,8 @@ defmodule NextLS do
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
             ast = Sourceror.Zipper.node(with_cursor_zipper)
 
+            dbg(ast)
+
             {ms, {:ok, {_, _, _, macro_env}}} =
               :timer.tc(
                 fn ->
@@ -686,6 +688,8 @@ defmodule NextLS do
             # |> Map.put(:aliases, macro_env.aliases)
             # |> Map.put(:attrs, macro_env.attrs)
             # |> Map.put(:variables, macro_env.variables)
+
+            dbg(env.aliases)
 
             doc =
               document_slice
@@ -720,10 +724,10 @@ defmodule NextLS do
               {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
 
             :function ->
-              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol[:docs]}
+              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol[:docs] || ""}
 
             :module ->
-              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol[:docs]}
+              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol[:docs] || ""}
 
             :variable ->
               {to_string(name), GenLSP.Enumerations.CompletionItemKind.variable(), ""}

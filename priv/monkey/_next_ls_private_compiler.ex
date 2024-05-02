@@ -1125,6 +1125,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     end
 
     defp expand({:__cursor__, _meta, _} = node, state, env) do
+      dbg(env)
       Process.put(:cursor_env, {state, env})
       {node, state, env}
     end
@@ -1367,8 +1368,10 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # we don't care when they are used.
 
     defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
+      dbg(var)
       ctx = Keyword.get(meta, :context, ctx)
-      vv = Map.update(env.versioned_vars, var, %{var => ctx}, fn _ -> ctx end)
+      vv = Map.update(env.versioned_vars, var, ctx, fn _ -> ctx end)
+
       {ast, state, %{env | versioned_vars: vv}}
     end
 
@@ -1406,9 +1409,21 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       end
     end
 
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
+    defp expand_macro(_meta, Kernel, type, [{name, _, params}, [{_, block}]], _callback, state, env)
          when type in [:def, :defp] and is_tuple(block) and is_atom(name) and is_list(params) do
-      {res, state, _env} = expand(block, state, env)
+      dbg(params)
+
+      dbg(env)
+
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      dbg(penv)
+
+      {res, state, _env} = expand(block, state, penv)
 
       arity = length(List.wrap(params))
       functions = Map.update(state.functions, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
@@ -1417,7 +1432,9 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
          when type in [:defmacro, :defmacrop] do
-      {res, state, _env} = expand(block, state, env)
+      dbg(params)
+      {_res, state, penv} = expand(params, state, env)
+      {res, state, _env} = expand(block, state, penv)
 
       arity = length(List.wrap(params))
       macros = Map.update(state.macros, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
@@ -1426,10 +1443,16 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_atom(name) and is_list(params) and is_list(blocks) do
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do
           {acc, state} ->
-            {res, state, _env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
         end
 
@@ -1441,10 +1464,13 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_list(params) and is_list(blocks) do
+      dbg(params)
+      {_res, state, penv} = expand(params, state, env)
+
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do
           {acc, state} ->
-            {res, state, _env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
         end
 
