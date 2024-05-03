@@ -13,8 +13,8 @@ defmodule NextLS.Autocomplete do
     %{kind: :variable, name: "little"},
     %{kind: :variable, name: "native"},
     %{kind: :variable, name: "signed"},
-    %{kind: :function, name: "size", arity: 1, docs: nil},
-    %{kind: :function, name: "unit", arity: 1, docs: nil},
+    %{kind: :function, name: "size", arity: 1},
+    %{kind: :function, name: "unit", arity: 1},
     %{kind: :variable, name: "unsigned"},
     %{kind: :variable, name: "utf8"},
     %{kind: :variable, name: "utf16"},
@@ -164,36 +164,35 @@ defmodule NextLS.Autocomplete do
 
   ## Expand call
 
-  defp expand_local_call(fun, runtime, env) do
+  defp expand_local_call(fun, _runtime, env) do
     env
     |> imports_from_env()
     |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
-    |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
-    |> expand_signatures(runtime, env)
+    |> format_expansion()
   end
 
-  defp expand_dot_call(path, fun, runtime, env) do
+  defp expand_dot_call(path, fun, _runtime, env) do
     case expand_dot_path(path, env) do
-      {:ok, mod} when is_atom(mod) -> fun |> get_signatures(mod) |> expand_signatures(runtime)
+      {:ok, mod} when is_atom(mod) -> format_expansion(fun)
       _ -> no()
     end
   end
 
-  defp get_signatures(name, module) when is_atom(module) do
-    with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
-      Enum.map(docs, fn {_, _, signatures, _, _} -> Enum.join(signatures, " ") end)
-    else
-      _ -> []
-    end
-  end
+  # defp get_signatures(name, module) when is_atom(module) do
+  #   with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
+  #     Enum.map(docs, fn {_, _, signatures, _, _} -> Enum.join(signatures, " ") end)
+  #   else
+  #     _ -> []
+  #   end
+  # end
 
-  defp expand_signatures([_ | _] = signatures, _runtime) do
-    [head | _tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
-    # if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
-    yes([head])
-  end
+  # defp expand_signatures([_ | _] = signatures, _runtime) do
+  #   [head | _tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
+  #   # if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
+  #   yes([head])
+  # end
 
-  defp expand_signatures([], runtime, env), do: expand_local_or_var("", "", runtime, env)
+  # defp expand_signatures([], runtime, env), do: expand_local_or_var("", "", runtime, env)
 
   ## Expand dot
 
@@ -304,24 +303,10 @@ defmodule NextLS.Autocomplete do
 
   defp match_erlang_modules(hint, runtime) do
     for mod <- match_modules(hint, false, runtime), usable_as_unquoted_module?(mod) do
-      # {content_type, mdoc} =
-      #   case NextLS.Runtime.execute(runtime, do: Code.fetch_docs(mod)) do
-      #     {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mdoc}, _, _fdocs}} ->
-      #       {content_type, mdoc}
-
-      #     _ ->
-      #       {"text/markdown", nil}
-      #   end
-
       %{
         kind: :module,
         name: mod,
         data: String.to_atom(mod)
-        # docs: """
-        ### #{Macro.to_string(mod)}
-
-        ## {NextLS.HoverHelpers.to_markdown(content_type, mdoc)}
-        # """
       }
     end
   end

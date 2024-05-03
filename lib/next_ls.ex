@@ -669,6 +669,8 @@ defmodule NextLS do
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
             ast = Sourceror.Zipper.node(with_cursor_zipper)
 
+            # dbg(ast, limit: :infinity, printable_limit: :infinity)
+
             {ms, {:ok, {_, _, _, macro_env}}} =
               :timer.tc(
                 fn ->

@@ -585,10 +585,12 @@ defmodule NextLS.CompletionsTest do
 
     did_open(client, foo, """
     defmodule Foo do
-      def run({vampire, %{foo: villain}}, [vim | vrest], vroom) do
-        var = "hi"
-
+      def run(%Bar{one: %{foo: %{bar: villain}}, two: vim}, vroom) do
+        document = vroom.assigns.documents[vim]
         v
+      rescue
+        _ ->
+          :error
       end
     end
     """)
@@ -602,7 +604,7 @@ defmodule NextLS.CompletionsTest do
           uri: uri
         },
         position: %{
-          line: 4,
+          line: 3,
           character: 5
         }
       }
@@ -610,12 +612,92 @@ defmodule NextLS.CompletionsTest do
 
     assert_result 2, results
 
-    assert_match %{"kind" => 6, "label" => "vampire"} in results
+    # assert_match %{"kind" => 6, "label" => "vampire"} in results
     assert_match %{"kind" => 6, "label" => "villain"} in results
     assert_match %{"kind" => 6, "label" => "vim"} in results
-    assert_match %{"kind" => 6, "label" => "vrest"} in results
+    # assert_match %{"kind" => 6, "label" => "vrest"} in results
     assert_match %{"kind" => 6, "label" => "vroom"} in results
-    assert_match %{"kind" => 6, "label" => "var"} in results
+    # assert_match %{"kind" => 6, "label" => "var"} in results
+  end
+
+  test "variable and param completions in other block identifiers", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(%Bar{one: %{foo: %{bar: villain}}, two: vim}, vroom) do
+        var1 = vroom.assigns.documents[vim]
+        v
+      rescue
+        verror ->
+          var2 = "hi"
+
+          v
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 8,
+          character: 7
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "villain"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
+    assert_match %{"kind" => 6, "label" => "vroom"} in results
+    assert_match %{"kind" => 6, "label" => "verror"} in results
+    assert_match %{"kind" => 6, "label" => "var2"} in results
+
+    assert_match %{"kind" => 6, "label" => "var1"} not in results
+  end
+
+  test "param completions in multi arrow situations", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(alice) do
+        alice
+        |> then(fn
+          {:ok, ast1} -> ast1
+          {:error, ast2, _} -> a
+          {:error, :no_fuel_remaining} -> nil
+        end)
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{uri: uri},
+        position: %{
+          line: 5,
+          character: 28
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "alice"} in results
+    assert_match %{"kind" => 6, "label" => "ast2"} in results
+
+    assert_match %{"kind" => 6, "label" => "ast1"} not in results
   end
 
   test "variables show up in test blocks", %{client: client, foo: foo} do

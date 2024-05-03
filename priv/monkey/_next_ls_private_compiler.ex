@@ -1298,6 +1298,17 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{:^, meta, [arg]}, state, %{env | context: context}}
     end
 
+    defp expand({:->, _, [params, block]} = ast, state, env) do
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      {res, state, _env} = expand(block, state, penv)
+      {res, state, env}
+    end
+
     ## Remote call
 
     defp expand({{:., dot_meta, [module, fun]}, meta, args}, state, env) when is_atom(fun) and is_list(args) do

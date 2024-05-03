@@ -223,9 +223,11 @@ defmodule NextLS.ASTHelpers do
 
         cond do
           is_inside ->
+            dbg(tree)
             {tree, tree}
 
           true ->
+            dbg(tree)
             {Zipper.skip(tree) || tree, acc}
         end
       end)
@@ -234,8 +236,20 @@ defmodule NextLS.ASTHelpers do
       left = Zipper.left(cursor_tree)
       up = Zipper.up(cursor_tree)
 
+      # dbg(left)
+      # dbg(up)
+
       cond_result =
         cond do
+          match?({:->, _, _}, Zipper.node(cursor_tree)) ->
+            Zipper.update(cursor_tree, fn n ->
+              case n do
+                {:->, meta, args} ->
+                  [{:__block__, bom, args} | params] = Enum.reverse(args)
+                  {:->, meta, Enum.reverse([{:__block__, bom, args ++ [{:__cursor__, [], []}]} | params])}
+              end
+            end)
+
           up && match?({:"::", _, _}, Zipper.node(up)) ->
             up
             |> Zipper.up()
@@ -250,11 +264,11 @@ defmodule NextLS.ASTHelpers do
           up && match?({:<-, _, _}, Zipper.node(up)) ->
             up |> Zipper.insert_left({:__cursor__, [], []}) |> Zipper.down() |> Zipper.rightmost()
 
-          up && match?([{{:__block__, _dom, [:do]}, _children}], Zipper.node(up)) ->
-            Zipper.update(up, fn [{{:__block__, dom, [:do]}, children}] ->
+          up && match?([{{:__block__, _dom, [:do]}, _children} | _], Zipper.node(up)) ->
+            Zipper.update(up, fn [{{:__block__, dom, [:do]}, children} | rest] ->
               case children do
                 {:__block__, bom, children} ->
-                  [{{:__block__, dom, [:do]}, {:__block__, bom, children ++ [{:__cursor__, [], []}]}}]
+                  [{{:__block__, dom, [:do]}, {:__block__, bom, children ++ [{:__cursor__, [], []}]}} | rest]
 
                 child ->
                   [{{:__block__, dom, [:do]}, {:__block__, [], [child, {:__cursor__, [], []}]}}]
@@ -267,6 +281,7 @@ defmodule NextLS.ASTHelpers do
             end)
 
           true ->
+            dbg(cursor_tree)
             Zipper.insert_right(cursor_tree, {:__cursor__, [], []})
         end
 

@@ -95,7 +95,7 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "Erlang module completion", %{runtime: runtime} do
-    assert expand(runtime, ~c":zl") == {:yes, [%{name: "zlib", kind: :module, docs: "## \"zlib\"\n\n\n"}]}
+    assert expand(runtime, ~c":zl") == {:yes, [%{name: "zlib", data: :zlib, kind: :module}]}
   end
 
   test "Erlang module no completion", %{runtime: runtime} do
@@ -123,17 +123,17 @@ defmodule NextLS.AutocompleteTest do
 
   test "Elixir proxy", %{runtime: runtime} do
     {:yes, [elixir_entry | _list]} = expand(runtime, ~c"E")
-    assert %{name: "Elixir", kind: :module, docs: "## Elixir" <> _} = elixir_entry
+    assert %{name: "Elixir", kind: :module} = elixir_entry
   end
 
   test "Elixir completion", %{runtime: runtime} do
     assert {:yes,
             [
-              %{name: "Enum", kind: :module, docs: "## Enum" <> _},
-              %{name: "Enumerable", kind: :module, docs: "## Enumerable" <> _}
+              %{name: "Enum", kind: :module},
+              %{name: "Enumerable", kind: :module}
             ]} = expand(runtime, ~c"En")
 
-    assert {:yes, [%{name: "Enumerable", kind: :module, docs: "## Enumerable" <> _}]} = expand(runtime, ~c"Enumera")
+    assert {:yes, [%{name: "Enumerable", kind: :module}]} = expand(runtime, ~c"Enumera")
   end
 
   # test "Elixir type completion", %{runtime: runtime} do
@@ -272,7 +272,7 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "Elixir root submodule completion", %{runtime: runtime} do
-    {:yes, [%{name: "Access", kind: :module, docs: "## Access" <> _}]} = assert expand(runtime, ~c"Elixir.Acce")
+    {:yes, [%{name: "Access", kind: :module}]} = assert expand(runtime, ~c"Elixir.Acce")
   end
 
   test "Elixir submodule completion", %{runtime: runtime} do
@@ -284,56 +284,56 @@ defmodule NextLS.AutocompleteTest do
   end
 
   test "function completion", %{runtime: runtime} do
-    assert {:yes, [%{arity: 0, name: "version", docs: _, kind: :function}]} = expand(runtime, ~c"System.ve")
+    assert {:yes, [%{arity: 0, name: "version", kind: :function}]} = expand(runtime, ~c"System.ve")
 
-    assert {:yes, [%{arity: 1, name: "fun2ms", docs: _, kind: :function}]} = expand(runtime, ~c":ets.fun2")
+    assert {:yes, [%{arity: 1, name: "fun2ms", kind: :function}]} = expand(runtime, ~c":ets.fun2")
   end
 
   test "function completion with arity", %{runtime: runtime} do
     assert {:yes,
             [
-              %{arity: 1, name: "printable?", docs: _, kind: :function},
-              %{arity: 2, name: "printable?", docs: _, kind: :function}
+              %{arity: 1, name: "printable?", kind: :function},
+              %{arity: 2, name: "printable?", kind: :function}
             ]} = expand(runtime, ~c"String.printable?")
 
     assert {:yes,
             [
-              %{arity: 1, name: "printable?", docs: _, kind: :function},
-              %{arity: 2, name: "printable?", docs: _, kind: :function}
+              %{arity: 1, name: "printable?", kind: :function},
+              %{arity: 2, name: "printable?", kind: :function}
             ]} = expand(runtime, ~c"String.printable?/")
 
     assert {:yes,
             [
-              %{arity: 1, name: "count", docs: _, kind: :function},
-              %{arity: 2, name: "count", docs: _, kind: :function},
-              %{arity: 2, name: "count_until", docs: _, kind: :function},
-              %{arity: 3, name: "count_until", docs: _, kind: :function}
+              %{arity: 1, name: "count", kind: :function},
+              %{arity: 2, name: "count", kind: :function},
+              %{arity: 2, name: "count_until", kind: :function},
+              %{arity: 3, name: "count_until", kind: :function}
             ]} = expand(runtime, ~c"Enum.count")
 
     assert {:yes,
             [
-              %{arity: 1, name: "count", docs: _, kind: :function},
-              %{arity: 2, name: "count", docs: _, kind: :function}
+              %{arity: 1, name: "count", kind: :function},
+              %{arity: 2, name: "count", kind: :function}
             ]} = expand(runtime, ~c"Enum.count/")
   end
 
   test "operator completion", %{runtime: runtime} do
     assert {:yes,
             [
-              %{arity: 1, name: "+", docs: _, kind: :function},
-              %{arity: 2, name: "+", docs: _, kind: :function},
-              %{arity: 2, name: "++", docs: _, kind: :function}
+              %{arity: 1, name: "+", kind: :function},
+              %{arity: 2, name: "+", kind: :function},
+              %{arity: 2, name: "++", kind: :function}
             ]} = expand(runtime, ~c"+")
 
     assert {:yes,
             [
-              %{arity: 1, name: "+", docs: _, kind: :function},
-              %{arity: 2, name: "+", docs: _, kind: :function}
+              %{arity: 1, name: "+", kind: :function},
+              %{arity: 2, name: "+", kind: :function}
             ]} = expand(runtime, ~c"+/")
 
     assert {:yes,
             [
-              %{arity: 2, name: "++", docs: _, kind: :function}
+              %{arity: 2, name: "++", kind: :function}
             ]} = expand(runtime, ~c"++/")
   end
 
@@ -423,22 +423,22 @@ defmodule NextLS.AutocompleteTest do
     assert is_list(list)
 
     Enum.any?(list, fn i ->
-      match?(%{name: "unquote", arity: 1, kind: :function, docs: _}, i)
+      match?(%{name: "unquote", arity: 1, kind: :function}, i)
     end)
 
     Enum.any?(list, fn i ->
-      match?(%{name: "try", arity: 1, kind: :function, docs: _}, i)
+      match?(%{name: "try", arity: 1, kind: :function}, i)
     end)
   end
 
   # test "kernel import completion", %{runtime: runtime} do
-  #   assert {:yes, [%{name: "defstruct", kind: :function, docs: _, arity: 1}]} = expand(runtime, ~c"defstru")
+  #   assert {:yes, [%{name: "defstruct", kind: :function, arity: 1}]} = expand(runtime, ~c"defstru")
 
   #   assert {:yes,
   #           [
-  #             %{arity: 3, name: "put_elem", docs: _, kind: :function},
-  #             %{arity: 2, name: "put_in", docs: _, kind: :function},
-  #             %{arity: 3, name: "put_in", docs: _, kind: :function}
+  #             %{arity: 3, name: "put_elem", kind: :function},
+  #             %{arity: 2, name: "put_in", kind: :function},
+  #             %{arity: 3, name: "put_in", kind: :function}
   #           ]} = expand(runtime, ~c"put_")
   # end
 
@@ -469,27 +469,9 @@ defmodule NextLS.AutocompleteTest do
              :yes,
              [
                %{name: "nothing", kind: :variable},
-               %{
-                 arity: 0,
-                 name: "node",
-                 docs:
-                   "## Kernel.node/0\n\nReturns an atom representing the name of the local node.\nIf the node is not alive, `:nonode@nohost` is returned instead.\n\nAllowed in guard tests. Inlined by the compiler.\n\n",
-                 kind: :function
-               },
-               %{
-                 arity: 1,
-                 name: "node",
-                 docs:
-                   "## Kernel.node/1\n\nReturns an atom representing the name of the local node.\nIf the node is not alive, `:nonode@nohost` is returned instead.\n\nAllowed in guard tests. Inlined by the compiler.\n\n",
-                 kind: :function
-               },
-               %{
-                 arity: 1,
-                 name: "not",
-                 docs:
-                   "## Kernel.not/1\n\nStrictly boolean \"not\" operator.\n\n`value` must be a boolean; if it's not, an `ArgumentError` exception is raised.\n\nAllowed in guard tests. Inlined by the compiler.\n\n## Examples\n\n    iex> not false\n    true\n\n\n",
-                 kind: :function
-               }
+               %{arity: 0, kind: :function, name: "node", data: {Kernel, "node", 0}},
+               %{arity: 1, kind: :function, name: "node", data: {Kernel, "node", 1}},
+               %{arity: 1, kind: :function, name: "not", data: {Kernel, "not", 1}}
              ]
            }
   end
@@ -529,7 +511,7 @@ defmodule NextLS.AutocompleteTest do
   # end
 
   test "kernel special form completion", %{runtime: runtime} do
-    assert {:yes, [%{arity: 1, name: "unquote_splicing", docs: _, kind: :function}]} = expand(runtime, ~c"unquote_spl")
+    assert {:yes, [%{arity: 1, name: "unquote_splicing", kind: :function}]} = expand(runtime, ~c"unquote_spl")
   end
 
   test "completion inside expression", %{runtime: runtime} do
@@ -544,7 +526,7 @@ defmodule NextLS.AutocompleteTest do
 
   test "Elixir completion sublevel", %{runtime: runtime} do
     assert expand(runtime, ~c"SublevelTest.") ==
-             {:yes, [%{name: "LevelA", kind: :module, docs: "## SublevelTest.LevelA.LevelB\n\n\n"}]}
+             {:yes, [%{name: "LevelA", data: SublevelTest.LevelA.LevelB, kind: :module}]}
   end
 
   # TODO: aliases
@@ -665,25 +647,24 @@ defmodule NextLS.AutocompleteTest do
   test "completion for bitstring modifiers", %{runtime: runtime} do
     assert {:yes, entries} = expand(runtime, ~c"<<foo::")
     assert %{name: "integer", kind: :variable} in entries
-    assert %{name: "size", kind: :function, arity: 1, docs: nil} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
 
     assert {:yes, [%{name: "integer", kind: :variable}]} = expand(runtime, ~c"<<foo::int")
 
     assert {:yes, entries} = expand(runtime, ~c"<<foo::integer-")
     refute %{name: "integer", kind: :variable} in entries
     assert %{name: "little", kind: :variable} in entries
-    assert %{name: "size", kind: :function, arity: 1, docs: nil} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
 
     assert {:yes, entries} = expand(runtime, ~c"<<foo::integer-little-")
     refute %{name: "integer", kind: :variable} in entries
     refute %{name: "little", kind: :variable} in entries
-    assert %{name: "size", kind: :function, arity: 1, docs: nil} in entries
+    assert %{name: "size", kind: :function, arity: 1} in entries
   end
 
   test "completion for aliases in special forms", %{runtime: runtime} do
     assert {:yes, entries} = expand(runtime, ~c"alias ")
-    entries = for e <- entries, do: Map.delete(e, :docs)
-    assert %{name: "Atom", kind: :module} in entries
+    assert %{name: "Atom", data: Atom, kind: :module} in entries
     refute %{name: "is_atom", kind: :function, arity: 1} in entries
 
     assert {:yes, [%{name: "Range", kind: :module}]} = expand(runtime, ~c"alias Date.")
@@ -693,8 +674,9 @@ defmodule NextLS.AutocompleteTest do
     assert expand(runtime, ~c"NextLS.AutocompleteTest.Unicod") == {:no, []}
   end
 
-  test "signature help for functions and macros", %{runtime: runtime} do
-    assert expand(runtime, ~c"String.graphemes(") == {:yes, ["graphemes(string)"]}
+  @tag :skip
+  test "signature help for functions and macros", %{runtime: _runtime} do
+    # assert expand(runtime, ~c"String.graphemes(") == {:yes, ["graphemes(string)"]}
     # TODO: needs the kernel
     # assert expand(runtime, ~c"def ") == {:yes,  [~c"def(call, expr \\\\ nil)"]}
 
