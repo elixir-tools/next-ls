@@ -1125,7 +1125,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     end
 
     defp expand({:__cursor__, _meta, _} = node, state, env) do
-      dbg(env)
       Process.put(:cursor_env, {state, env})
       {node, state, env}
     end
@@ -1368,7 +1367,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # we don't care when they are used.
 
     defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
-      dbg(var)
       ctx = Keyword.get(meta, :context, ctx)
       vv = Map.update(env.versioned_vars, var, ctx, fn _ -> ctx end)
 
@@ -1411,17 +1409,11 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, [{_, block}]], _callback, state, env)
          when type in [:def, :defp] and is_tuple(block) and is_atom(name) and is_list(params) do
-      dbg(params)
-
-      dbg(env)
-
       {_, state, penv} =
         for p <- params, reduce: {nil, state, env} do
           {_, state, penv} ->
             expand_pattern(p, state, penv)
         end
-
-      dbg(penv)
 
       {res, state, _env} = expand(block, state, penv)
 
@@ -1432,7 +1424,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
          when type in [:defmacro, :defmacrop] do
-      dbg(params)
       {_res, state, penv} = expand(params, state, env)
       {res, state, _env} = expand(block, state, penv)
 
@@ -1462,10 +1453,13 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(blocks), put_in(state.functions, functions), env}
     end
 
-    defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
+    defp expand_macro(_meta, Kernel, type, [{name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_list(params) and is_list(blocks) do
-      dbg(params)
-      {_res, state, penv} = expand(params, state, env)
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
 
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do

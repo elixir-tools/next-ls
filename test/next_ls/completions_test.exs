@@ -557,21 +557,21 @@ defmodule NextLS.CompletionsTest do
 
     assert_result 2, [
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => "",
         "insertText" => "var",
         "kind" => 6,
         "label" => "var"
       },
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => _,
         "insertText" => "var!",
         "kind" => 3,
         "label" => "var!/1"
       },
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => _,
         "insertText" => "var!",
         "kind" => 3,
@@ -616,5 +616,40 @@ defmodule NextLS.CompletionsTest do
     assert_match %{"kind" => 6, "label" => "vrest"} in results
     assert_match %{"kind" => 6, "label" => "vroom"} in results
     assert_match %{"kind" => 6, "label" => "var"} in results
+  end
+
+  test "variables show up in test blocks", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      use ExUnit.Case
+      test "something", %{vim: vim} do
+        var = "hi"
+
+        v
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 5,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "var"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
   end
 end
