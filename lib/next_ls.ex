@@ -158,7 +158,7 @@ defmodule NextLS do
              "alias-refactor"
            ]
          },
-        folding_range_provider: true,
+         folding_range_provider: true,
          hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,

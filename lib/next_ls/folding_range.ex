@@ -14,6 +14,7 @@ defmodule NextLS.FoldingRange do
         |> Z.zip()
         |> Z.traverse([], fn tree, acc ->
           node = Z.node(tree)
+
           if is_foldable?(node) do
             {tree, [node | acc]}
           else
@@ -23,17 +24,20 @@ defmodule NextLS.FoldingRange do
 
       create_folding = fn node ->
         range = make_range(node)
+
         %FoldingRange{
           kind: "region",
           start_line: range.start.line,
           start_character: range.start.character,
           end_line: range.end.line,
           end_character: range.end.character,
-          collapsed_text: Enum.at(text, range.start.character) <> " ..."
+          collapsed_text: Enum.at(text, range.start.line) <> " ..."
         }
       end
 
-      Enum.map(foldings, create_folding)
+      foldings
+      |> Enum.map(create_folding)
+      |> Enum.reverse()
     end
   end
 
