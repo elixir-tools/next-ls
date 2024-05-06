@@ -2,6 +2,7 @@ defmodule NextLS.Autocomplete do
   # Based on `IEx.Autocomplete` from github.com/elixir-lang/elixir from 10/17/2023
   @moduledoc false
 
+  require Logger
   require NextLS.Runtime
 
   @bitstring_modifiers [
@@ -625,10 +626,20 @@ defmodule NextLS.Autocomplete do
   end
 
   defp get_modules(false, runtime) do
-    {:ok, mods} =
-      NextLS.Runtime.execute runtime do
-        :code.all_loaded()
-      end
+    {ms, mods} =
+      :timer.tc(
+        fn ->
+          {:ok, mods} =
+            NextLS.Runtime.execute runtime do
+              :code.all_loaded()
+            end
+
+          mods
+        end,
+        :millisecond
+      )
+
+    Logger.debug("load modules: #{ms}ms")
 
     modules =
       Enum.map(mods, &Atom.to_string(elem(&1, 0)))

@@ -210,7 +210,7 @@ defmodule NextLS.ASTHelpers do
     {tree, cursor_tree} =
       ast
       |> Zipper.zip()
-      |> Zipper.traverse(nil, fn tree, acc ->
+      |> Zipper.traverse_while(nil, fn tree, acc ->
         node = Zipper.node(tree)
         node_range = Sourceror.get_range(node)
 
@@ -223,12 +223,10 @@ defmodule NextLS.ASTHelpers do
 
         cond do
           is_inside ->
-            dbg(tree)
-            {tree, tree}
+            {:cont, tree, tree}
 
           true ->
-            dbg(tree)
-            {Zipper.skip(tree) || tree, acc}
+            {:skip, tree, acc}
         end
       end)
 
@@ -236,17 +234,39 @@ defmodule NextLS.ASTHelpers do
       left = Zipper.left(cursor_tree)
       up = Zipper.up(cursor_tree)
 
-      # dbg(left)
-      # dbg(up)
-
       cond_result =
         cond do
           match?({:->, _, _}, Zipper.node(cursor_tree)) ->
             Zipper.update(cursor_tree, fn n ->
               case n do
-                {:->, meta, args} ->
-                  [{:__block__, bom, args} | params] = Enum.reverse(args)
-                  {:->, meta, Enum.reverse([{:__block__, bom, args ++ [{:__cursor__, [], []}]} | params])}
+                {:->, meta, [params, block]} ->
+                  new_block =
+                    case block do
+                      {:__block__, bm, exprs} ->
+                        {:__block__, bm, exprs ++ [{:__cursor__, [], []}]}
+
+                      _ ->
+                        {:__block__, [], [block, {:__cursor__, [], []}]}
+                    end
+
+                  {:->, meta, [params, new_block]}
+              end
+            end)
+
+          match?({:->, _, _}, Zipper.node(up)) ->
+            Zipper.update(up, fn n ->
+              case n do
+                {:->, meta, [params, block]} ->
+                  new_block =
+                    case block do
+                      {:__block__, bm, exprs} ->
+                        {:__block__, bm, exprs ++ [{:__cursor__, [], []}]}
+
+                      _ ->
+                        {:__block__, [], [block, {:__cursor__, [], []}]}
+                    end
+
+                  {:->, meta, [params, new_block]}
               end
             end)
 
@@ -281,7 +301,6 @@ defmodule NextLS.ASTHelpers do
             end)
 
           true ->
-            dbg(cursor_tree)
             Zipper.insert_right(cursor_tree, {:__cursor__, [], []})
         end
 

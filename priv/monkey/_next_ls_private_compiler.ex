@@ -1117,7 +1117,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
             macros:
               Enum.filter(Map.get(state, :macros, []), fn {m, _} -> m == cursor_env.module end) ++ cursor_env.macros,
             attrs: Enum.uniq(Map.get(cursor_state, :attrs, [])),
-            variables: Macro.Env.vars(cursor_env)
+            variables: for({name, nil} <- cursor_env.versioned_vars, do: name)
           }
         )
 
@@ -1329,6 +1329,13 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       else
         {{{:., dot_meta, [module, fun]}, meta, args}, state, env}
       end
+    end
+
+    # self calling anonymous function
+
+    defp expand({{:., dmeta, [func]}, callmeta, args}, state, env) when is_list(args) do
+      {res, state, _env} = expand(func, state, env)
+      {res, state, env}
     end
 
     ## Imported or local call

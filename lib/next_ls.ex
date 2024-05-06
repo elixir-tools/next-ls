@@ -612,28 +612,42 @@ defmodule NextLS do
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    source = Enum.join(document, "\n")
+    # source = Enum.join(document, "\n")
 
-    {ms, ast} =
+    # {ms, ast} =
+    #   :timer.tc(
+    #     fn ->
+    #       source
+    #       |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
+    #       |> then(fn
+    #         {:ok, ast} -> ast
+    #         {:error, ast, _} -> ast
+    #         {:error, :no_fuel_remaining} -> nil
+    #       end)
+    #     end,
+    #     :millisecond
+    #   )
+
+    # Logger.debug("parsing: #{ms}ms")
+
+    document_slice =
+      document
+      |> Enum.take(position.line + 1)
+      |> Enum.reverse()
+      |> then(fn [last_line | rest] ->
+        {line, _forget} = String.split_at(last_line, position.character)
+        [line | rest]
+      end)
+      |> Enum.reverse()
+      |> Enum.join("\n")
+
+    {ms, with_cursor} =
       :timer.tc(
         fn ->
-          source
-          |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
-          |> then(fn
-            {:ok, ast} -> ast
-            {:error, ast, _} -> ast
-            {:error, :no_fuel_remaining} -> nil
-          end)
-        end,
-        :millisecond
-      )
-
-    Logger.debug("parsing: #{ms}ms")
-
-    {ms, with_cursor_zipper} =
-      :timer.tc(
-        fn ->
-          NextLS.ASTHelpers.find_cursor(ast, line: position.line + 1, column: position.character + 1)
+          case dbg(Spitfire.container_cursor_to_quoted(document_slice)) do
+            {:ok, with_cursor} -> with_cursor
+            {:error, with_cursor, _} -> with_cursor
+          end
         end,
         :millisecond
       )
@@ -652,29 +666,18 @@ defmodule NextLS do
 
     # Logger.debug("build env: #{ms}ms")
 
-    document_slice =
-      document
-      |> Enum.take(position.line + 1)
-      |> Enum.reverse()
-      |> then(fn [last_line | rest] ->
-        {line, _forget} = String.split_at(last_line, position.character)
-        [line | rest]
-      end)
-      |> Enum.reverse()
-      |> Enum.join("\n")
-
     {root_path, entries} =
       dispatch(lsp.assigns.registry, :runtimes, fn entries ->
         [{wuri, result}] =
           for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            ast = Sourceror.Zipper.node(with_cursor_zipper)
+            # ast = Sourceror.Zipper.node(with_cursor_zipper)
 
             # dbg(ast, limit: :infinity, printable_limit: :infinity)
 
             {ms, {:ok, {_, _, _, macro_env}}} =
               :timer.tc(
                 fn ->
-                  Runtime.expand(runtime, ast, Path.basename(uri))
+                  Runtime.expand(runtime, with_cursor, Path.basename(uri))
                 end,
                 :millisecond
               )

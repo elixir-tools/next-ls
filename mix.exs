@@ -65,7 +65,7 @@ defmodule NextLS.MixProject do
       # {:gen_lsp, path: "../gen_lsp"},
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
-      {:spitfire, github: "elixir-tools/spitfire"},
+      {:spitfire, github: "elixir-tools/spitfire", branch: "container-cursor-to-quoted"},
       # {:spitfire, path: "../spitfire"},
       {:sourceror, "~> 1.0"},
       {:opentelemetry, "~> 1.3"},
