@@ -1267,10 +1267,10 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # you would collect this information in expand_pattern/3 and
     # invoke it from all relevant places (such as case, cond, try, etc).
 
-    defp expand({:=, meta, [left, right]}, state, env) do
+    defp expand({match, meta, [left, right]}, state, env) when match in [:=, :<-] do
       {left, state, env} = expand_pattern(left, state, env)
       {right, state, env} = expand(right, state, env)
-      {{:=, meta, [left, right]}, state, env}
+      {{match, meta, [left, right]}, state, env}
     end
 
     ## quote/1, quote/2
