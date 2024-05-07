@@ -583,7 +583,7 @@ defmodule NextLS do
             end
 
           result =
-            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime ->
+            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, _wuri ->
               Runtime.call(runtime, {Code, :fetch_docs, [module]})
             end)
 
@@ -612,24 +612,6 @@ defmodule NextLS do
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    # source = Enum.join(document, "\n")
-
-    # {ms, ast} =
-    #   :timer.tc(
-    #     fn ->
-    #       source
-    #       |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
-    #       |> then(fn
-    #         {:ok, ast} -> ast
-    #         {:error, ast, _} -> ast
-    #         {:error, :no_fuel_remaining} -> nil
-    #       end)
-    #     end,
-    #     :millisecond
-    #   )
-
-    # Logger.debug("parsing: #{ms}ms")
-
     document_slice =
       document
       |> Enum.take(position.line + 1)
@@ -641,74 +623,23 @@ defmodule NextLS do
       |> Enum.reverse()
       |> Enum.join("\n")
 
-    {ms, with_cursor} =
-      :timer.tc(
-        fn ->
-          case Spitfire.container_cursor_to_quoted(document_slice) do
-            {:ok, with_cursor} -> with_cursor
-            {:error, with_cursor, _} -> with_cursor
-          end
-        end,
-        :millisecond
-      )
-
-    Logger.debug("find_cursor: #{ms}ms")
-
-    # dbg(Sourceror.Zipper.node(with_cursor_zipper))
-
-    # {ms, env} =
-    #   :timer.tc(
-    #     fn ->
-    #       NextLS.ASTHelpers.Env.build(with_cursor_zipper, %{line: position.line + 1, column: position.character + 1})
-    #     end,
-    #     :millisecond
-    #   )
-
-    # Logger.debug("build env: #{ms}ms")
+    with_cursor =
+      case Spitfire.container_cursor_to_quoted(document_slice) do
+        {:ok, with_cursor} -> with_cursor
+        {:error, with_cursor, _} -> with_cursor
+      end
 
     {root_path, entries} =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        [{wuri, result}] =
-          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            # ast = Sourceror.Zipper.node(with_cursor_zipper)
+      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, wuri ->
+        {:ok, {_, _, _, macro_env}} =
+          Runtime.expand(runtime, with_cursor, Path.basename(uri))
 
-            # dbg(ast, limit: :infinity, printable_limit: :infinity)
+        doc =
+          document_slice
+          |> String.to_charlist()
+          |> Enum.reverse()
 
-            {ms, {:ok, {_, _, _, macro_env}}} =
-              :timer.tc(
-                fn ->
-                  Runtime.expand(runtime, with_cursor, Path.basename(uri))
-                end,
-                :millisecond
-              )
-
-            Logger.debug("expand: #{ms}ms")
-
-            env = macro_env
-            # env
-            # |> Map.put(:functions, macro_env.functions)
-            # |> Map.put(:macros, macro_env.macros)
-            # |> Map.put(:aliases, macro_env.aliases)
-            # |> Map.put(:attrs, macro_env.attrs)
-            # |> Map.put(:variables, macro_env.variables)
-
-            doc =
-              document_slice
-              |> String.to_charlist()
-              |> Enum.reverse()
-
-            {ms, result} =
-              :timer.tc(
-                fn ->
-                  NextLS.Autocomplete.expand(doc, runtime, env)
-                end,
-                :millisecond
-              )
-
-            Logger.debug("complete: #{ms}ms")
-
-            {wuri, result}
-          end
+        result = NextLS.Autocomplete.expand(doc, runtime, macro_env)
 
         case result do
           {:yes, entries} -> {wuri, entries}
@@ -1405,7 +1336,7 @@ defmodule NextLS do
     Registry.dispatch(registry, :runtimes, fn entries ->
       [result] =
         for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-          callback.(runtime)
+          callback.(runtime, wuri)
         end
 
       send(me, {ref, result})
