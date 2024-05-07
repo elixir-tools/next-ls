@@ -644,7 +644,7 @@ defmodule NextLS do
     {ms, with_cursor} =
       :timer.tc(
         fn ->
-          case dbg(Spitfire.container_cursor_to_quoted(document_slice)) do
+          case Spitfire.container_cursor_to_quoted(document_slice) do
             {:ok, with_cursor} -> with_cursor
             {:error, with_cursor, _} -> with_cursor
           end
