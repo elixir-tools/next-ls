@@ -737,12 +737,6 @@ defmodule NextLS.Autocomplete do
       not ensure_loaded?(mod, runtime) ->
         []
 
-      docs = get_docs(mod, [:function, :macro]) ->
-        mod
-        |> exports(runtime)
-        |> Kernel.--(default_arg_functions_with_doc_false(docs))
-        |> Enum.reject(&hidden_fun?(&1, docs))
-
       true ->
         exports(mod, runtime)
     end
@@ -782,35 +776,6 @@ defmodule NextLS.Autocomplete do
   #     []
   #   end
   # end
-
-  defp get_docs(_mod, _kinds, _fun \\ nil) do
-    # case Code.fetch_docs(mod) do
-    #   {:docs_v1, _, _, _, _, _, docs} ->
-    #     if is_nil(fun) do
-    #       for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-    #     else
-    #       for {{kind, ^fun, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-    #     end
-
-    #   {:error, _} ->
-    #     nil
-    # end
-    nil
-  end
-
-  defp default_arg_functions_with_doc_false(docs) do
-    for {{_, fun_name, arity}, _, _, :hidden, %{defaults: count}} <- docs,
-        new_arity <- (arity - count)..arity,
-        do: {fun_name, new_arity}
-  end
-
-  defp hidden_fun?({name, arity}, docs) do
-    case Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1)) do
-      nil -> hd(Atom.to_charlist(name)) == ?_
-      {_, _, _, :hidden, _} -> true
-      {_, _, _, _, _} -> false
-    end
-  end
 
   defp ensure_loaded?(Elixir, _runtime), do: false
 
