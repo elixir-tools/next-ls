@@ -1338,6 +1338,11 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {res, state, env}
     end
 
+    defp expand({:in, meta, [left, right]} = ast, state, %{context: :match} = env) do
+      {left, state, env} = expand_pattern(left, state, env)
+      {{:in, meta, [left, right]}, state, env}
+    end
+
     ## Imported or local call
 
     defp expand({fun, meta, args}, state, env) when is_atom(fun) and is_list(args) do
