@@ -714,8 +714,6 @@ defmodule NextLS do
         "[Next LS] Failed to run completion request: #{Exception.format(:error, e, __STACKTRACE__)}"
       )
 
-      IO.puts(Exception.format(:error, e, __STACKTRACE__))
-
       {:reply, [], lsp}
   end
 
