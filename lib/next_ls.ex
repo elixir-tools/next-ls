@@ -94,6 +94,7 @@ defmodule NextLS do
     {:ok,
      assign(lsp,
        auto_update: Keyword.get(args, :auto_update, false),
+       bundle_base: bundle_base,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -876,7 +877,7 @@ defmodule NextLS do
           lsp.assigns.init_opts.elixir_bin_path
 
         lsp.assigns.init_opts.experimental.completions.enable ->
-          NextLS.Runtime.BundledElixir.binpath()
+          NextLS.Runtime.BundledElixir.binpath(lsp.assigns.bundle_base)
 
         true ->
           "elixir" |> System.find_executable() |> Path.dirname()
