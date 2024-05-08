@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.21.0](https://github.com/elixir-tools/next-ls/compare/v0.20.2...v0.21.0) (2024-05-08)
+
+
+### Features
+
+* add remove debugger code action ([#426](https://github.com/elixir-tools/next-ls/issues/426)) ([7f2f4f4](https://github.com/elixir-tools/next-ls/commit/7f2f4f413348dc33d55ea17c2473007518627320))
+* alias-refactor workspace command ([#386](https://github.com/elixir-tools/next-ls/issues/386)) ([e14a611](https://github.com/elixir-tools/next-ls/commit/e14a611e157c0c4f6b54db5fce4719a51c4b7fc6))
+* **completions:** imports, aliases, module attributes ([#410](https://github.com/elixir-tools/next-ls/issues/410)) ([306f512](https://github.com/elixir-tools/next-ls/commit/306f512db9872746f6c71939114788325a520513)), closes [#45](https://github.com/elixir-tools/next-ls/issues/45) [#360](https://github.com/elixir-tools/next-ls/issues/360) [#334](https://github.com/elixir-tools/next-ls/issues/334)
+* **snippets:** more of them ([#414](https://github.com/elixir-tools/next-ls/issues/414)) ([2d4fddb](https://github.com/elixir-tools/next-ls/commit/2d4fddbf7c7e36925aa7761f060a2930a3732b96))
+* undefined function code action ([#441](https://github.com/elixir-tools/next-ls/issues/441)) ([d03c1ad](https://github.com/elixir-tools/next-ls/commit/d03c1adc16dfed96e8ddaeab2d33dd6da86f386a))
+
+
+### Bug Fixes
+
+* accuracy of get_surrounding_module ([#440](https://github.com/elixir-tools/next-ls/issues/440)) ([9c2ff68](https://github.com/elixir-tools/next-ls/commit/9c2ff68a7a0ead32bb1c356742b992903b41c440))
+* bump spitfire ([#429](https://github.com/elixir-tools/next-ls/issues/429)) ([23f7a6d](https://github.com/elixir-tools/next-ls/commit/23f7a6d13d0db43f9aa9718abc3003c28bf153c1))
+* bump spitfire to handle code that runs out of fuel ([#418](https://github.com/elixir-tools/next-ls/issues/418)) ([1bb590e](https://github.com/elixir-tools/next-ls/commit/1bb590ebedbe1b9efc7e480f56abe0a8c0743a5e))
+* **completions:** completions inside alias/import/require special forms ([#422](https://github.com/elixir-tools/next-ls/issues/422)) ([d62809e](https://github.com/elixir-tools/next-ls/commit/d62809ec470855703311d3b8cd72f7d6cb9eabec)), closes [#421](https://github.com/elixir-tools/next-ls/issues/421)
+* **completions:** correctly accumulate variables in `&lt;-` expressions ([#424](https://github.com/elixir-tools/next-ls/issues/424)) ([b3bf75b](https://github.com/elixir-tools/next-ls/commit/b3bf75b8e70cc8e21f7efbbd9f3bbe5ae07951f9))
+* **completions:** imports inside blocks that generate functions ([#423](https://github.com/elixir-tools/next-ls/issues/423)) ([04d3010](https://github.com/elixir-tools/next-ls/commit/04d3010b4c004022782b70af02dcab263b2039f3)), closes [#420](https://github.com/elixir-tools/next-ls/issues/420)
+* **completions:** log source code when env fails to build ([#404](https://github.com/elixir-tools/next-ls/issues/404)) ([9c7ff4d](https://github.com/elixir-tools/next-ls/commit/9c7ff4df880582eb20f22226bb5c442c0274143c)), closes [#403](https://github.com/elixir-tools/next-ls/issues/403)
+* **credo:** calculate accurate span from trigger ([#427](https://github.com/elixir-tools/next-ls/issues/427)) ([90cd35a](https://github.com/elixir-tools/next-ls/commit/90cd35a750f724a323232023fffe70df7aeff1be))
+* precompile Elixir with OTP25 ([b9b67bd](https://github.com/elixir-tools/next-ls/commit/b9b67bd3663a6841e67a31e6a2f3c7a4862d8f1c))
+* **references,definition:** better references of symbols ([#430](https://github.com/elixir-tools/next-ls/issues/430)) ([4bfeb2b](https://github.com/elixir-tools/next-ls/commit/4bfeb2bc3203775732aab504936bcc5f812dafb8)), closes [#342](https://github.com/elixir-tools/next-ls/issues/342) [#184](https://github.com/elixir-tools/next-ls/issues/184) [#304](https://github.com/elixir-tools/next-ls/issues/304)
+* request utf8 encoding ([#419](https://github.com/elixir-tools/next-ls/issues/419)) ([edd5a2a](https://github.com/elixir-tools/next-ls/commit/edd5a2a070671ca7cd3f6419ec520afdcbc96d91))
+* revert "fix: request utf8 encoding ([#419](https://github.com/elixir-tools/next-ls/issues/419))" ([c21cda6](https://github.com/elixir-tools/next-ls/commit/c21cda68702ead4585de1a3f962cc85e10c43f75))
+* update burrito ([ed1bc3c](https://github.com/elixir-tools/next-ls/commit/ed1bc3cb347a43448de6d97d29a0bd8d90a7330c))
+
 ## [0.20.2](https://github.com/elixir-tools/next-ls/compare/v0.20.1...v0.20.2) (2024-03-27)
 
 
