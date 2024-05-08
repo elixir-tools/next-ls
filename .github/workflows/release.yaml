@@ -113,7 +113,7 @@ jobs:
       - name: Bump Homebrew formula
         uses: dawidd6/action-homebrew-bump-formula@v3
         with:
-          token: ${{secrets.GH_API_TOKEN}}
+          token: ${{secrets.GH_API_KEY}}
           no_fork: true
           tap: elixir-tools/tap
           formula: next-ls
