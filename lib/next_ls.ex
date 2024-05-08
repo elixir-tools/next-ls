@@ -403,7 +403,7 @@ defmodule NextLS do
 
           value =
             with {:ok, result} <- result,
-                 %NextLS.Docs{} = doc <- NextLS.Docs.new(result, reference.module) do
+                 %NextLS.Docs{} = doc <- NextLS.Docs.new(result, mod) do
               case reference.type do
                 "alias" ->
                   NextLS.Docs.module(doc)

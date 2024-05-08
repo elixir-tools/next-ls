@@ -195,7 +195,7 @@ defmodule NextLS.HoverTest do
                     "contents" => %{
                       "kind" => "markdown",
                       "value" =>
-                        "## Atom.to_string/1\n\n" <>
+                        "## Atom.to_string/1\n" <>
                           _
                     },
                     "range" => %{
@@ -223,7 +223,7 @@ defmodule NextLS.HoverTest do
                   %{
                     "contents" => %{
                       "kind" => "markdown",
-                      "value" => "## Bar.Baz.q/0\n\nBar.Baz.q function"
+                      "value" => "## Bar.Baz.q/0\n\n`q()`\n\nBar.Baz.q function"
                     },
                     "range" => %{
                       "start" => %{"character" => 13, "line" => 12},
@@ -246,7 +246,10 @@ defmodule NextLS.HoverTest do
       }
     }
 
-    assert_result 9, nil, 500
+    assert_result 9, %{
+      "contents" => %{"kind" => "markdown", "value" => "## Bar.Fiz"},
+      "range" => %{"end" => %{"character" => 11, "line" => 13}, "start" => %{"character" => 9, "line" => 13}}
+    }
   end
 
   test "function without docs", %{client: client, example: example} do
@@ -282,7 +285,7 @@ defmodule NextLS.HoverTest do
                   %{
                     "contents" => %{
                       "kind" => "markdown",
-                      "value" => "## Kernel.to_string/1\n\nConverts the argument to a string" <> _
+                      "value" => "## Kernel.to_string/1\n\n`to_string(term)`\n\nConverts the argument to a string" <> _
                     },
                     "range" => %{
                       "start" => %{"character" => 9, "line" => 15},
@@ -310,7 +313,7 @@ defmodule NextLS.HoverTest do
                     "contents" => %{
                       "kind" => "markdown",
                       "value" =>
-                        "## :timer.sleep/1\n\nSuspends the process" <>
+                        "## :timer.sleep/1\n\n`sleep/1`\n\nSuspends the process" <>
                           _
                     },
                     "range" => %{
@@ -365,7 +368,9 @@ defmodule NextLS.HoverTest do
                   %{
                     "contents" => %{
                       "kind" => "markdown",
-                      "value" => "## Kernel.def/2\n\nDefines a public function with the given name and body" <> _
+                      "value" =>
+                        "## Kernel.def/2\n\n`def(call, expr \\\\ nil)`\n\nDefines a public function with the given name and body" <>
+                          _
                     },
                     "range" => %{
                       "start" => %{"character" => 2, "line" => 9},
