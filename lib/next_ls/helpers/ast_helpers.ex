@@ -170,7 +170,7 @@ defmodule NextLS.ASTHelpers do
       |> Zipper.zip()
       |> Zipper.traverse_while(nil, fn tree, acc ->
         node = Zipper.node(tree)
-        node_range = Sourceror.get_range(node)
+        node_range = Sourceror.Range.get_range(node)
 
         is_inside =
           with nil <- node_range do
@@ -201,22 +201,6 @@ defmodule NextLS.ASTHelpers do
 
     with {:ok, nil} <- {:ok, acc} do
       {:error, :not_found}
-    end
-  end
-
-  def find_cursor(ast) do
-    with nil <-
-           ast
-           |> Zipper.zip()
-           |> Zipper.find(fn
-             {:@, _, [{:__cursor__, _, []}]} -> true
-             {:__cursor__, _, _} -> true
-             {{:., _, [_, :__cursor__]}, _, _} -> true
-             _ -> false
-           end) do
-      {:error, :not_found}
-    else
-      zipper -> {:ok, zipper}
     end
   end
 

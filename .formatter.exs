@@ -5,7 +5,8 @@
     assert_result: 3,
     assert_notification: 3,
     notify: 2,
-    request: 2
+    request: 2,
+    assert_match: 1
   ],
   line_length: 120,
   import_deps: [:gen_lsp],

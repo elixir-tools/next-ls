@@ -94,6 +94,7 @@ defmodule NextLS do
     {:ok,
      assign(lsp,
        auto_update: Keyword.get(args, :auto_update, false),
+       bundle_base: bundle_base,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -144,7 +145,8 @@ defmodule NextLS do
          completion_provider:
            if init_opts.experimental.completions.enable do
              %GenLSP.Structures.CompletionOptions{
-               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"]
+               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"],
+               resolve_provider: true
              }
            else
              nil
@@ -401,32 +403,16 @@ defmodule NextLS do
             end)
 
           value =
-            with {:ok, {:docs_v1, _, _lang, content_type, %{"en" => mod_doc}, _, fdocs}} <- result do
+            with {:ok, result} <- result,
+                 %NextLS.Docs{} = doc <- NextLS.Docs.new(result, mod) do
               case reference.type do
                 "alias" ->
-                  """
-                  ## #{reference.module}
-
-                  #{NextLS.HoverHelpers.to_markdown(content_type, mod_doc)}
-                  """
+                  NextLS.Docs.module(doc)
 
                 "function" ->
-                  doc =
-                    Enum.find(fdocs, fn {{type, name, _a}, _, _, _doc, _} ->
-                      type in [:function, :macro] and to_string(name) == reference.identifier
-                    end)
-
-                  case doc do
-                    {_, _, _, %{"en" => fdoc}, _} ->
-                      """
-                      ## #{Macro.to_string(mod)}.#{reference.identifier}/#{reference.arity}
-
-                      #{NextLS.HoverHelpers.to_markdown(content_type, fdoc)}
-                      """
-
-                    _ ->
-                      nil
-                  end
+                  NextLS.Docs.function(doc, fn name, a, documentation, _other ->
+                    to_string(name) == reference.identifier and documentation != :hidden and a >= reference.arity
+                  end)
 
                 _ ->
                   nil
@@ -583,47 +569,49 @@ defmodule NextLS do
     resp
   end
 
+  def handle_request(%GenLSP.Requests.CompletionItemResolve{params: completion_item}, lsp) do
+    completion_item =
+      with nil <- completion_item.data do
+        completion_item
+      else
+        %{"uri" => uri, "data" => data} ->
+          data = data |> Base.decode64!() |> :erlang.binary_to_term()
+
+          module =
+            case data do
+              {mod, _function, _arity} -> mod
+              mod -> mod
+            end
+
+          result =
+            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, _wuri ->
+              Runtime.call(runtime, {Code, :fetch_docs, [module]})
+            end)
+
+          docs =
+            with {:ok, doc} <- result,
+                 %NextLS.Docs{} = doc <- NextLS.Docs.new(doc, module) do
+              case data do
+                {_mod, function, arity} ->
+                  NextLS.Docs.function(doc, fn name, a, documentation, _other ->
+                    to_string(name) == function and documentation != :hidden and a >= arity
+                  end)
+
+                mod when is_atom(mod) ->
+                  NextLS.Docs.module(doc)
+              end
+            else
+              _ -> nil
+            end
+
+          %{completion_item | documentation: docs}
+      end
+
+    {:reply, completion_item, lsp}
+  end
+
   def handle_request(%TextDocumentCompletion{params: %{text_document: %{uri: uri}, position: position}}, lsp) do
     document = lsp.assigns.documents[uri]
-
-    spliced =
-      document
-      |> List.update_at(position.line, fn row ->
-        {front, back} = String.split_at(row, position.character)
-        # all we need to do is insert the cursor so we can find the spot to then
-        # calculate the environment, it doens't really matter if its valid code,
-        # it probably isn't already
-        front <> "\n__cursor__()\n" <> back
-      end)
-      |> Enum.join("\n")
-
-    ast =
-      spliced
-      |> Spitfire.parse(literal_encoder: &{:ok, {:__block__, &2, [&1]}})
-      |> then(fn
-        {:ok, ast} -> ast
-        {:error, ast, _} -> ast
-        {:error, :no_fuel_remaining} -> nil
-      end)
-
-    env =
-      ast
-      |> NextLS.ASTHelpers.find_cursor()
-      |> then(fn
-        {:ok, cursor} ->
-          cursor
-
-        {:error, :not_found} ->
-          NextLS.Logger.warning(lsp.assigns.logger, "Could not locate cursor when building environment")
-
-          NextLS.Logger.warning(
-            lsp.assigns.logger,
-            "Source code that produced the above warning: #{spliced}"
-          )
-
-          nil
-      end)
-      |> NextLS.ASTHelpers.Env.build()
 
     document_slice =
       document
@@ -636,34 +624,23 @@ defmodule NextLS do
       |> Enum.reverse()
       |> Enum.join("\n")
 
+    with_cursor =
+      case Spitfire.container_cursor_to_quoted(document_slice) do
+        {:ok, with_cursor} -> with_cursor
+        {:error, with_cursor, _} -> with_cursor
+      end
+
     {root_path, entries} =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        [{wuri, result}] =
-          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            ast =
-              spliced
-              |> Spitfire.parse()
-              |> then(fn
-                {:ok, ast} -> ast
-                {:error, ast, _} -> ast
-                {:error, :no_fuel_remaining} -> nil
-              end)
+      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, wuri ->
+        {:ok, {_, _, _, macro_env}} =
+          Runtime.expand(runtime, with_cursor, Path.basename(uri))
 
-            {:ok, {_, _, _, macro_env}} = Runtime.expand(runtime, ast, Path.basename(uri))
+        doc =
+          document_slice
+          |> String.to_charlist()
+          |> Enum.reverse()
 
-            env =
-              env
-              |> Map.put(:functions, macro_env.functions)
-              |> Map.put(:macros, macro_env.macros)
-              |> Map.put(:aliases, macro_env.aliases)
-              |> Map.put(:attrs, macro_env.attrs)
-
-            {wuri,
-             document_slice
-             |> String.to_charlist()
-             |> Enum.reverse()
-             |> NextLS.Autocomplete.expand(runtime, env)}
-          end
+        result = NextLS.Autocomplete.expand(doc, runtime, macro_env)
 
         case result do
           {:yes, entries} -> {wuri, entries}
@@ -680,13 +657,13 @@ defmodule NextLS do
               {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
 
             :function ->
-              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol.docs}
+              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol[:docs] || ""}
 
             :module ->
-              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol.docs}
+              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol[:docs] || ""}
 
             :variable ->
-              {name, GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+              {to_string(name), GenLSP.Enumerations.CompletionItemKind.variable(), ""}
 
             :dir ->
               {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
@@ -711,8 +688,14 @@ defmodule NextLS do
           %GenLSP.Structures.CompletionItem{
             label: label,
             kind: kind,
-            insert_text: name,
-            documentation: docs
+            insert_text: to_string(name),
+            documentation: docs,
+            data:
+              if symbol[:data] do
+                %{uri: uri, data: symbol[:data] |> :erlang.term_to_binary() |> Base.encode64()}
+              else
+                nil
+              end
           }
 
         root_path = root_path |> URI.parse() |> Map.get(:path)
@@ -894,7 +877,7 @@ defmodule NextLS do
           lsp.assigns.init_opts.elixir_bin_path
 
         lsp.assigns.init_opts.experimental.completions.enable ->
-          NextLS.Runtime.BundledElixir.binpath()
+          NextLS.Runtime.BundledElixir.binpath(lsp.assigns.bundle_base)
 
         true ->
           "elixir" |> System.find_executable() |> Path.dirname()
@@ -1333,6 +1316,27 @@ defmodule NextLS do
 
     Registry.dispatch(registry, key, fn entries ->
       result = callback.(entries)
+
+      send(me, {ref, result})
+    end)
+
+    receive do
+      {^ref, result} -> result
+    after
+      1000 ->
+        :timeout
+    end
+  end
+
+  defp dispatch_to_workspace(registry, uri, callback) do
+    ref = make_ref()
+    me = self()
+
+    Registry.dispatch(registry, :runtimes, fn entries ->
+      [result] =
+        for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
+          callback.(runtime, wuri)
+        end
 
       send(me, {ref, result})
     end)

@@ -1,7 +1,7 @@
-defmodule NextLS.HoverHelpersTest do
+defmodule NextLS.DocsTest do
   use ExUnit.Case, async: true
 
-  alias NextLS.HoverHelpers
+  alias NextLS.Docs
 
   describe "converts erlang html format to markdown" do
     test "some divs and p and code" do
@@ -35,7 +35,7 @@ defmodule NextLS.HoverHelpersTest do
          ]}
       ]
 
-      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+      actual = Docs.to_markdown("application/erlang+html", html)
 
       assert actual ==
                String.trim("""
@@ -60,7 +60,7 @@ defmodule NextLS.HoverHelpersTest do
          ]}
       ]
 
-      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+      actual = Docs.to_markdown("application/erlang+html", html)
 
       assert actual ==
                String.trim("""
@@ -103,7 +103,7 @@ defmodule NextLS.HoverHelpersTest do
         {:p, [], ["Allowed in guard tests."]}
       ]
 
-      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+      actual = Docs.to_markdown("application/erlang+html", html)
 
       assert actual ==
                String.trim("""
@@ -191,7 +191,7 @@ defmodule NextLS.HoverHelpersTest do
          ]}
       ]
 
-      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+      actual = Docs.to_markdown("application/erlang+html", html)
 
       assert String.trim(actual) ==
                String.trim("""
@@ -231,7 +231,7 @@ defmodule NextLS.HoverHelpersTest do
         {:p, [], ["Returns ", {:code, [], ["error"]}, " if no value is associated with ", {:code, [], ["Flag"]}, "."]}
       ]
 
-      actual = HoverHelpers.to_markdown("application/erlang+html", html)
+      actual = Docs.to_markdown("application/erlang+html", html)
 
       assert String.trim(actual) ==
                String.trim("""
