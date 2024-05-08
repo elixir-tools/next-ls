@@ -19,6 +19,7 @@ Please see the [docs](https://www.elixir-tools.dev/docs/next-ls/quickstart) to g
 - [The elixir-tools Update Vol. 3](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-3/)
 - [The elixir-tools Update Vol. 4](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-4/)
 - [The 2023 elixir-tools Update (Vol. 5) ](https://www.elixir-tools.dev/news/the-2023-elixir-tools-update-vol-5/)
+- [The elixir-tools Update Vol. 6](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-6/)
 
 ## Sponsors
 
