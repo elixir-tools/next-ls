@@ -1293,7 +1293,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{:^, meta, [arg]}, state, %{env | context: context}}
     end
 
-    defp expand({:->, _, [params, block]} = ast, state, env) do
+    defp expand({:->, _, [params, block]}, state, env) do
       {_, state, penv} =
         for p <- params, reduce: {nil, state, env} do
           {_, state, penv} ->
@@ -1328,12 +1328,12 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     # self calling anonymous function
 
-    defp expand({{:., dmeta, [func]}, callmeta, args}, state, env) when is_list(args) do
+    defp expand({{:., _dmeta, [func]}, _callmeta, args}, state, env) when is_list(args) do
       {res, state, _env} = expand(func, state, env)
       {res, state, env}
     end
 
-    defp expand({:in, meta, [left, right]} = ast, state, %{context: :match} = env) do
+    defp expand({:in, meta, [left, right]}, state, %{context: :match} = env) do
       {left, state, env} = expand_pattern(left, state, env)
       {{:in, meta, [left, right]}, state, env}
     end
@@ -1471,7 +1471,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(blocks), put_in(state.functions, functions), env}
     end
 
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, blocks], _callback, state, env)
+    defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_list(params) and is_list(blocks) do
       {_, state, penv} =
         for p <- params, reduce: {nil, state, env} do
@@ -1485,8 +1485,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
             {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
         end
-
-      arity = length(List.wrap(params))
 
       {Enum.reverse(blocks), state, env}
     end
@@ -1574,7 +1572,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(acc), state, env}
     end
 
-    defp expand_list([h | t] = list, state, env, acc) do
+    defp expand_list([h | t], state, env, acc) do
       {h, state, env} = expand(h, state, env)
       expand_list(t, state, env, [h | acc])
     end
