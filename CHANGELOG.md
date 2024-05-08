@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.1](https://github.com/elixir-tools/next-ls/compare/v0.21.0...v0.21.1) (2024-05-08)
+
+
+### Bug Fixes
+
+* **runtime:** remove unused variable warnings ([904a3d1](https://github.com/elixir-tools/next-ls/commit/904a3d10072263d3145ee4e71c6d9e1f06d4b933))
+* **runtime:** use correct path for bundled elixir ([#448](https://github.com/elixir-tools/next-ls/issues/448)) ([904a3d1](https://github.com/elixir-tools/next-ls/commit/904a3d10072263d3145ee4e71c6d9e1f06d4b933))
+
 ## [0.21.0](https://github.com/elixir-tools/next-ls/compare/v0.20.2...v0.21.0) (2024-05-08)
 
 
