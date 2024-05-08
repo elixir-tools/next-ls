@@ -131,6 +131,7 @@ defmodule NextLS.Runtime do
     bindir = System.get_env("BINDIR")
     path = System.get_env("PATH")
     new_path = String.replace(path, bindir <> ":", "")
+    new_path = elixir_bin_path <> ":" <> new_path
 
     with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
       exe =
