@@ -735,4 +735,78 @@ defmodule NextLS.CompletionsTest do
     assert_match %{"kind" => 6, "label" => "var"} in results
     assert_match %{"kind" => 6, "label" => "vim"} in results
   end
+
+  test "<- matches dont leak from for", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) do
+        names = 
+          for item <- items do
+            item.name
+          end
+
+        i
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 7,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+    assert_match %{"kind" => 6, "label" => "item"} not in results
+  end
+
+  test "<- matches dont leak from with", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) do
+        names = 
+          with item <- items do
+            item.name
+          end
+
+        i
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 7,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+    assert_match %{"kind" => 6, "label" => "item"} not in results
+  end
 end
