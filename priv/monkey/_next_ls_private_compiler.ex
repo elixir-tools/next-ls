@@ -1545,6 +1545,29 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{{:., meta, [module, fun]}, meta, args}, state, env}
     end
 
+    defp expand_local(meta, fun, args, state, env) when fun in [:for, :with] do
+      {params, blocks} =
+        Enum.split_while(args, fn
+          {:<-, _, _} -> true
+          _ -> false
+        end)
+
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      {blocks, state} =
+        for {type, block} <- blocks, reduce: {[], state} do
+          {acc, state} ->
+            {res, state, _env} = expand(block, state, penv)
+            {[{type, res} | acc], state}
+        end
+
+      {blocks, state, env}
+    end
+
     defp expand_local(meta, fun, args, state, env) do
       # A compiler may want to emit a :local_function trace in here.
       {args, state, env} = expand_list(args, state, env)
