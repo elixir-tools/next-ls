@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.3](https://github.com/elixir-tools/next-ls/compare/v0.21.2...v0.21.3) (2024-05-09)
+
+
+### Bug Fixes
+
+* **completions:** dont leak &lt;- matches from for/with ([#454](https://github.com/elixir-tools/next-ls/issues/454)) ([3cecf51](https://github.com/elixir-tools/next-ls/commit/3cecf51c4ac0119e2fa68680d807d263bb10e9ca)), closes [#447](https://github.com/elixir-tools/next-ls/issues/447)
+
 ## [0.21.2](https://github.com/elixir-tools/next-ls/compare/v0.21.1...v0.21.2) (2024-05-09)
 
 
