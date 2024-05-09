@@ -107,7 +107,7 @@ jobs:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
 
   homebrew:
-    needs: [publish]
+    needs: [release, publish]
     runs-on: ubuntu-latest
     steps:
       - name: Bump Homebrew formula
@@ -117,3 +117,4 @@ jobs:
           no_fork: true
           tap: elixir-tools/tap
           formula: next-ls
+          tag: ${{ needs.release.outputs.tag_name }}
