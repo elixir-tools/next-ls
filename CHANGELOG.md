@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.2](https://github.com/elixir-tools/next-ls/compare/v0.21.1...v0.21.2) (2024-05-09)
+
+
+### Bug Fixes
+
+* **runtime:** correctly set MIX_HOME in runtime ([#452](https://github.com/elixir-tools/next-ls/issues/452)) ([03db965](https://github.com/elixir-tools/next-ls/commit/03db965289c0e7127b92b5136f71dbd9492533cf)), closes [#451](https://github.com/elixir-tools/next-ls/issues/451)
+
 ## [0.21.1](https://github.com/elixir-tools/next-ls/compare/v0.21.0...v0.21.1) (2024-05-08)
 
 
