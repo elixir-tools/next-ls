@@ -21,7 +21,8 @@ defmodule NextLS.Runtime.BundledElixir do
   end
 
   def install(base, logger, opts \\ []) do
-    mixhome = Keyword.get(opts, :mix_home, Path.expand("~/.mix"))
+    basedir = path(base)
+    mixhome = Keyword.get(opts, :mix_home) || Path.join(basedir, ".mix")
     binpath = binpath(base)
 
     unless File.exists?(binpath) do

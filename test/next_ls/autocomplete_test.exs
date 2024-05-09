@@ -73,6 +73,7 @@ defmodule NextLS.AutocompleteTest do
          db: :some_db,
          mix_env: "dev",
          mix_target: "host",
+         mix_home: Path.join(cwd, ".mix"),
          registry: __MODULE__.Registry}
       )
 
