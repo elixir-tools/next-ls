@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.4](https://github.com/elixir-tools/next-ls/compare/v0.21.3...v0.21.4) (2024-05-09)
+
+
+### Bug Fixes
+
+* correctly set MIX_HOME when using bundled Elixir ([#461](https://github.com/elixir-tools/next-ls/issues/461)) ([1625877](https://github.com/elixir-tools/next-ls/commit/16258776e32d4f8d7839d84f5d20de58214d1b25)), closes [#460](https://github.com/elixir-tools/next-ls/issues/460)
+
 ## [0.21.3](https://github.com/elixir-tools/next-ls/compare/v0.21.2...v0.21.3) (2024-05-09)
 
 
