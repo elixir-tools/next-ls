@@ -111,6 +111,7 @@ defmodule NextLS.Runtime do
     mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
     elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
+    mix_home = Keyword.get(opts, :mix_home)
 
     elixir_exe = Path.join(elixir_bin_path, "elixir")
 
@@ -145,6 +146,7 @@ defmodule NextLS.Runtime do
         {~c"MIX_ENV", ~c"#{mix_env}"},
         {~c"MIX_TARGET", ~c"#{mix_target}"},
         {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+        {~c"MIX_HOME", ~c"#{mix_home}"},
         {~c"ROOTDIR", false},
         {~c"BINDIR", false},
         {~c"RELEASE_ROOT", false},

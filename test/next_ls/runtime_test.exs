@@ -65,6 +65,7 @@ defmodule NextLs.RuntimeTest do
            db: :some_db,
            mix_env: "dev",
            mix_target: "host",
+           mix_home: Path.join(cwd, ".mix"),
            registry: RuntimeTest.Registry}
         )
 
@@ -95,6 +96,7 @@ defmodule NextLs.RuntimeTest do
            db: :some_db,
            mix_env: "dev",
            mix_target: "host",
+           mix_home: Path.join(cwd, ".mix"),
            registry: RuntimeTest.Registry}
         )
 
@@ -126,6 +128,7 @@ defmodule NextLs.RuntimeTest do
            db: :some_db,
            mix_env: "dev",
            mix_target: "host",
+           mix_home: Path.join(cwd, ".mix"),
            registry: RuntimeTest.Registry}
         )
 
@@ -190,6 +193,7 @@ defmodule NextLs.RuntimeTest do
            db: :some_db,
            mix_env: "dev",
            mix_target: "host",
+           mix_home: Path.join(cwd, ".mix"),
            registry: RuntimeTest.Registry}
         )
 

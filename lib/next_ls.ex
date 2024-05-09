@@ -79,7 +79,7 @@ defmodule NextLS do
     runtime_task_supervisor = Keyword.fetch!(args, :runtime_task_supervisor)
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
     bundle_base = Keyword.get(args, :bundle_base, Path.expand("~/.cache/elixir-tools/nextls"))
-    mixhome = Keyword.get(args, :mix_home, Path.expand("~/.mix"))
+    mix_home = Keyword.get(args, :mix_home)
 
     registry = Keyword.fetch!(args, :registry)
 
@@ -89,12 +89,13 @@ defmodule NextLS do
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
-    NextLS.Runtime.BundledElixir.install(bundle_base, logger, mix_home: mixhome)
+    NextLS.Runtime.BundledElixir.install(bundle_base, logger, mix_home: mix_home)
 
     {:ok,
      assign(lsp,
        auto_update: Keyword.get(args, :auto_update, false),
        bundle_base: bundle_base,
+       mix_home: mix_home,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -904,6 +905,7 @@ defmodule NextLS do
              uri: uri,
              mix_env: lsp.assigns.init_opts.mix_env,
              mix_target: lsp.assigns.init_opts.mix_target,
+             mix_home: lsp.assigns.mix_home,
              elixir_bin_path: elixir_bin_path,
              on_initialized: fn status ->
                if status == :ready do
@@ -1026,6 +1028,7 @@ defmodule NextLS do
               uri: uri,
               mix_env: lsp.assigns.init_opts.mix_env,
               mix_target: lsp.assigns.init_opts.mix_target,
+              mix_home: lsp.assigns.mix_home,
               on_initialized: fn status ->
                 if status == :ready do
                   Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
