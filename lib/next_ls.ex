@@ -89,8 +89,6 @@ defmodule NextLS do
     cache = Keyword.fetch!(args, :cache)
     {:ok, logger} = DynamicSupervisor.start_child(dynamic_supervisor, {NextLS.Logger, lsp: lsp})
 
-    NextLS.Runtime.BundledElixir.install(bundle_base, logger, mix_home: mix_home)
-
     {:ok,
      assign(lsp,
        auto_update: Keyword.get(args, :auto_update, false),
@@ -131,6 +129,13 @@ defmodule NextLS do
       end
 
     {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
+
+    mix_home =
+      if init_opts.experimental.completions.enable do
+        NextLS.Runtime.BundledElixir.mix_home(lsp.assigns.bundle_base)
+      else
+        nil
+      end
 
     {:reply,
      %InitializeResult{
@@ -175,6 +180,7 @@ defmodule NextLS do
        server_info: %{name: "Next LS"}
      },
      assign(lsp,
+       mix_home: mix_home,
        root_uri: root_uri,
        workspace_folders: workspace_folders,
        client_capabilities: caps,
@@ -868,6 +874,7 @@ defmodule NextLS do
         })
     end
 
+    NextLS.Runtime.BundledElixir.install(lsp.assigns.bundle_base, lsp.assigns.logger)
     GenLSP.log(lsp, "[Next LS] Booting runtimes...")
 
     parent = self()

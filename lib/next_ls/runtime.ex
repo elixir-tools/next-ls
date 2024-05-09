@@ -140,19 +140,24 @@ defmodule NextLS.Runtime do
         |> Path.join("cmd")
         |> Path.absname()
 
-      env = [
-        {~c"LSP", ~c"nextls"},
-        {~c"NEXTLS_PARENT_PID", parent},
-        {~c"MIX_ENV", ~c"#{mix_env}"},
-        {~c"MIX_TARGET", ~c"#{mix_target}"},
-        {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
-        {~c"MIX_HOME", ~c"#{mix_home}"},
-        {~c"ROOTDIR", false},
-        {~c"BINDIR", false},
-        {~c"RELEASE_ROOT", false},
-        {~c"RELEASE_SYS_CONFIG", false},
-        {~c"PATH", String.to_charlist(new_path)}
-      ]
+      env =
+        [
+          {~c"LSP", ~c"nextls"},
+          {~c"NEXTLS_PARENT_PID", parent},
+          {~c"MIX_ENV", ~c"#{mix_env}"},
+          {~c"MIX_TARGET", ~c"#{mix_target}"},
+          {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+          {~c"ROOTDIR", false},
+          {~c"BINDIR", false},
+          {~c"RELEASE_ROOT", false},
+          {~c"RELEASE_SYS_CONFIG", false},
+          {~c"PATH", String.to_charlist(new_path)}
+        ] ++
+          if mix_home do
+            [{~c"MIX_HOME", ~c"#{mix_home}"}]
+          else
+            []
+          end
 
       args =
         [elixir_exe] ++
