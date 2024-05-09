@@ -128,7 +128,6 @@ defmodule NextLS do
         [%{name: Path.basename(root_uri), uri: root_uri}]
       end
 
-
     {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
 
     mix_home =
