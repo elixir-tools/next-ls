@@ -134,35 +134,40 @@
           BURRITO_ERTS_PATH = "/tmp/beam/";
           BURRITO_TARGET = lib.optional localBuild burritoExe.${system};
 
-          preBuild =
+          preBuild = let
+            destination = "/tmp/beam/otp";
+          in
+            ''
+              export HOME="$TEMPDIR"
+              mkdir -p ${destination}
+              cp -r --no-preserve=timestamps ${beam}/. ${destination}
+            '' +
             (
               if (pkgs.stdenv.isLinux)
               then ''
-                ls -al ${beam}/erts-14.2.1/bin/
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/beam.smp
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/ct_run
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/dialyzer
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/dyn_erl
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/epmd
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/erl_call
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/erl_child_setup
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/erlc
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/erlexec
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/escript
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/heart
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/inet_gethost
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/run_erl
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/to_erl
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/typer
-                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${beam}/erts-14.2.1/bin/yielding_c_fun
+                echo "Listing files in ${destination}/erts-14.2.1/bin/"
+                ls -al ${destination}/erts-14.2.1/bin/
+          
+                # Applying patchelf to binaries in the copied directory
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/beam.smp
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/ct_run
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/dialyzer
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/dyn_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/epmd
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erl_call
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erl_child_setup
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erlc
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erlexec
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/escript
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/heart
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/inet_gethost
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/run_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/to_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/typer
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/yielding_c_fun
               ''
               else ""
-            )
-            + ''
-              export HOME="$TEMPDIR"
-              mkdir -p /tmp/beam/otp
-              cp -r --no-preserve=timestamps ${beam}/. /tmp/beam/otp
-            '';
+          );
 
           postInstall = ''
             chmod +x ./burrito_out/*
