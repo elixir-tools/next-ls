@@ -23,7 +23,7 @@
         beamPackages = pkgs.beam_minimal.packages.erlang_26;
         beam = fetchTarball beams.${system};
         rawmusl = musls.${system};
-        musl = lib.optionals nixpkgs.legacyPackages.${system}.stdenv.isLinux (builtins.fetchurl (nixpkgs.lib.attrsets.getAttrs ["url" "sha256"] musls.${system}));
+        # musl = lib.optionals nixpkgs.legacyPackages.${system}.stdenv.isLinux (builtins.fetchurl (nixpkgs.lib.attrsets.getAttrs ["url" "sha256"] musls.${system}));
         otp = (pkgs.beam.packagesWith beamPackages.erlang).extend (final: prev: {
           elixir_1_17 = prev.elixir_1_16.override {
             rev = "e3b6a91b173f7e836401a6a75c3906c26bd7fd39";
@@ -39,7 +39,7 @@
         });
         elixir = otp.elixir;
       in
-        f {inherit system pkgs beamPackages elixir beam rawmusl musl;});
+        f {inherit system pkgs beamPackages elixir beam rawmusl;});
 
     burritoExe = {
       "aarch64-darwin" = "darwin_arm64";
@@ -85,7 +85,6 @@
       system,
       beamPackages,
       beam,
-      musl,
       rawmusl,
       elixir,
     }: let
@@ -94,6 +93,19 @@
         paths = [pkgs._7zz];
         postBuild = ''
           ln -s ${pkgs._7zz}/bin/7zz $out/bin/7z
+        '';
+      };
+      muslPkg = pkgs.stdenv.mkDerivation {
+        name = "musl-libc";
+        src = pkgs.fetchurl {
+          url = musls.${system}.url;
+          sha256 = musls.${system}.sha256;
+        };
+        unpackPhase = "true";
+        installPhase = ''
+          mkdir $out
+          cp $src $out/${rawmusl.file}
+          chmod +x $out/${rawmusl.file}
         '';
       };
     in {
@@ -109,7 +121,7 @@
           inherit version elixir;
           inherit (beamPackages) erlang;
 
-          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz beam];
+          nativeBuildInputs = [pkgs.xz pkgs.zig_0_11 aliased_7zz beam muslPkg];
 
           mixFodDeps = beamPackages.fetchMixDeps {
             src = self.outPath;
@@ -122,20 +134,42 @@
           BURRITO_ERTS_PATH = "/tmp/beam/";
           BURRITO_TARGET = lib.optional localBuild burritoExe.${system};
 
-          preBuild =
+          preBuild = let
+            destination = "/tmp/beam/otp";
+          in
             ''
               export HOME="$TEMPDIR"
-              mkdir -p /tmp/beam/otp
-              cp -r --no-preserve=ownership,timestamps ${beam}/. /tmp/beam/otp
-            ''
-            + (
+              mkdir -p ${destination}
+              cp -r --no-preserve=timestamps ${beam}/. ${destination}
+              chmod -R u+w ${destination} # Make all copied files writable
+          
+              # Listing files in the destination to confirm
+              echo "Listing files in ${destination}/erts-14.2.1/bin/"
+              ls -al ${destination}/erts-14.2.1/bin/
+            '' +
+            (
               if (pkgs.stdenv.isLinux)
               then ''
-                cp --no-preserve=ownership,timestamps ${musl} /tmp/${rawmusl.file}
-                chmod +x /tmp/${rawmusl.file}
+                # Applying patchelf to binaries in the copied directory
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/beam.smp
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/ct_run
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/dialyzer
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/dyn_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/epmd
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erl_call
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erl_child_setup
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erlc
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/erlexec
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/escript
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/heart
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/inet_gethost
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/run_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/to_erl
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/typer
+                patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/yielding_c_fun
               ''
               else ""
-            );
+          );
 
           postInstall = ''
             chmod +x ./burrito_out/*
