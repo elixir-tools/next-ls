@@ -141,13 +141,15 @@
               export HOME="$TEMPDIR"
               mkdir -p ${destination}
               cp -r --no-preserve=timestamps ${beam}/. ${destination}
+              chmod -R u+w ${destination} # Make all copied files writable
+          
+              # Listing files in the destination to confirm
+              echo "Listing files in ${destination}/erts-14.2.1/bin/"
+              ls -al ${destination}/erts-14.2.1/bin/
             '' +
             (
               if (pkgs.stdenv.isLinux)
               then ''
-                echo "Listing files in ${destination}/erts-14.2.1/bin/"
-                ls -al ${destination}/erts-14.2.1/bin/
-          
                 # Applying patchelf to binaries in the copied directory
                 patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/beam.smp
                 patchelf --set-interpreter ${muslPkg}/${rawmusl.file} ${destination}/erts-14.2.1/bin/ct_run
