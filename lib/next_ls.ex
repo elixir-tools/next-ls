@@ -558,16 +558,16 @@ defmodule NextLS do
                 {:reply, nil, lsp}
 
               _ ->
-                GenLSP.warning(lsp, "[Next LS] Failed to format the file: #{uri}")
+                NextLS.Logger.warning(lsp.assigns.logger, "Failed to format the file: #{uri}")
 
                 {:reply, nil, lsp}
             end
           end
         end)
       else
-        GenLSP.warning(
-          lsp,
-          "[Next LS] The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+        NextLS.Logger.warning(
+          lsp.assigns.logger,
+          "The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
         )
 
         [{:reply, nil, lsp}]
@@ -717,9 +717,9 @@ defmodule NextLS do
     {:reply, results, lsp}
   rescue
     e ->
-      GenLSP.warning(
-        lsp,
-        "[Next LS] Failed to run completion request: #{Exception.format(:error, e, __STACKTRACE__)}"
+      NextLS.Logger.warning(
+        lsp.assigns.logger,
+        "Failed to run completion request: #{Exception.format(:error, e, __STACKTRACE__)}"
       )
 
       {:reply, [], lsp}
@@ -812,7 +812,7 @@ defmodule NextLS do
   end
 
   def handle_request(%{method: method}, lsp) do
-    GenLSP.warning(lsp, "[Next LS] Method Not Found: #{method}")
+    NextLS.Logger.warning(lsp.assigns.logger, "Method Not Found: #{method}")
 
     {:reply,
      %ErrorResponse{
@@ -876,7 +876,7 @@ defmodule NextLS do
     end
 
     NextLS.Runtime.BundledElixir.install(lsp.assigns.bundle_base, lsp.assigns.logger)
-    GenLSP.log(lsp, "[Next LS] Booting runtimes...")
+    NextLS.Logger.log(lsp.assigns.logger, "Booting runtimes...")
 
     parent = self()
 
@@ -918,7 +918,7 @@ defmodule NextLS do
              on_initialized: fn status ->
                if status == :ready do
                  Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
-                 GenLSP.log(lsp, "[Next LS] Runtime for folder #{name} is ready...")
+                 NextLS.Logger.log(lsp.assigns.logger, "Runtime for folder #{name} is ready...")
 
                  msg = {:runtime_ready, name, self()}
 
@@ -932,7 +932,7 @@ defmodule NextLS do
 
                  send(parent, {:runtime_failed, name, status})
 
-                 GenLSP.error(lsp, "[Next LS] Runtime for folder #{name} failed to initialize")
+                 NextLS.Logger.error(lsp.assigns.logger, "Runtime for folder #{name} failed to initialize")
                end
              end,
              logger: lsp.assigns.logger
@@ -1016,7 +1016,7 @@ defmodule NextLS do
       names = Enum.map(entries, fn {_, %{name: name}} -> name end)
 
       for %{name: name, uri: uri} <- added, name not in names do
-        GenLSP.log(lsp, "[Next LS] Adding workspace folder #{name}")
+        NextLS.Logger.log(lsp.assigns.logger, "Adding workspace folder #{name}")
         token = Progress.token()
         Progress.start(lsp, token, "Initializing NextLS runtime for folder #{name}...")
         parent = self()
@@ -1040,7 +1040,7 @@ defmodule NextLS do
               on_initialized: fn status ->
                 if status == :ready do
                   Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")
-                  GenLSP.log(lsp, "[Next LS] Runtime for folder #{name} is ready...")
+                  NextLS.Logger.log(lsp.assigns.logger, "Runtime for folder #{name} is ready...")
 
                   msg = {:runtime_ready, name, self()}
 
@@ -1054,7 +1054,7 @@ defmodule NextLS do
 
                   send(parent, {:runtime_failed, name, status})
 
-                  GenLSP.error(lsp, "[Next LS] Runtime for folder #{name} failed to initialize")
+                  NextLS.Logger.error(lsp.assigns.logger, "Runtime for folder #{name} failed to initialize")
                 end
               end,
               logger: lsp.assigns.logger
@@ -1065,7 +1065,7 @@ defmodule NextLS do
       names = Enum.map(removed, & &1.name)
 
       for {pid, %{name: name}} <- entries, name in names do
-        GenLSP.log(lsp, "[Next LS] Removing workspace folder #{name}")
+        NextLS.Logger.log(lsp.assigns.logger, "Removing workspace folder #{name}")
         NextLS.Runtime.stop(lsp.assigns.dynamic_supervisor, pid)
       end
     end)
@@ -1303,8 +1303,8 @@ defmodule NextLS do
   end
 
   def handle_info(message, lsp) do
-    GenLSP.log(lsp, "[Next LS] Unhandled message: #{inspect(message)}")
-    GenLSP.log(lsp, "[Next LS] process assigns=#{inspect(lsp.assigns)}")
+    NextLS.Logger.log(lsp.assigns.logger, "Unhandled message: #{inspect(message)}")
+    NextLS.Logger.log(lsp.assigns.logger, "process assigns=#{inspect(lsp.assigns)}")
     {:noreply, lsp}
   end
 
