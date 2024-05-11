@@ -823,7 +823,8 @@ defmodule NextLS do
 
   @impl true
   def handle_notification(%Initialized{}, lsp) do
-    GenLSP.log(lsp, "[Next LS] NextLS v#{version()} has initialized!")
+    NextLS.Logger.log(lsp.assigns.logger, "NextLS v#{version()} has initialized!")
+    NextLS.Logger.log(lsp.assigns.logger, "Log file located at #{Path.join(File.cwd!(), ".elixir-tools/next-ls.log")}")
 
     with opts when is_list(opts) <- lsp.assigns.auto_update do
       {:ok, _} =
@@ -1224,7 +1225,7 @@ defmodule NextLS do
 
     :ok = DynamicSupervisor.terminate_child(lsp.assigns.dynamic_supervisor, pid)
 
-    if status == {:error, :deps} do
+    if status == {:error, :deps} && lsp.assigns.client_capabilities.window.show_message do
       resp =
         GenLSP.request(
           lsp,
@@ -1280,6 +1281,10 @@ defmodule NextLS do
 
         _ ->
           NextLS.Logger.info(lsp.assigns.logger, "Not running `mix deps.get`")
+      end
+    else
+      unless lsp.assigns.client_capabilities.window.show_message do
+        NextLS.Logger.info(lsp.assigns.logger, "Client does not support window/showMessageRequest")
       end
     end
 

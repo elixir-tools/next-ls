@@ -90,6 +90,10 @@ defmodule NextLS.Support.Utils do
                  capabilities: %{
                    workspace: %{
                      workspaceFolders: true
+                   },
+                   window: %{
+                     work_done_progress: false,
+                     showMessage: %{}
                    }
                  },
                  workspaceFolders:
