@@ -678,6 +678,9 @@ defmodule NextLS do
             :file ->
               {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
 
+            :reserved ->
+              {name, GenLSP.Enumerations.CompletionItemKind.keyword(), ""}
+
             :keyword ->
               {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
 

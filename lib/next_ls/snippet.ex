@@ -3,6 +3,18 @@ defmodule NextLS.Snippet do
 
   def get(label, trigger_character, opts \\ [])
 
+  def get("do", nil, _opts) do
+    %{
+      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
+      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      insert_text: """
+      do
+        $0
+      end
+      """
+    }
+  end
+
   def get("defmodule/2", nil, opts) do
     path = Keyword.get(opts, :uri)
 

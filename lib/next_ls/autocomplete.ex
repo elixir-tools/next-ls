@@ -65,7 +65,8 @@ defmodule NextLS.Autocomplete do
         expand_dot_call(path, List.to_atom(hint), runtime, env)
 
       :expr ->
-        expand_container_context(code, :expr, "", runtime, env) || expand_local_or_var(code, "", runtime, env)
+        expand_container_context(code, :expr, "", runtime, env) ||
+          expand_local_or_var(code, "", runtime, env)
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
@@ -93,7 +94,8 @@ defmodule NextLS.Autocomplete do
         expand_local(List.to_string(operator), true, runtime, env)
 
       {:operator_call, operator} when operator in ~w(|)c ->
-        expand_container_context(code, :expr, "", runtime, env) || expand_local_or_var("", "", runtime, env)
+        expand_container_context(code, :expr, "", runtime, env) ||
+          expand_local_or_var("", "", runtime, env)
 
       {:operator_call, _operator} ->
         expand_local_or_var("", "", runtime, env)
@@ -244,7 +246,15 @@ defmodule NextLS.Autocomplete do
   ## Expand local or var
 
   defp expand_local_or_var(code, hint, runtime, env) do
-    format_expansion(match_var(code, hint, runtime, env) ++ match_local(hint, false, runtime, env))
+    format_expansion(
+      match_keywords(hint) ++ match_var(code, hint, runtime, env) ++ match_local(hint, false, runtime, env)
+    )
+  end
+
+  defp match_keywords(hint) do
+    for %{name: name} = kw <- [%{kind: :reserved, name: "do"}], String.starts_with?(name, hint) do
+      kw
+    end
   end
 
   defp expand_local(hint, exact?, runtime, env) do
@@ -419,7 +429,9 @@ defmodule NextLS.Autocomplete do
          alias = value_from_alias(aliases, env),
          true <-
            Keyword.keyword?(pairs) and ensure_loaded?(alias, runtime) and
-             NextLS.Runtime.execute!(runtime, do: Kernel.function_exported?(alias, :__struct__, 1)) do
+             NextLS.Runtime.execute!(runtime,
+               do: Kernel.function_exported?(alias, :__struct__, 1)
+             ) do
       {:struct, alias, pairs}
     else
       _ -> nil
