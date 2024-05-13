@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.22.0](https://github.com/elixir-tools/next-ls/compare/v0.21.4...v0.22.0) (2024-05-13)
+
+
+### Features
+
+* include `do` as a completions item/snippet ([#472](https://github.com/elixir-tools/next-ls/issues/472)) ([13a344b](https://github.com/elixir-tools/next-ls/commit/13a344b9ca96b60f5064d1267ea6cb569e4f2de6))
+
+
+### Bug Fixes
+
+* respect client capabilities ([#469](https://github.com/elixir-tools/next-ls/issues/469)) ([535d0ee](https://github.com/elixir-tools/next-ls/commit/535d0eec963dad27ffb4c609322ced782ab3cd9b))
+* use unified logger in more places ([535d0ee](https://github.com/elixir-tools/next-ls/commit/535d0eec963dad27ffb4c609322ced782ab3cd9b))
+
 ## [0.21.4](https://github.com/elixir-tools/next-ls/compare/v0.21.3...v0.21.4) (2024-05-09)
 
 
