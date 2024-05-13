@@ -1545,7 +1545,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{{:., meta, [module, fun]}, meta, args}, state, env}
     end
 
-    defp expand_local(meta, fun, args, state, env) when fun in [:for, :with] do
+    defp expand_local(_meta, fun, args, state, env) when fun in [:for, :with] do
       {params, blocks} =
         Enum.split_while(args, fn
           {:<-, _, _} -> true
