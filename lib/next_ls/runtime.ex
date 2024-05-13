@@ -130,17 +130,10 @@ defmodule NextLS.Runtime do
       |> String.to_charlist()
 
     bindir = System.get_env("BINDIR")
-    NextLS.Logger.log(logger, "BINDIR=#{bindir}")
     path = System.get_env("PATH")
-    NextLS.Logger.log(logger, "before PATH=#{path}")
     path_minus_bindir = String.replace(path, bindir <> ":", "")
-    NextLS.Logger.log(logger, "after1 PATH=#{path_minus_bindir}")
-
     path_minus_bindir2 = path_minus_bindir |> String.split(":") |> List.delete(bindir) |> Enum.join(":")
-    NextLS.Logger.log(logger, "after2 PATH=#{path_minus_bindir2}")
-
     new_path = elixir_bin_path <> ":" <> path_minus_bindir2
-    NextLS.Logger.log(logger, "after3 PATH=#{new_path}")
 
     with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
       exe =
