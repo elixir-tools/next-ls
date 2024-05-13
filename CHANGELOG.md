@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.1](https://github.com/elixir-tools/next-ls/compare/v0.22.0...v0.22.1) (2024-05-13)
+
+
+### Bug Fixes
+
+* compiler warning in compiler ([9360059](https://github.com/elixir-tools/next-ls/commit/9360059c98cda923fc95ea0082b1abd97be25f81))
+* remove unnecessary logs ([e59901b](https://github.com/elixir-tools/next-ls/commit/e59901b3f3d654b47ff4bbd33fc2b414dc76d782))
+
 ## [0.22.0](https://github.com/elixir-tools/next-ls/compare/v0.21.4...v0.22.0) (2024-05-13)
 
 
