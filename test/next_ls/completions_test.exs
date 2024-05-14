@@ -809,4 +809,33 @@ defmodule NextLS.CompletionsTest do
     assert_match %{"kind" => 6, "label" => "items"} in results
     assert_match %{"kind" => 6, "label" => "item"} not in results
   end
+
+  test "parameters are available inside guards", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) when is_list(i
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 1,
+          character: 31
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+  end
 end
