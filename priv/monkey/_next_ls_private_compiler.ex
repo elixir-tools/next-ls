@@ -1425,39 +1425,36 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       end
     end
 
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, [{_, block}]], _callback, state, env)
-         when type in [:def, :defp] and is_tuple(block) and is_atom(name) and is_list(params) do
+    defp expand_macro(_meta, Kernel, type, args, _callback, state, env)
+         when type in [:def, :defmacro, :defp, :defmacrop] do
+      # extract the name, params, guards, and blocks
+      {name, params, guards, blocks} =
+        case args do
+          [{:when, _, [{name, _, params} | guards]} | maybe_blocks] ->
+            {name, params, guards, maybe_blocks}
+
+          [{name, _, params} | maybe_blocks] ->
+            {name, params, [], maybe_blocks}
+        end
+
+      blocks = List.first(blocks, [])
+
+      # collect the environment from the parameters
+      # parameters are always patterns
       {_, state, penv} =
         for p <- params, reduce: {nil, state, env} do
           {_, state, penv} ->
             expand_pattern(p, state, penv)
         end
 
-      {res, state, _env} = expand(block, state, penv)
-
-      arity = length(List.wrap(params))
-      functions = Map.update(state.functions, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
-      {res, put_in(state.functions, functions), env}
-    end
-
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
-         when type in [:defmacro, :defmacrop] do
-      {_res, state, penv} = expand(params, state, env)
-      {res, state, _env} = expand(block, state, penv)
-
-      arity = length(List.wrap(params))
-      macros = Map.update(state.macros, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
-      {res, put_in(state.macros, macros), env}
-    end
-
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, blocks], _callback, state, env)
-         when type in [:def, :defp] and is_atom(name) and is_list(params) and is_list(blocks) do
-      {_, state, penv} =
-        for p <- params, reduce: {nil, state, env} do
-          {_, state, penv} ->
-            expand_pattern(p, state, penv)
+      # expand guards, which includes the env from params
+      {_, state, _} =
+        for guard <- guards, reduce: {nil, state, penv} do
+          {_, state, env} ->
+            expand(guard, state, env)
         end
 
+      # expand the blocks, there could be `:do`, `:after`, `:catch`, etc
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do
           {acc, state} ->
@@ -1467,26 +1464,21 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
       arity = length(List.wrap(params))
 
-      functions = Map.update(state.functions, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
-      {Enum.reverse(blocks), put_in(state.functions, functions), env}
-    end
-
-    defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
-         when type in [:def, :defp] and is_list(params) and is_list(blocks) do
-      {_, state, penv} =
-        for p <- params, reduce: {nil, state, env} do
-          {_, state, penv} ->
-            expand_pattern(p, state, penv)
+      # determine which key to save this function in state
+      state_key =
+        case type do
+          type when type in [:def, :defp] -> :functions
+          type when type in [:defmacro, :defmacrop] -> :macros
         end
 
-      {blocks, state} =
-        for {type, block} <- blocks, reduce: {[], state} do
-          {acc, state} ->
-            {res, state, _env} = expand(block, state, penv)
-            {[{type, res} | acc], state}
+      funcs =
+        if is_atom(name) do
+          Map.update(state[state_key], env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
+        else
+          state[state_key]
         end
 
-      {Enum.reverse(blocks), state, env}
+      {Enum.reverse(blocks), put_in(state[state_key], funcs), env}
     end
 
     defp expand_macro(meta, Kernel, :@, [{name, _, p}] = args, callback, state, env) when is_list(p) do
