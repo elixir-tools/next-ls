@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.2](https://github.com/elixir-tools/next-ls/compare/v0.22.1...v0.22.2) (2024-05-14)
+
+
+### Bug Fixes
+
+* **completions:** work in guards ([#475](https://github.com/elixir-tools/next-ls/issues/475)) ([e0573ab](https://github.com/elixir-tools/next-ls/commit/e0573ab23c439313ed2546015f12a21dfe573d1d))
+
 ## [0.22.1](https://github.com/elixir-tools/next-ls/compare/v0.22.0...v0.22.1) (2024-05-13)
 
 
