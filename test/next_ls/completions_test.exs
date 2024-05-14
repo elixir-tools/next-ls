@@ -1,9 +1,10 @@
 defmodule NextLS.CompletionsTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureLog
   import GenLSP.Test
   import NextLS.Support.Utils
+
+  @moduletag init_options: %{"experimental" => %{"completions" => %{"enable" => true}}}
 
   defmacrop assert_match({:in, _, [left, right]}) do
     quote do
@@ -306,29 +307,22 @@ defmodule NextLS.CompletionsTest do
     end
     """)
 
-    {results, log} =
-      with_log(fn ->
-        request client, %{
-          method: "textDocument/completion",
-          id: 2,
-          jsonrpc: "2.0",
-          params: %{
-            textDocument: %{
-              uri: uri
-            },
-            position: %{
-              line: 2,
-              character: 11
-            }
-          }
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 2,
+          character: 11
         }
+      }
+    }
 
-        assert_result 2, [_, _, _] = results
-        results
-      end)
-
-    assert log =~ "Could not locate cursor"
-    assert log =~ "Source code that produced the above warning:"
+    assert_result 2, [_, _, _] = results
 
     assert %{
              "data" => nil,
@@ -355,6 +349,44 @@ defmodule NextLS.CompletionsTest do
            } in results
   end
 
+  test "inside interpolation in strings", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, ~S"""
+    defmodule Foo do
+      def run(thing) do
+        "./lib/#{t}"
+        :ok
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 2,
+          character: 13
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert %{
+             "data" => nil,
+             "documentation" => "",
+             "insertText" => "thing",
+             "kind" => 6,
+             "label" => "thing"
+           } in results
+  end
+
   test "defmodule infer name", %{client: client, foo: foo} do
     uri = uri(foo)
 
@@ -377,16 +409,14 @@ defmodule NextLS.CompletionsTest do
       }
     }
 
-    assert_result 2, [
-      %{
-        "data" => nil,
-        "documentation" => _,
-        "insertText" => "defmodule ${1:Foo} do\n  $0\nend\n",
-        "kind" => 15,
-        "label" => "defmodule/2",
-        "insertTextFormat" => 2
-      }
-    ]
+    assert_result 2, results
+
+    assert_match %{
+                   "insertText" => "defmodule ${1:Foo} do\n  $0\nend\n",
+                   "kind" => 15,
+                   "label" => "defmodule/2",
+                   "insertTextFormat" => 2
+                 } in results
   end
 
   test "aliases in document", %{client: client, foo: foo} do
@@ -419,9 +449,7 @@ defmodule NextLS.CompletionsTest do
 
     assert_result 2, results
 
-    assert_match(
-      %{"data" => _, "documentation" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
-    )
+    assert_match %{"data" => _, "insertText" => "Bing", "kind" => 9, "label" => "Bing"} in results
   end
 
   test "inside alias special form", %{client: client, foo: foo} do
@@ -529,26 +557,256 @@ defmodule NextLS.CompletionsTest do
 
     assert_result 2, [
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => "",
         "insertText" => "var",
         "kind" => 6,
         "label" => "var"
       },
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => _,
         "insertText" => "var!",
         "kind" => 3,
         "label" => "var!/1"
       },
       %{
-        "data" => nil,
+        "data" => _,
         "documentation" => _,
         "insertText" => "var!",
         "kind" => 3,
         "label" => "var!/2"
       }
     ]
+  end
+
+  test "variable and param completions", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(%Bar{one: %{foo: %{bar: villain}}, two: vim}, vroom) do
+        document = vroom.assigns.documents[vim]
+        v
+      rescue
+        _ ->
+          :error
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 3,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    # assert_match %{"kind" => 6, "label" => "vampire"} in results
+    assert_match %{"kind" => 6, "label" => "villain"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
+    # assert_match %{"kind" => 6, "label" => "vrest"} in results
+    assert_match %{"kind" => 6, "label" => "vroom"} in results
+    # assert_match %{"kind" => 6, "label" => "var"} in results
+  end
+
+  test "variable and param completions in other block identifiers", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(%Bar{one: %{foo: %{bar: villain}}, two: vim}, vroom) do
+        var1 = vroom.assigns.documents[vim]
+        v
+      rescue
+        verror ->
+          var2 = "hi"
+
+          v
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 8,
+          character: 7
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "villain"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
+    assert_match %{"kind" => 6, "label" => "vroom"} in results
+    assert_match %{"kind" => 6, "label" => "verror"} in results
+    assert_match %{"kind" => 6, "label" => "var2"} in results
+
+    assert_match %{"kind" => 6, "label" => "var1"} not in results
+  end
+
+  test "param completions in multi arrow situations", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(alice) do
+        alice
+        |> then(fn
+          {:ok, ast1} -> ast1
+          {:error, ast2, _} -> a
+          {:error, :no_fuel_remaining} -> nil
+        end)
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{uri: uri},
+        position: %{
+          line: 5,
+          character: 28
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "alice"} in results
+    # TODO: requires changes to spitfire
+    # assert_match %{"kind" => 6, "label" => "ast2"} in results
+
+    assert_match %{"kind" => 6, "label" => "ast1"} not in results
+  end
+
+  test "variables show up in test blocks", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      use ExUnit.Case
+      test "something", %{vim: vim} do
+        var = "hi"
+
+        v
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 5,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "var"} in results
+    assert_match %{"kind" => 6, "label" => "vim"} in results
+  end
+
+  test "<- matches dont leak from for", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) do
+        names = 
+          for item <- items do
+            item.name
+          end
+
+        i
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 7,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+    assert_match %{"kind" => 6, "label" => "item"} not in results
+  end
+
+  test "<- matches dont leak from with", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) do
+        names = 
+          with item <- items do
+            item.name
+          end
+
+        i
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{
+          uri: uri
+        },
+        position: %{
+          line: 7,
+          character: 5
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+    assert_match %{"kind" => 6, "label" => "item"} not in results
   end
 end

@@ -1,5 +1,83 @@
 # Changelog
 
+## [0.22.1](https://github.com/elixir-tools/next-ls/compare/v0.22.0...v0.22.1) (2024-05-13)
+
+
+### Bug Fixes
+
+* compiler warning in compiler ([9360059](https://github.com/elixir-tools/next-ls/commit/9360059c98cda923fc95ea0082b1abd97be25f81))
+* remove unnecessary logs ([e59901b](https://github.com/elixir-tools/next-ls/commit/e59901b3f3d654b47ff4bbd33fc2b414dc76d782))
+
+## [0.22.0](https://github.com/elixir-tools/next-ls/compare/v0.21.4...v0.22.0) (2024-05-13)
+
+
+### Features
+
+* include `do` as a completions item/snippet ([#472](https://github.com/elixir-tools/next-ls/issues/472)) ([13a344b](https://github.com/elixir-tools/next-ls/commit/13a344b9ca96b60f5064d1267ea6cb569e4f2de6))
+
+
+### Bug Fixes
+
+* respect client capabilities ([#469](https://github.com/elixir-tools/next-ls/issues/469)) ([535d0ee](https://github.com/elixir-tools/next-ls/commit/535d0eec963dad27ffb4c609322ced782ab3cd9b))
+* use unified logger in more places ([535d0ee](https://github.com/elixir-tools/next-ls/commit/535d0eec963dad27ffb4c609322ced782ab3cd9b))
+
+## [0.21.4](https://github.com/elixir-tools/next-ls/compare/v0.21.3...v0.21.4) (2024-05-09)
+
+
+### Bug Fixes
+
+* correctly set MIX_HOME when using bundled Elixir ([#461](https://github.com/elixir-tools/next-ls/issues/461)) ([1625877](https://github.com/elixir-tools/next-ls/commit/16258776e32d4f8d7839d84f5d20de58214d1b25)), closes [#460](https://github.com/elixir-tools/next-ls/issues/460)
+
+## [0.21.3](https://github.com/elixir-tools/next-ls/compare/v0.21.2...v0.21.3) (2024-05-09)
+
+
+### Bug Fixes
+
+* **completions:** dont leak &lt;- matches from for/with ([#454](https://github.com/elixir-tools/next-ls/issues/454)) ([3cecf51](https://github.com/elixir-tools/next-ls/commit/3cecf51c4ac0119e2fa68680d807d263bb10e9ca)), closes [#447](https://github.com/elixir-tools/next-ls/issues/447)
+
+## [0.21.2](https://github.com/elixir-tools/next-ls/compare/v0.21.1...v0.21.2) (2024-05-09)
+
+
+### Bug Fixes
+
+* **runtime:** correctly set MIX_HOME in runtime ([#452](https://github.com/elixir-tools/next-ls/issues/452)) ([03db965](https://github.com/elixir-tools/next-ls/commit/03db965289c0e7127b92b5136f71dbd9492533cf)), closes [#451](https://github.com/elixir-tools/next-ls/issues/451)
+
+## [0.21.1](https://github.com/elixir-tools/next-ls/compare/v0.21.0...v0.21.1) (2024-05-08)
+
+
+### Bug Fixes
+
+* **runtime:** remove unused variable warnings ([904a3d1](https://github.com/elixir-tools/next-ls/commit/904a3d10072263d3145ee4e71c6d9e1f06d4b933))
+* **runtime:** use correct path for bundled elixir ([#448](https://github.com/elixir-tools/next-ls/issues/448)) ([904a3d1](https://github.com/elixir-tools/next-ls/commit/904a3d10072263d3145ee4e71c6d9e1f06d4b933))
+
+## [0.21.0](https://github.com/elixir-tools/next-ls/compare/v0.20.2...v0.21.0) (2024-05-08)
+
+
+### Features
+
+* add remove debugger code action ([#426](https://github.com/elixir-tools/next-ls/issues/426)) ([7f2f4f4](https://github.com/elixir-tools/next-ls/commit/7f2f4f413348dc33d55ea17c2473007518627320))
+* alias-refactor workspace command ([#386](https://github.com/elixir-tools/next-ls/issues/386)) ([e14a611](https://github.com/elixir-tools/next-ls/commit/e14a611e157c0c4f6b54db5fce4719a51c4b7fc6))
+* **completions:** imports, aliases, module attributes ([#410](https://github.com/elixir-tools/next-ls/issues/410)) ([306f512](https://github.com/elixir-tools/next-ls/commit/306f512db9872746f6c71939114788325a520513)), closes [#45](https://github.com/elixir-tools/next-ls/issues/45) [#360](https://github.com/elixir-tools/next-ls/issues/360) [#334](https://github.com/elixir-tools/next-ls/issues/334)
+* **snippets:** more of them ([#414](https://github.com/elixir-tools/next-ls/issues/414)) ([2d4fddb](https://github.com/elixir-tools/next-ls/commit/2d4fddbf7c7e36925aa7761f060a2930a3732b96))
+* undefined function code action ([#441](https://github.com/elixir-tools/next-ls/issues/441)) ([d03c1ad](https://github.com/elixir-tools/next-ls/commit/d03c1adc16dfed96e8ddaeab2d33dd6da86f386a))
+
+
+### Bug Fixes
+
+* accuracy of get_surrounding_module ([#440](https://github.com/elixir-tools/next-ls/issues/440)) ([9c2ff68](https://github.com/elixir-tools/next-ls/commit/9c2ff68a7a0ead32bb1c356742b992903b41c440))
+* bump spitfire ([#429](https://github.com/elixir-tools/next-ls/issues/429)) ([23f7a6d](https://github.com/elixir-tools/next-ls/commit/23f7a6d13d0db43f9aa9718abc3003c28bf153c1))
+* bump spitfire to handle code that runs out of fuel ([#418](https://github.com/elixir-tools/next-ls/issues/418)) ([1bb590e](https://github.com/elixir-tools/next-ls/commit/1bb590ebedbe1b9efc7e480f56abe0a8c0743a5e))
+* **completions:** completions inside alias/import/require special forms ([#422](https://github.com/elixir-tools/next-ls/issues/422)) ([d62809e](https://github.com/elixir-tools/next-ls/commit/d62809ec470855703311d3b8cd72f7d6cb9eabec)), closes [#421](https://github.com/elixir-tools/next-ls/issues/421)
+* **completions:** correctly accumulate variables in `&lt;-` expressions ([#424](https://github.com/elixir-tools/next-ls/issues/424)) ([b3bf75b](https://github.com/elixir-tools/next-ls/commit/b3bf75b8e70cc8e21f7efbbd9f3bbe5ae07951f9))
+* **completions:** imports inside blocks that generate functions ([#423](https://github.com/elixir-tools/next-ls/issues/423)) ([04d3010](https://github.com/elixir-tools/next-ls/commit/04d3010b4c004022782b70af02dcab263b2039f3)), closes [#420](https://github.com/elixir-tools/next-ls/issues/420)
+* **completions:** log source code when env fails to build ([#404](https://github.com/elixir-tools/next-ls/issues/404)) ([9c7ff4d](https://github.com/elixir-tools/next-ls/commit/9c7ff4df880582eb20f22226bb5c442c0274143c)), closes [#403](https://github.com/elixir-tools/next-ls/issues/403)
+* **credo:** calculate accurate span from trigger ([#427](https://github.com/elixir-tools/next-ls/issues/427)) ([90cd35a](https://github.com/elixir-tools/next-ls/commit/90cd35a750f724a323232023fffe70df7aeff1be))
+* precompile Elixir with OTP25 ([b9b67bd](https://github.com/elixir-tools/next-ls/commit/b9b67bd3663a6841e67a31e6a2f3c7a4862d8f1c))
+* **references,definition:** better references of symbols ([#430](https://github.com/elixir-tools/next-ls/issues/430)) ([4bfeb2b](https://github.com/elixir-tools/next-ls/commit/4bfeb2bc3203775732aab504936bcc5f812dafb8)), closes [#342](https://github.com/elixir-tools/next-ls/issues/342) [#184](https://github.com/elixir-tools/next-ls/issues/184) [#304](https://github.com/elixir-tools/next-ls/issues/304)
+* request utf8 encoding ([#419](https://github.com/elixir-tools/next-ls/issues/419)) ([edd5a2a](https://github.com/elixir-tools/next-ls/commit/edd5a2a070671ca7cd3f6419ec520afdcbc96d91))
+* revert "fix: request utf8 encoding ([#419](https://github.com/elixir-tools/next-ls/issues/419))" ([c21cda6](https://github.com/elixir-tools/next-ls/commit/c21cda68702ead4585de1a3f962cc85e10c43f75))
+* update burrito ([ed1bc3c](https://github.com/elixir-tools/next-ls/commit/ed1bc3cb347a43448de6d97d29a0bd8d90a7330c))
+
 ## [0.20.2](https://github.com/elixir-tools/next-ls/compare/v0.20.1...v0.20.2) (2024-03-27)
 
 

@@ -21,7 +21,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
         "\n"
       )
 
-    start = %Position{character: 0, line: 1}
+    start = %Position{character: 11, line: 2}
 
     diagnostic = %GenLSP.Structures.Diagnostic{
       data: %{"namespace" => "elixir", "type" => "require"},
@@ -40,12 +40,14 @@ defmodule NextLS.ElixirExtension.RequireTest do
     assert [diagnostic] == code_action.diagnostics
     assert code_action.title == "Add missing require for Logger"
 
+    edit_position = %GenLSP.Structures.Position{line: 1, character: 0}
+
     assert %WorkspaceEdit{
              changes: %{
                ^uri => [
                  %TextEdit{
                    new_text: "  require Logger\n",
-                   range: %Range{start: ^start, end: ^start}
+                   range: %Range{start: ^edit_position, end: ^edit_position}
                  }
                ]
              }

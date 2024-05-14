@@ -32,14 +32,6 @@ defmodule NextLS.ElixirExtension do
     DiagnosticCache.clear(state.cache, :elixir)
 
     for d <- diagnostics do
-      # TODO: some compiler diagnostics only have the line number
-      #       but we want to only highlight the source code, so we
-      #       need to read the text of the file (either from the lsp cache
-      #       if the source code is "open", or read from disk) and calculate the
-      #       column of the first non-whitespace character.
-      #
-      #       it is not clear to me whether the LSP process or the extension should
-      #       be responsible for this. The open documents live in the LSP process
       DiagnosticCache.put(state.cache, :elixir, d.file, %GenLSP.Structures.Diagnostic{
         severity: severity(d.severity),
         message: IO.iodata_to_binary(d.message),
@@ -115,6 +107,7 @@ defmodule NextLS.ElixirExtension do
 
   @unused_variable ~r/variable\s\"[^\"]+\"\sis\sunused/
   @require_module ~r/you\smust\srequire/
+  @undefined_local_function ~r/undefined function (?<name>.*)\/(?<arity>\d) \(expected (?<module>.*) to define such a function or for it to be imported, but none are available\)/
   defp metadata(diagnostic) do
     base = %{"namespace" => "elixir"}
 
@@ -124,6 +117,10 @@ defmodule NextLS.ElixirExtension do
 
       is_binary(diagnostic.message) and diagnostic.message =~ @require_module ->
         Map.put(base, "type", "require")
+
+      is_binary(diagnostic.message) and diagnostic.message =~ @undefined_local_function ->
+        info = Regex.named_captures(@undefined_local_function, diagnostic.message)
+        base |> Map.put("type", "undefined-function") |> Map.put("info", info)
 
       true ->
         base

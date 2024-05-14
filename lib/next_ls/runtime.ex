@@ -111,6 +111,7 @@ defmodule NextLS.Runtime do
     mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
     elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
+    mix_home = Keyword.get(opts, :mix_home)
 
     elixir_exe = Path.join(elixir_bin_path, "elixir")
 
@@ -130,7 +131,9 @@ defmodule NextLS.Runtime do
 
     bindir = System.get_env("BINDIR")
     path = System.get_env("PATH")
-    new_path = String.replace(path, bindir <> ":", "")
+    path_minus_bindir = String.replace(path, bindir <> ":", "")
+    path_minus_bindir2 = path_minus_bindir |> String.split(":") |> List.delete(bindir) |> Enum.join(":")
+    new_path = elixir_bin_path <> ":" <> path_minus_bindir2
 
     with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
       exe =
@@ -138,18 +141,24 @@ defmodule NextLS.Runtime do
         |> Path.join("cmd")
         |> Path.absname()
 
-      env = [
-        {~c"LSP", ~c"nextls"},
-        {~c"NEXTLS_PARENT_PID", parent},
-        {~c"MIX_ENV", ~c"#{mix_env}"},
-        {~c"MIX_TARGET", ~c"#{mix_target}"},
-        {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
-        {~c"ROOTDIR", false},
-        {~c"BINDIR", false},
-        {~c"RELEASE_ROOT", false},
-        {~c"RELEASE_SYS_CONFIG", false},
-        {~c"PATH", String.to_charlist(new_path)}
-      ]
+      env =
+        [
+          {~c"LSP", ~c"nextls"},
+          {~c"NEXTLS_PARENT_PID", parent},
+          {~c"MIX_ENV", ~c"#{mix_env}"},
+          {~c"MIX_TARGET", ~c"#{mix_target}"},
+          {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+          {~c"ROOTDIR", false},
+          {~c"BINDIR", false},
+          {~c"RELEASE_ROOT", false},
+          {~c"RELEASE_SYS_CONFIG", false},
+          {~c"PATH", String.to_charlist(new_path)}
+        ] ++
+          if mix_home do
+            [{~c"MIX_HOME", ~c"#{mix_home}"}]
+          else
+            []
+          end
 
       args =
         [elixir_exe] ++

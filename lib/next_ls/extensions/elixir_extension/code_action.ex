@@ -5,6 +5,7 @@ defmodule NextLS.ElixirExtension.CodeAction do
 
   alias NextLS.CodeActionable.Data
   alias NextLS.ElixirExtension.CodeAction.Require
+  alias NextLS.ElixirExtension.CodeAction.UndefinedFunction
   alias NextLS.ElixirExtension.CodeAction.UnusedVariable
 
   @impl true
@@ -15,6 +16,9 @@ defmodule NextLS.ElixirExtension.CodeAction do
 
       %{"type" => "require"} ->
         Require.new(data.diagnostic, data.document, data.uri)
+
+      %{"type" => "undefined-function"} ->
+        UndefinedFunction.new(data.diagnostic, data.document, data.uri)
 
       _ ->
         []

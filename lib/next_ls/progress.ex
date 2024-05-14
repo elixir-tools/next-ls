@@ -1,11 +1,9 @@
 defmodule NextLS.Progress do
   @moduledoc false
-  @env Mix.env()
+
   def start(lsp, token, msg) do
     Task.start(fn ->
-      # FIXME: gen_lsp should allow stubbing requests so we don't have to
-      # set this in every test. For now, don't send it in the test env
-      if @env != :test do
+      if lsp.assigns.client_capabilities.window.work_done_progress do
         GenLSP.request(lsp, %GenLSP.Requests.WindowWorkDoneProgressCreate{
           id: System.unique_integer([:positive]),
           params: %GenLSP.Structures.WorkDoneProgressCreateParams{

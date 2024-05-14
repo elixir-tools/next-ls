@@ -14,7 +14,7 @@
   }: let
     inherit (nixpkgs) lib;
 
-    version = "0.20.2"; # x-release-please-version
+    version = "0.22.1"; # x-release-please-version
 
     # Helper to provide system-specific attributes
     forAllSystems = f:
@@ -115,7 +115,7 @@
             src = self.outPath;
             inherit version elixir;
             pname = "next-ls-deps";
-            hash = "sha256-XAcErVbGOz0m832H+qistfJwTTdgz3mfdHK2JvI3voc=";
+            hash = "sha256-sIV8/KS5hcIiqk5sSwcIEnPFZNvefzvNyt6af829ri8=";
             mixEnv = "prod";
           };
 

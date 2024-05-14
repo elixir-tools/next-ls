@@ -1116,7 +1116,8 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
                 cursor_env.functions,
             macros:
               Enum.filter(Map.get(state, :macros, []), fn {m, _} -> m == cursor_env.module end) ++ cursor_env.macros,
-            attrs: Map.get(cursor_state, :attrs, [])
+            attrs: Enum.uniq(Map.get(cursor_state, :attrs, [])),
+            variables: for({name, nil} <- cursor_env.versioned_vars, do: name)
           }
         )
 
@@ -1124,11 +1125,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     end
 
     defp expand({:__cursor__, _meta, _} = node, state, env) do
-      Process.put(:cursor_env, {state, env})
-      {node, state, env}
-    end
-
-    defp expand({{:., _, [_, :__cursor__]}, _, _} = node, state, env) do
       Process.put(:cursor_env, {state, env})
       {node, state, env}
     end
@@ -1266,10 +1262,10 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # you would collect this information in expand_pattern/3 and
     # invoke it from all relevant places (such as case, cond, try, etc).
 
-    defp expand({:=, meta, [left, right]}, state, env) do
+    defp expand({match, meta, [left, right]}, state, env) when match in [:=, :<-] do
       {left, state, env} = expand_pattern(left, state, env)
       {right, state, env} = expand(right, state, env)
-      {{:=, meta, [left, right]}, state, env}
+      {{match, meta, [left, right]}, state, env}
     end
 
     ## quote/1, quote/2
@@ -1297,6 +1293,17 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{:^, meta, [arg]}, state, %{env | context: context}}
     end
 
+    defp expand({:->, _, [params, block]}, state, env) do
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      {res, state, _env} = expand(block, state, penv)
+      {res, state, env}
+    end
+
     ## Remote call
 
     defp expand({{:., dot_meta, [module, fun]}, meta, args}, state, env) when is_atom(fun) and is_list(args) do
@@ -1317,6 +1324,18 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       else
         {{{:., dot_meta, [module, fun]}, meta, args}, state, env}
       end
+    end
+
+    # self calling anonymous function
+
+    defp expand({{:., _dmeta, [func]}, _callmeta, args}, state, env) when is_list(args) do
+      {res, state, _env} = expand(func, state, env)
+      {res, state, env}
+    end
+
+    defp expand({:in, meta, [left, right]}, state, %{context: :match} = env) do
+      {left, state, env} = expand_pattern(left, state, env)
+      {{:in, meta, [left, right]}, state, env}
     end
 
     ## Imported or local call
@@ -1365,11 +1384,12 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # For the language server, we only want to capture definitions,
     # we don't care when they are used.
 
-    # defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
-    #   ctx = Keyword.get(meta, :context, ctx)
-    #   # state = update_in(state.vars, &[{var, ctx} | &1])
-    #   {ast, state, env}
-    # end
+    defp expand({var, meta, ctx} = ast, state, %{context: :match} = env) when is_atom(var) and is_atom(ctx) do
+      ctx = Keyword.get(meta, :context, ctx)
+      vv = Map.update(env.versioned_vars, var, ctx, fn _ -> ctx end)
+
+      {ast, state, %{env | versioned_vars: vv}}
+    end
 
     ## Fallback
 
@@ -1384,7 +1404,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     # definition, fully replacing the actual implementation. You could also
     # use this to capture module attributes (optionally delegating to the actual
     # implementation), function expansion, and more.
-    defp expand_macro(_meta, Kernel, :defmodule, [alias, [do: block]], _callback, state, env) do
+    defp expand_macro(_meta, Kernel, :defmodule, [alias, [{_, block}]], _callback, state, env) do
       {expanded, state, env} = expand(alias, state, env)
 
       if is_atom(expanded) do
@@ -1405,9 +1425,15 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       end
     end
 
-    defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
+    defp expand_macro(_meta, Kernel, type, [{name, _, params}, [{_, block}]], _callback, state, env)
          when type in [:def, :defp] and is_tuple(block) and is_atom(name) and is_list(params) do
-      {res, state, _env} = expand(block, state, env)
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      {res, state, _env} = expand(block, state, penv)
 
       arity = length(List.wrap(params))
       functions = Map.update(state.functions, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
@@ -1416,7 +1442,8 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, block], _callback, state, env)
          when type in [:defmacro, :defmacrop] do
-      {res, state, _env} = expand(block, state, env)
+      {_res, state, penv} = expand(params, state, env)
+      {res, state, _env} = expand(block, state, penv)
 
       arity = length(List.wrap(params))
       macros = Map.update(state.macros, env.module, [{name, arity}], &Keyword.put_new(&1, name, arity))
@@ -1425,10 +1452,16 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_atom(name) and is_list(params) and is_list(blocks) do
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do
           {acc, state} ->
-            {res, state, _env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
         end
 
@@ -1440,14 +1473,18 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
     defp expand_macro(_meta, Kernel, type, [{_name, _, params}, blocks], _callback, state, env)
          when type in [:def, :defp] and is_list(params) and is_list(blocks) do
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
       {blocks, state} =
         for {type, block} <- blocks, reduce: {[], state} do
           {acc, state} ->
-            {res, state, _env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
         end
-
-      arity = length(List.wrap(params))
 
       {Enum.reverse(blocks), state, env}
     end
@@ -1508,6 +1545,29 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {{{:., meta, [module, fun]}, meta, args}, state, env}
     end
 
+    defp expand_local(_meta, fun, args, state, env) when fun in [:for, :with] do
+      {params, blocks} =
+        Enum.split_while(args, fn
+          {:<-, _, _} -> true
+          _ -> false
+        end)
+
+      {_, state, penv} =
+        for p <- params, reduce: {nil, state, env} do
+          {_, state, penv} ->
+            expand_pattern(p, state, penv)
+        end
+
+      {blocks, state} =
+        for {type, block} <- blocks, reduce: {[], state} do
+          {acc, state} ->
+            {res, state, _env} = expand(block, state, penv)
+            {[{type, res} | acc], state}
+        end
+
+      {blocks, state, env}
+    end
+
     defp expand_local(meta, fun, args, state, env) do
       # A compiler may want to emit a :local_function trace in here.
       {args, state, env} = expand_list(args, state, env)
@@ -1535,7 +1595,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       {Enum.reverse(acc), state, env}
     end
 
-    defp expand_list([h | t] = list, state, env, acc) do
+    defp expand_list([h | t], state, env, acc) do
       {h, state, env} = expand(h, state, env)
       expand_list(t, state, env, [h | acc])
     end

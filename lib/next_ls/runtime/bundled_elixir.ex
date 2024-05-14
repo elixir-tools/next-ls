@@ -20,8 +20,13 @@ defmodule NextLS.Runtime.BundledElixir do
     Path.join([base, @dir])
   end
 
-  def install(base, logger, opts \\ []) do
-    mixhome = Keyword.get(opts, :mix_home, Path.expand("~/.mix"))
+  def mix_home(base) do
+    Path.join(path(base), ".mix")
+  end
+
+  def install(base, logger) do
+    mixhome = mix_home(base)
+    File.mkdir_p!(mixhome)
     binpath = binpath(base)
 
     unless File.exists?(binpath) do
@@ -36,16 +41,16 @@ defmodule NextLS.Runtime.BundledElixir do
       for bin <- Path.wildcard(Path.join(binpath, "*")) do
         File.chmod(bin, 0o755)
       end
-
-      new_path = "#{binpath}:#{System.get_env("PATH")}"
-      mixbin = mixpath(base)
-
-      {_, 0} =
-        System.cmd(mixbin, ["local.rebar", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
-
-      {_, 0} =
-        System.cmd(mixbin, ["local.hex", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
     end
+
+    new_path = "#{binpath}:#{System.get_env("PATH")}"
+    mixbin = mixpath(base)
+
+    {_, 0} =
+      System.cmd(mixbin, ["local.rebar", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
+
+    {_, 0} =
+      System.cmd(mixbin, ["local.hex", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
 
     :ok
   rescue
