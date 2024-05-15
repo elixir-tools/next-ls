@@ -1032,14 +1032,13 @@ defmodule :_next_ls_private_compiler do
   @moduledoc false
 
   def start do
+    Code.put_compiler_option(:parser_options, columns: true, token_metadata: true)
+
     children = [
       :_next_ls_private_compiler_worker
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: :_next_ls_private_application_supervisor]
-    {:ok, pid} = Supervisor.start_link(children, opts)
+    {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, name: :_next_ls_private_application_supervisor)
     Process.unlink(pid)
     {:ok, pid}
   end
@@ -1049,7 +1048,6 @@ defmodule :_next_ls_private_compiler do
   def compile do
     # keep stdout on this node
     Process.group_leader(self(), Process.whereis(:user))
-    Code.put_compiler_option(:parser_options, columns: true, token_metadata: true)
 
     Code.put_compiler_option(:tracers, [NextLSPrivate.DepTracer | @tracers])
 

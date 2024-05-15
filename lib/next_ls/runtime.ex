@@ -231,22 +231,32 @@ defmodule NextLS.Runtime do
              true <- connect(node, port, 120) do
           NextLS.Logger.info(logger, "Connected to node #{node}")
 
-          :next_ls
-          |> :code.priv_dir()
-          |> Path.join("monkey/_next_ls_private_compiler.ex")
-          |> then(&:rpc.call(node, Code, :compile_file, [&1]))
-          |> tap(fn
-            {:badrpc, error} ->
-              NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
-              send(me, {:cancel, error})
+          result =
+            :next_ls
+            |> :code.priv_dir()
+            |> Path.join("monkey/_next_ls_private_compiler.ex")
+            |> then(fn path ->
+              if await_config_table(node, 5) do
+                :rpc.call(node, Code, :compile_file, [path])
+              else
+                {:badrpc, "internal ets table not found"}
+              end
+            end)
+            |> then(fn
+              {:badrpc, error} ->
+                NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+                send(me, {:cancel, error})
+                :error
 
-            _ ->
-              :ok
-          end)
+              _ ->
+                :ok
+            end)
 
-          {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
+          if result == :ok do
+            {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
 
-          send(me, {:node, node})
+            send(me, {:node, node})
+          end
         else
           error ->
             send(me, {:cancel, error})
@@ -272,6 +282,20 @@ defmodule NextLS.Runtime do
         NextLS.Logger.error(logger, "Either failed to find the private cmd wrapper script")
 
         {:stop, :failed_to_boot}
+    end
+  end
+
+  defp await_config_table(_node, 0) do
+    false
+  end
+
+  defp await_config_table(node, attempts) do
+    # this is an Elixir implementation detail, handle with care
+    if :undefined == :rpc.call(node, :ets, :whereis, [:elixir_config]) do
+      Process.sleep(100)
+      await_config_table(node, attempts - 1)
+    else
+      true
     end
   end
 
