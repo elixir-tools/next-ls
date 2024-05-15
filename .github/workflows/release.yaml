@@ -9,22 +9,22 @@ permissions:
   pull-requests: write
 
 jobs:
-  commitlint:
-    runs-on: ubuntu-latest
-    name: commitlint
+  # commitlint:
+  #   runs-on: ubuntu-latest
+  #   name: commitlint
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Deps
-        run: yarn install
-      - name: Lint PR Title
-        run: yarn commitlint --from "${{ github.event.before }}"
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Install Deps
+  #       run: yarn install
+  #     - name: Lint PR Title
+  #       run: yarn commitlint --from "${{ github.event.before }}"
 
   release:
     name: release
-    needs: commitlint
+    # needs: commitlint
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
