@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.3](https://github.com/elixir-tools/next-ls/compare/v0.22.2...v0.22.3) (2024-05-15)
+
+
+### Bug Fixes
+
+* ensure some elixir internals are ready ([#478](https://github.com/elixir-tools/next-ls/issues/478)) ([f4685d0](https://github.com/elixir-tools/next-ls/commit/f4685d01266b4afb7f557d9a361fc7770aa22ec6)), closes [#467](https://github.com/elixir-tools/next-ls/issues/467)
+
 ## [0.22.2](https://github.com/elixir-tools/next-ls/compare/v0.22.1...v0.22.2) (2024-05-14)
 
 
