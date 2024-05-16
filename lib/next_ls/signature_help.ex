@@ -75,7 +75,7 @@ defmodule NextLS.SignatureHelp do
   defp maybe_doc(content_type, %{"en" => fdoc}) do
     %MarkupContent{
       kind: MarkupKind.markdown(),
-      value: NextLS.DocsHelpers.to_markdown(content_type, fdoc)
+      value: NextLS.Docs.to_markdown(content_type, fdoc)
     }
   end
 
