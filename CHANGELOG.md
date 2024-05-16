@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.4](https://github.com/elixir-tools/next-ls/compare/v0.22.3...v0.22.4) (2024-05-16)
+
+
+### Bug Fixes
+
+* **completions:** more accurate inside with/for ([#482](https://github.com/elixir-tools/next-ls/issues/482)) ([cee24a8](https://github.com/elixir-tools/next-ls/commit/cee24a859dd2d754147877ab17b137149e6735d0))
+* more accurate completions inside -&gt; exprs ([#480](https://github.com/elixir-tools/next-ls/issues/480)) ([8f6561e](https://github.com/elixir-tools/next-ls/commit/8f6561e848879caf120d21cf9ab357a907a8e1f2))
+
 ## [0.22.3](https://github.com/elixir-tools/next-ls/compare/v0.22.2...v0.22.3) (2024-05-15)
 
 
