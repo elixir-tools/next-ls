@@ -700,6 +700,79 @@ defmodule NextLS.CompletionsTest do
     assert_match %{"kind" => 6, "label" => "ast1"} not in results
   end
 
+  test "with else", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(doug) do
+        completion_item =
+          with {:ok, darrel} <- completion_item.data do
+            darrel
+          else
+            %{"uri" => uri, "data" => data} ->
+              d
+
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{uri: uri},
+        position: %{
+          line: 7,
+          character: 11
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "doug"} in results
+    assert_match %{"kind" => 6, "label" => "data"} in results
+
+    assert_match %{"kind" => 6, "label" => "darrel"} not in results
+  end
+
+  test "for comprehension", %{client: client, foo: foo} do
+    uri = uri(foo)
+
+    did_open(client, foo, """
+    defmodule Foo do
+      def run(items) do
+        for item <- items,
+            iname = item.name,
+            String.starts_with?(name, "Mitch") do
+          i
+      end
+    end
+    """)
+
+    request client, %{
+      method: "textDocument/completion",
+      id: 2,
+      jsonrpc: "2.0",
+      params: %{
+        textDocument: %{uri: uri},
+        position: %{
+          line: 5,
+          character: 7
+        }
+      }
+    }
+
+    assert_result 2, results
+
+    assert_match %{"kind" => 6, "label" => "item"} in results
+    assert_match %{"kind" => 6, "label" => "iname"} in results
+
+    assert_match %{"kind" => 6, "label" => "items"} in results
+  end
+
   test "variables show up in test blocks", %{client: client, foo: foo} do
     uri = uri(foo)
 
