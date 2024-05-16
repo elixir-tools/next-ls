@@ -636,24 +636,6 @@ defmodule NextLS.Autocomplete do
       for {fun, arity} <- funs,
           name = Atom.to_string(fun),
           if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
-        # doc =
-        #   Enum.find(fdocs, fn {{type, fname, _a}, _, _, _doc, _} ->
-        #     type in [:function, :macro] and to_string(fname) == name
-        #   end)
-
-        # doc =
-        #   case doc do
-        #     {_, _, _, %{"en" => fdoc}, _} ->
-        #       """
-        #       ## #{Macro.to_string(mod)}.#{name}/#{arity}
-
-        #       #{NextLS.DocsHelpers.to_markdown(content_type, fdoc)}
-        #       """
-
-        #     _ ->
-        #       nil
-        #   end
-
         %{
           kind: :function,
           data: {mod, name, arity},
