@@ -1538,8 +1538,8 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
     defp expand_local(_meta, fun, args, state, env) when fun in [:for, :with] do
       {params, blocks} =
         Enum.split_while(args, fn
-          {:<-, _, _} -> true
-          _ -> false
+          [{:do, _} | _] -> false
+          _ -> true
         end)
 
       {_, state, penv} =
@@ -1549,9 +1549,16 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
         end
 
       {blocks, state} =
-        for {type, block} <- blocks, reduce: {[], state} do
+        for {type, block} <- List.first(blocks, []), reduce: {[], state} do
           {acc, state} ->
-            {res, state, _env} = expand(block, state, penv)
+            env =
+              if type == :do do
+                penv
+              else
+                env
+              end
+
+            {res, state, env} = expand(block, state, env)
             {[{type, res} | acc], state}
         end
 
