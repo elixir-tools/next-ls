@@ -14,8 +14,7 @@ defmodule NextLS.LSPSupervisor do
     if @env == :test do
       :ignore
     else
-      {m, f, a} =
-        if @env == :prod, do: {Burrito.Util.Args, :get_arguments, []}, else: {System, :argv, []}
+      {m, f, a} = Application.get_env(:next_ls, :arg_parser)
 
       argv = apply(m, f, a)
 

@@ -13,6 +13,7 @@ defmodule NextLS.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       releases: releases(),
+      default_release: :next_ls,
       package: package(),
       deps: deps(),
       docs: [
@@ -38,6 +39,7 @@ defmodule NextLS.MixProject do
 
   def releases do
     [
+      plain: [],
       next_ls: [
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
