@@ -33,7 +33,9 @@ defmodule NextLS.DocumentSymbol do
           ast
       end
 
-    List.wrap(walker(ast, nil))
+    for %DocumentSymbol{} = ds <- List.wrap(walker(ast, nil)) do
+      ds
+    end
   end
 
   defp walker([{{:__literal__, _, [:do]}, {_, _, _exprs} = ast}], mod) do
