@@ -51,14 +51,26 @@ mix test
 
 ## Production release
 
+### Burrito
+
+Burrito is the classic way of building Next LS, it produces a single executable that fully wraps Elixir, OTP, and your application.
+
 Executables are output to `./burrito_out`.
 
 ```bash
 # produces executables for all the targets specified in the `mix.exs` file
-MIX_ENV=prod mix release
+NEXTLS_RELEASE_MODE="burrito" MIX_ENV=prod mix release
 
 # produce an executable for a single target
 BURRITO_TARGET=linux_amd64 MIX_ENV=prod mix release
+```
+
+### Traditional
+
+You can also build Next LS as a traditional Mix release.
+
+```bash
+MIX_ENV=prod mix release plain
 ```
 
 ## Contributing
