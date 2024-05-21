@@ -111,6 +111,7 @@
           elixir
           aliased_7zz
           pkgs.autoconf
+          pkgs.just
           pkgs.automake
           pkgs.ncurses5
           pkgs.openssl

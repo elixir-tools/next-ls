@@ -37,16 +37,35 @@ https://github.com/sponsors/mhanberg
 
 ## Development
 
+Next LS uses [just](https://github.com/casey/just) to coordinate command tasks.
+
 ```bash
+# list all tasks
+just --list
+# show a fzf finder of all tasks
+just choose
+
+# default task, runs `deps compile build-local
+just
+
 # install deps
-mix deps.get
+just deps
+
+# install compile
+just compile
 
 # start the local server for development in TCP mode
 # see editor extension docs for information on how to connect to a server in TCP mode
-bin/start --port 9000
+just start
 
 # run the tests
-mix test
+just test
+
+# build a local burrito'd exe
+just build-local
+
+# build burrito'd exes for all platforms
+just build-all
 ```
 
 ## Production release
@@ -59,10 +78,10 @@ Executables are output to `./burrito_out`.
 
 ```bash
 # produces executables for all the targets specified in the `mix.exs` file
-NEXTLS_RELEASE_MODE="burrito" MIX_ENV=prod mix release
+just build-all
 
 # produce an executable for a single target
-BURRITO_TARGET=linux_amd64 MIX_ENV=prod mix release
+just build-local
 ```
 
 ### Traditional
@@ -70,7 +89,7 @@ BURRITO_TARGET=linux_amd64 MIX_ENV=prod mix release
 You can also build Next LS as a traditional Mix release.
 
 ```bash
-MIX_ENV=prod mix release plain
+just build-plain
 ```
 
 ## Contributing

@@ -777,7 +777,7 @@ defmodule NextLS do
 
         _ ->
           NextLS.Logger.show_message(
-            lsp.logger,
+            lsp.assigns.logger,
             :warning,
             "[Next LS] Unknown workspace command: #{command}"
           )
