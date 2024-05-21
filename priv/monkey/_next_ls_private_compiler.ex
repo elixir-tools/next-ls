@@ -1440,21 +1440,21 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
       # collect the environment from the parameters
       # parameters are always patterns
       {_, state, penv} =
-        for p <- params, reduce: {nil, state, env} do
+        for p <- List.wrap(params), reduce: {nil, state, env} do
           {_, state, penv} ->
             expand_pattern(p, state, penv)
         end
 
       # expand guards, which includes the env from params
       {_, state, _} =
-        for guard <- guards, reduce: {nil, state, penv} do
+        for guard <- List.wrap(guards), reduce: {nil, state, penv} do
           {_, state, env} ->
             expand(guard, state, env)
         end
 
       # expand the blocks, there could be `:do`, `:after`, `:catch`, etc
       {blocks, state} =
-        for {type, block} <- blocks, reduce: {[], state} do
+        for {type, block} <- List.wrap(blocks), reduce: {[], state} do
           {acc, state} ->
             {res, state, _env} = expand(block, state, penv)
             {[{type, res} | acc], state}
