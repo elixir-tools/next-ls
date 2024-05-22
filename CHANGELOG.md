@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.5](https://github.com/elixir-tools/next-ls/compare/v0.22.4...v0.22.5) (2024-05-22)
+
+
+### Bug Fixes
+
+* be more resilient LSP protocol errors ([#491](https://github.com/elixir-tools/next-ls/issues/491)) ([28d29f6](https://github.com/elixir-tools/next-ls/commit/28d29f6d37daa43bdf1060dd6ae9dbe60e088eb3))
+* **completions:** handle macro edge cases ([#495](https://github.com/elixir-tools/next-ls/issues/495)) ([ac49272](https://github.com/elixir-tools/next-ls/commit/ac49272abaacabbc1475b2e43299ba51ca60bd6b))
+* **definition:** variables inside broken code ([#496](https://github.com/elixir-tools/next-ls/issues/496)) ([7f134ea](https://github.com/elixir-tools/next-ls/commit/7f134ea980ca5c716843f5d752f30e6c19f27bf4)), closes [#477](https://github.com/elixir-tools/next-ls/issues/477)
+* **document-symbols:** ensure its spec compliant ([#489](https://github.com/elixir-tools/next-ls/issues/489)) ([b120cce](https://github.com/elixir-tools/next-ls/commit/b120cce32ef9236e85e1bdfa57a3a6a45e99b351))
+* **nix:** use normal release for flake ([#484](https://github.com/elixir-tools/next-ls/issues/484)) ([8162d88](https://github.com/elixir-tools/next-ls/commit/8162d88c0e60855ff702cf6fdb21ccd6a89d08a2))
+* properly log unknown workspace command ([28d29f6](https://github.com/elixir-tools/next-ls/commit/28d29f6d37daa43bdf1060dd6ae9dbe60e088eb3))
+
 ## [0.22.4](https://github.com/elixir-tools/next-ls/compare/v0.22.3...v0.22.4) (2024-05-16)
 
 
