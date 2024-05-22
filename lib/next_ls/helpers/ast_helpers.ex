@@ -216,4 +216,52 @@ defmodule NextLS.ASTHelpers do
 
     top(zipper, acc, callback)
   end
+
+  defmodule Function do
+    @moduledoc false
+
+    def find_remote_function_call_within(ast, {line, column}) do
+      position = [line: line, column: column]
+
+      result =
+        ast
+        |> Zipper.zip()
+        |> Zipper.find(fn
+          {:|>, _, [_, {{:., _, _}, _metadata, _} = func_node]} ->
+            inside?(func_node, position)
+
+          {{:., _, _}, _metadata, _} = node ->
+            inside?(node, position)
+
+          _ ->
+            false
+        end)
+
+      if result do
+        {:ok, Zipper.node(result)}
+      else
+        {:error, :not_found}
+      end
+    end
+
+    def find_params_index(ast, {line, column}) do
+      ast
+      |> Sourceror.get_args()
+      |> Enum.map(&Sourceror.get_meta/1)
+      |> Enum.find_index(fn meta ->
+        if meta[:closing] do
+          line <= meta[:closing][:line] and line >= meta[:line]
+        else
+          meta[:line] == line and column <= meta[:column]
+        end
+      end)
+    end
+
+    defp inside?(node, position) do
+      range = Sourceror.get_range(node)
+
+      Sourceror.compare_positions(range.start, position) == :lt &&
+        Sourceror.compare_positions(range.end, position) == :gt
+    end
+  end
 end
