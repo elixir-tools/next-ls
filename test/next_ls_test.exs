@@ -186,6 +186,11 @@ defmodule NextLSTest do
     }
 
     assert_result 2, nil
+
+    assert_notification "window/showMessage", %{
+      "message" => "Failed to format lib/foo/bar.ex: missing terminator: end",
+      "type" => 1
+    }
   end
 
   test "workspace symbols", %{client: client, cwd: cwd} = context do

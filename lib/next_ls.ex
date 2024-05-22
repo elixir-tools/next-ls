@@ -521,61 +521,77 @@ defmodule NextLS do
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    [resp] =
-      if is_list(document) do
-        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            with {:ok, {formatter, _}} <-
-                   Runtime.call(
-                     runtime,
-                     {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
-                   ),
-                 {:ok, response} when is_binary(response) or is_list(response) <-
-                   Runtime.call(
-                     runtime,
-                     {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
-                   ) do
-              {:reply,
-               [
-                 %TextEdit{
-                   new_text: IO.iodata_to_binary(response),
-                   range: %Range{
-                     start: %Position{line: 0, character: 0},
-                     end: %Position{
-                       line: length(document),
-                       character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
-                     }
-                   }
+    if is_list(document) do
+      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, %{uri: wuri} ->
+        with {:ok, {formatter, _}} <-
+               Runtime.call(
+                 runtime,
+                 {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
+               ),
+             {:ok, response} when is_binary(response) or is_list(response) <-
+               Runtime.call(
+                 runtime,
+                 {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
+               ) do
+          {:reply,
+           [
+             %TextEdit{
+               new_text: IO.iodata_to_binary(response),
+               range: %Range{
+                 start: %Position{line: 0, character: 0},
+                 end: %Position{
+                   line: length(document),
+                   character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
                  }
-               ], lsp}
-            else
-              {:error, :not_ready} ->
-                GenLSP.notify(lsp, %WindowShowMessage{
-                  params: %ShowMessageParams{
-                    type: GenLSP.Enumerations.MessageType.info(),
-                    message: "The NextLS runtime is still initializing!"
-                  }
-                })
+               }
+             }
+           ], lsp}
+        else
+          {:error, :not_ready} ->
+            GenLSP.notify(lsp, %WindowShowMessage{
+              params: %ShowMessageParams{
+                type: MessageType.info(),
+                message: "The NextLS runtime is still initializing!"
+              }
+            })
 
-                {:reply, nil, lsp}
+            {:reply, nil, lsp}
+
+          e ->
+            case e do
+              {:ok, {:badrpc, {:EXIT, {%{description: description, file: file}, _stacktrace}}}} ->
+                file = Path.relative_to(file, URI.parse(wuri).path)
+
+                NextLS.Logger.show_message(
+                  lsp.assigns.logger,
+                  :error,
+                  "Failed to format #{file}: #{description}"
+                )
+
+                NextLS.Logger.warning(
+                  lsp.assigns.logger,
+                  "Failed to format #{file}: #{description}"
+                )
 
               _ ->
-                NextLS.Logger.warning(lsp.assigns.logger, "Failed to format the file: #{uri}")
-
-                {:reply, nil, lsp}
+                abs_file = URI.parse(uri).path
+                root_dir = URI.parse(wuri).path
+                file = Path.relative_to(abs_file, root_dir)
+                NextLS.Logger.show_message(lsp.assigns.logger, :error, "Failed to format #{file}")
+                NextLS.Logger.warning(lsp.assigns.logger, "Failed to format #{file}")
             end
-          end
-        end)
-      else
-        NextLS.Logger.warning(
-          lsp.assigns.logger,
-          "The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
-        )
 
-        [{:reply, nil, lsp}]
-      end
+            {:reply, nil, lsp}
+        end
+      end)
+    else
+      NextLS.Logger.warning(
+        lsp.assigns.logger,
+        "The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+      )
 
-    resp
+      {:reply, nil, lsp}
+    end
   end
 
   def handle_request(%GenLSP.Requests.CompletionItemResolve{params: completion_item}, lsp) do
