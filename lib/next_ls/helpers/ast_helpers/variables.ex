@@ -219,7 +219,7 @@ defmodule NextLS.ASTHelpers.Variables do
   end
 
   defp decrease_scope_nesting(acc) do
-    Map.update!(acc, :scope, &tl(&1))
+    Map.update!(acc, :scope, &List.delete_at(&1, 0))
   end
 
   # add new symbol with scope
