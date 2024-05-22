@@ -24,6 +24,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
+  alias GenLSP.Requests.TextDocumentSemanticTokensFull
   alias GenLSP.Requests.WorkspaceApplyEdit
   alias GenLSP.Requests.WorkspaceSymbol
   alias GenLSP.Structures.ApplyWorkspaceEditParams
@@ -158,6 +159,12 @@ defmodule NextLS do
              nil
            end,
          document_formatting_provider: true,
+         semantic_tokens_provider: %GenLSP.Structures.SemanticTokensRegistrationOptions{
+           document_selector: [%{language: "elixir"}],
+           legend: NextLS.SemanticTokens.legend(),
+           range: true,
+           full: %{delta: true}
+         },
          execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
            commands: [
              "to-pipe",
@@ -363,6 +370,12 @@ defmodule NextLS do
       end)
 
     {:reply, locations, lsp}
+  end
+
+  def handle_request(%TextDocumentSemanticTokensFull{params: %{text_document: %{uri: uri}}}, lsp) do
+    document = lsp.assigns.documents[uri]
+
+    {:reply, document |> NextLS.SemanticTokens.new() |> IO.inspect(label: "REPLY"), lsp}
   end
 
   def handle_request(%TextDocumentHover{params: %{position: position, text_document: %{uri: uri}}}, lsp) do
