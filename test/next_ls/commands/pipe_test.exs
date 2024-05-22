@@ -1,6 +1,7 @@
 defmodule NextLS.Commands.PipeTest do
   use ExUnit.Case, async: true
 
+  alias GenLSP.Structures.Position
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
   alias NextLS.Commands.Pipe
@@ -177,8 +178,8 @@ defmodule NextLS.Commands.PipeTest do
                    %TextEdit{
                      new_text: "foo |> Enum.to_list()",
                      range: %GenLSP.Structures.Range{
-                       end: %GenLSP.Structures.Position{character: 20, line: 2},
-                       start: %GenLSP.Structures.Position{character: 4, line: 2}
+                       end: %Position{character: 20, line: 2},
+                       start: %Position{character: 4, line: 2}
                      }
                    }
                  ]
@@ -509,8 +510,8 @@ defmodule NextLS.Commands.PipeTest do
                    %GenLSP.Structures.TextEdit{
                      new_text: "Enum.to_list(map)",
                      range: %GenLSP.Structures.Range{
-                       end: %GenLSP.Structures.Position{character: 21, line: 4},
-                       start: %GenLSP.Structures.Position{character: 4, line: 3}
+                       end: %Position{character: 21, line: 4},
+                       start: %Position{character: 4, line: 3}
                      }
                    }
                  ]

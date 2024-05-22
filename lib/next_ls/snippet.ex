@@ -1,12 +1,15 @@
 defmodule NextLS.Snippet do
   @moduledoc false
 
+  alias GenLSP.Enumerations.CompletionItemKind
+  alias GenLSP.Enumerations.InsertTextFormat
+
   def get(label, trigger_character, opts \\ [])
 
   def get("do", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       do
         $0
@@ -26,8 +29,8 @@ defmodule NextLS.Snippet do
       end
 
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defmodule ${1:#{modulename}} do
         $0
@@ -38,8 +41,8 @@ defmodule NextLS.Snippet do
 
   def get("defstruct/1", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defstruct [${1:field}: ${2:default}]
       """
@@ -48,8 +51,8 @@ defmodule NextLS.Snippet do
 
   def get("defprotocol/2", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defprotocol ${1:ProtocolName} do
         def ${2:function_name}(${3:parameter_name})
@@ -60,8 +63,8 @@ defmodule NextLS.Snippet do
 
   def get("defimpl/2", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defimpl ${1:ProtocolName} do
         def ${2:function_name}(${3:parameter_name}) do
@@ -74,8 +77,8 @@ defmodule NextLS.Snippet do
 
   def get("defimpl/3", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defimpl ${1:ProtocolName}, for: ${2:StructName} do
         def ${3:function_name}(${4:parameter_name}) do
@@ -88,8 +91,8 @@ defmodule NextLS.Snippet do
 
   def get("def/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       def ${1:function_name}(${2:parameter_1}) do
         $0
@@ -100,8 +103,8 @@ defmodule NextLS.Snippet do
 
   def get("defp/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defp ${1:function_name}(${2:parameter_1}) do
         $0
@@ -112,8 +115,8 @@ defmodule NextLS.Snippet do
 
   def get("defmacro/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defmacro ${1:macro_name}(${2:parameter_1}) do
         quote do
@@ -126,8 +129,8 @@ defmodule NextLS.Snippet do
 
   def get("defmacrop/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       defmacrop ${1:macro_name}(${2:parameter_1}) do
         quote do
@@ -140,8 +143,8 @@ defmodule NextLS.Snippet do
 
   def get("for/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       for ${2:item} <- ${1:enumerable} do
         $0
@@ -152,8 +155,8 @@ defmodule NextLS.Snippet do
 
   def get("with/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       with ${2:match} <- ${1:argument} do
         $0
@@ -164,8 +167,8 @@ defmodule NextLS.Snippet do
 
   def get("case/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       case ${1:argument} do
         ${2:match} ->
@@ -180,8 +183,8 @@ defmodule NextLS.Snippet do
 
   def get("cond/" <> _, nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       cond do
         ${1:condition} ->
@@ -196,8 +199,8 @@ defmodule NextLS.Snippet do
 
   def get("fn/1", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       fn $1 ->
         $0
@@ -208,8 +211,8 @@ defmodule NextLS.Snippet do
 
   def get("test/2", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       test "$1" do
         $0
@@ -220,8 +223,8 @@ defmodule NextLS.Snippet do
 
   def get("test/3", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       test "$1", %{$2: $3} do
         $0
@@ -232,8 +235,8 @@ defmodule NextLS.Snippet do
 
   def get("describe/2", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       describe "$1" do
         $0
@@ -244,8 +247,8 @@ defmodule NextLS.Snippet do
 
   def get("setup/1", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       setup do
         $0
@@ -256,8 +259,8 @@ defmodule NextLS.Snippet do
 
   def get("setup/2", nil, _opts) do
     %{
-      kind: GenLSP.Enumerations.CompletionItemKind.snippet(),
-      insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet(),
+      kind: CompletionItemKind.snippet(),
+      insert_text_format: InsertTextFormat.snippet(),
       insert_text: """
       setup ${1:context} do
         $0

@@ -61,7 +61,9 @@ defmodule NextLS.CredoExtension do
           {state, refs} ->
             # determine the existence of Credo and memoize the result
             state =
-              if not Map.has_key?(state.runtimes, runtime) do
+              if Map.has_key?(state.runtimes, runtime) do
+                state
+              else
                 case Runtime.call(runtime, {Code, :ensure_loaded?, [Credo]}) do
                   {:ok, true} ->
                     :next_ls
@@ -77,8 +79,6 @@ defmodule NextLS.CredoExtension do
                   _ ->
                     state
                 end
-              else
-                state
               end
 
             # if runtime has Credo

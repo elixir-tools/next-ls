@@ -2,6 +2,7 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
   use ExUnit.Case, async: true
 
   alias GenLSP.Structures.CodeAction
+  alias GenLSP.Structures.Diagnostic
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.TextEdit
@@ -35,7 +36,7 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
 
     start = %Position{character: 4, line: 8}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{
         "namespace" => "elixir",
         "type" => "undefined-function",
@@ -123,7 +124,7 @@ defmodule NextLS.ElixirExtension.UndefinedFunctionTest do
 
     start = %Position{character: 6, line: 3}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{
         "namespace" => "elixir",
         "type" => "undefined-function",

@@ -1,6 +1,7 @@
 defmodule NextLS.DocumentSymbol do
   @moduledoc false
 
+  alias GenLSP.Enumerations.SymbolKind
   alias GenLSP.Structures.DocumentSymbol
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
@@ -53,7 +54,7 @@ defmodule NextLS.DocumentSymbol do
 
     %DocumentSymbol{
       name: name,
-      kind: GenLSP.Enumerations.SymbolKind.module(),
+      kind: SymbolKind.module(),
       children: List.flatten(for(child <- children, sym = walker(child, name), sym != nil, do: sym)),
       range: %Range{
         start: %Position{line: meta[:line] - 1, character: meta[:column] - 1},
@@ -71,7 +72,7 @@ defmodule NextLS.DocumentSymbol do
 
     %DocumentSymbol{
       name: name,
-      kind: GenLSP.Enumerations.SymbolKind.class(),
+      kind: SymbolKind.class(),
       children: List.flatten(for(child <- children, sym = walker(child, mod), sym != nil, do: sym)),
       range: %Range{
         start: %Position{line: meta[:line] - 1, character: meta[:column] - 1},
@@ -107,7 +108,7 @@ defmodule NextLS.DocumentSymbol do
         %DocumentSymbol{
           name: name,
           children: [],
-          kind: GenLSP.Enumerations.SymbolKind.field(),
+          kind: SymbolKind.field(),
           range: %Range{
             start: %Position{
               line: start_line,
@@ -172,7 +173,7 @@ defmodule NextLS.DocumentSymbol do
     %DocumentSymbol{
       name: String.replace("#{type} #{Macro.to_string(unliteral(name))}", "\n", ""),
       children: [],
-      kind: GenLSP.Enumerations.SymbolKind.constructor(),
+      kind: SymbolKind.constructor(),
       range: %Range{
         start: %Position{
           line: meta[:line] - 1,
@@ -226,9 +227,9 @@ defmodule NextLS.DocumentSymbol do
     end)
   end
 
-  defp elixir_kind_to_lsp_kind(:defstruct), do: GenLSP.Enumerations.SymbolKind.struct()
-  defp elixir_kind_to_lsp_kind(:@), do: GenLSP.Enumerations.SymbolKind.property()
+  defp elixir_kind_to_lsp_kind(:defstruct), do: SymbolKind.struct()
+  defp elixir_kind_to_lsp_kind(:@), do: SymbolKind.property()
 
   defp elixir_kind_to_lsp_kind(kind) when kind in [:def, :defp, :defmacro, :defmacrop, :test, :describe],
-    do: GenLSP.Enumerations.SymbolKind.function()
+    do: SymbolKind.function()
 end

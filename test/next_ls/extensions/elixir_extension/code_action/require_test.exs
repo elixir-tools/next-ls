@@ -2,6 +2,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
   use ExUnit.Case, async: true
 
   alias GenLSP.Structures.CodeAction
+  alias GenLSP.Structures.Diagnostic
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.TextEdit
@@ -23,7 +24,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
 
     start = %Position{character: 11, line: 2}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{"namespace" => "elixir", "type" => "require"},
       message: "you must require Logger before invoking the macro Logger.info/1",
       source: "Elixir",
@@ -70,7 +71,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
 
     start = %Position{character: 0, line: 2}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{"namespace" => "elixir", "type" => "require"},
       message: "you must require Logger before invoking the macro Logger.info/1",
       source: "Elixir",
@@ -117,7 +118,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
 
     start = %Position{character: 0, line: 4}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{"namespace" => "elixir", "type" => "require"},
       message: "you must require Logger before invoking the macro Logger.info/1",
       source: "Elixir",
@@ -173,7 +174,7 @@ defmodule NextLS.ElixirExtension.RequireTest do
 
     start = %Position{character: 0, line: 11}
 
-    diagnostic = %GenLSP.Structures.Diagnostic{
+    diagnostic = %Diagnostic{
       data: %{"namespace" => "elixir", "type" => "require"},
       message: "you must require Logger before invoking the macro Logger.info/1",
       source: "Elixir",

@@ -49,7 +49,7 @@
   "sourceror": {:hex, :sourceror, "1.0.3", "111711c147f4f1414c07a67b45ad0064a7a41569037355407eda635649507f1d", [:mix], [], "hexpm", "56c21ef146c00b51bc3bb78d1f047cb732d193256a7c4ba91eaf828d3ae826af"},
   "spitfire": {:git, "https://github.com/elixir-tools/spitfire.git", "178b00becd55b33e080f23c9ed0d1126d57574be", []},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.7", "354c321cf377240c7b8716899e182ce4890c5938111a1296add3ec74cf1715df", [:make, :mix, :rebar3], [], "hexpm", "fe4c190e8f37401d30167c8c405eda19469f34577987c76dde613e838bbc67f8"},
-  "styler": {:hex, :styler, "0.8.1", "f3c0f65023e4bfbf7e7aa752d128b8475fdabfd30f96ee7314b84480cc56e788", [:mix], [], "hexpm", "1aa48d3aa689a639289af3d8254d40e068e98c083d6e5e3d1a695e71a147b344"},
+  "styler": {:hex, :styler, "1.0.0-rc.0", "977c702b91b11e86ae1995f0f699a372a43e8df175f4878d7e9cc1678d0d7513", [:mix], [], "hexpm", "031624294295d47af7859ef43595092f33b861f0a88e44fae6366a54f1736a1a"},
   "telemetry": {:hex, :telemetry, "1.2.1", "68fdfe8d8f05a8428483a97d7aab2f268aaff24b49e0f599faa091f1d4e7f61c", [:rebar3], [], "hexpm", "dad9ce9d8effc621708f99eac538ef1cbe05d6a874dd741de2e689c47feafed5"},
   "telemetry_registry": {:hex, :telemetry_registry, "0.3.1", "14a3319a7d9027bdbff7ebcacf1a438f5f5c903057b93aee484cca26f05bdcba", [:mix, :rebar3], [{:telemetry, "~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "6d0ca77b691cf854ed074b459a93b87f4c7f5512f8f7743c635ca83da81f939e"},
   "tls_certificate_check": {:hex, :tls_certificate_check, "1.20.0", "1ac0c53f95e201feb8d398ef9d764ae74175231289d89f166ba88a7f50cd8e73", [:rebar3], [{:ssl_verify_fun, "~> 1.1", [hex: :ssl_verify_fun, repo: "hexpm", optional: false]}], "hexpm", "ab57b74b1a63dc5775650699a3ec032ec0065005eff1f020818742b7312a8426"},

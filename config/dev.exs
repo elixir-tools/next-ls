@@ -1,5 +1,7 @@
 import Config
 
+config :logger, :default_formatter, format: "\n$time $metadata[$level] $message\n", metadata: [:id]
+
 config :logger, :default_handler,
   config: [
     file: ~c".elixir-tools/next-ls.log",
@@ -9,5 +11,3 @@ config :logger, :default_handler,
     max_no_files: 5,
     compress_on_rotate: true
   ]
-
-config :logger, :default_formatter, format: "\n$time $metadata[$level] $message\n", metadata: [:id]

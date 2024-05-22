@@ -10,7 +10,7 @@ defmodule NextLS.DB.Activity do
   end
 
   def start_link(args) do
-    :gen_statem.start_link({:local, Keyword.get(args, :name)}, __MODULE__, Keyword.drop(args, [:name]), [])
+    :gen_statem.start_link({:local, Keyword.get(args, :name)}, __MODULE__, Keyword.delete(args, :name), [])
   end
 
   def update(statem, count), do: :gen_statem.cast(statem, count)

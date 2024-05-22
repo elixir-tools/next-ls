@@ -16,10 +16,11 @@ defmodule NextLS.ElixirExtension.CodeAction.Require do
 
     with {:ok, require_module} <- get_edit(diagnostic.message),
          {:ok, ast} <- parse_ast(text),
-         {:ok, defm} <- ASTHelpers.get_surrounding_module(ast, range.start),
-         indentation <- get_indent(text, defm),
-         nearest <- find_nearest_node_for_require(defm),
-         range <- get_edit_range(nearest) do
+         {:ok, defm} <- ASTHelpers.get_surrounding_module(ast, range.start) do
+      indentation = get_indent(text, defm)
+      nearest = find_nearest_node_for_require(defm)
+      range = get_edit_range(nearest)
+
       [
         %CodeAction{
           title: "Add missing require for #{require_module}",

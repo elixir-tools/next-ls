@@ -282,7 +282,7 @@ defmodule :_next_ls_private_formatter do
   defp load_plugins({formatter_opts, subs}) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
-    if not is_list(plugins) do
+    unless is_list(plugins) do
       Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
@@ -360,11 +360,11 @@ defmodule :_next_ls_private_formatter do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
 
-    if not is_list(deps) do
+    unless is_list(deps) do
       Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
     end
 
-    if not is_list(subs) do
+    unless is_list(subs) do
       Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
     end
 
@@ -591,7 +591,7 @@ defmodule :_next_ls_private_formatter do
           ext in List.wrap(plugin.features(formatter_opts)[:extensions])
       end)
 
-    if plugins != [], do: plugins, else: nil
+    unless plugins == [], do: plugins
   end
 
   defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do

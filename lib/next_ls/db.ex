@@ -4,6 +4,7 @@ defmodule NextLS.DB do
 
   import __MODULE__.Query
 
+  alias NextLS.DB.Activity
   alias OpenTelemetry.Tracer
 
   require OpenTelemetry.Tracer
@@ -56,7 +57,7 @@ defmodule NextLS.DB do
     try do
       Tracer.with_span :"db.query receive", %{attributes: %{query: query}} do
         {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-        NextLS.DB.Activity.update(s.activity, count)
+        Activity.update(s.activity, count)
         opts = if Keyword.keyword?(args_or_opts), do: args_or_opts, else: [args: args_or_opts]
 
         query =
@@ -84,7 +85,7 @@ defmodule NextLS.DB do
 
   def handle_cast({:insert_symbol, symbol}, %{conn: conn} = s) do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-    NextLS.DB.Activity.update(s.activity, count)
+    Activity.update(s.activity, count)
 
     %{
       module: mod,
@@ -173,7 +174,7 @@ defmodule NextLS.DB do
 
   def handle_cast({:insert_reference, reference}, %{conn: conn} = s) do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-    NextLS.DB.Activity.update(s.activity, count)
+    Activity.update(s.activity, count)
 
     %{
       meta: meta,
@@ -209,7 +210,7 @@ defmodule NextLS.DB do
 
   def handle_cast({:clean_references, filename}, %{conn: conn} = s) do
     {:message_queue_len, count} = Process.info(self(), :message_queue_len)
-    NextLS.DB.Activity.update(s.activity, count)
+    Activity.update(s.activity, count)
 
     __query__(
       {conn, s.logger},
@@ -246,12 +247,10 @@ defmodule NextLS.DB do
   end
 
   defp cast(arg) do
-    cond do
-      is_atom(arg) and String.starts_with?(to_string(arg), "Elixir.") ->
-        Macro.to_string(arg)
-
-      true ->
-        arg
+    if is_atom(arg) and String.starts_with?(to_string(arg), "Elixir.") do
+      Macro.to_string(arg)
+    else
+      arg
     end
   end
 end

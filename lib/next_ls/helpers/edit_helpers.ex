@@ -12,19 +12,19 @@ defmodule NextLS.EditHelpers do
   def add_indent_to_edit(text, indent) do
     [first | rest] = String.split(text, "\n")
 
-    if rest != [] do
+    if rest == [] do
+      first
+    else
       indented =
         Enum.map_join(rest, "\n", fn line ->
-          if line not in @blank_lines do
-            indent <> line
-          else
+          if line in @blank_lines do
             line
+          else
+            indent <> line
           end
         end)
 
       first <> "\n" <> indented
-    else
-      first
     end
   end
 
