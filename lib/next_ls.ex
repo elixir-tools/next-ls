@@ -970,35 +970,34 @@ defmodule NextLS do
     {:noreply, assign(lsp, elixir_bin_path: elixir_bin_path)}
   end
 
-  def handle_notification(%TextDocumentDidSave{}, %{assigns: %{ready: false}} = lsp) do
-    {:noreply, lsp}
-  end
-
   # TODO: add some test cases for saving files in multiple workspaces
   def handle_notification(
         %TextDocumentDidSave{
           params: %GenLSP.Structures.DidSaveTextDocumentParams{text: text, text_document: %{uri: uri}}
         },
-        %{assigns: %{ready: true}} = lsp
+        lsp
       ) do
-    for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
-      Process.exit(task, :kill)
-    end
-
     refresh_refs =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {pid, %{name: name, uri: wuri}} <- entries,
-            String.starts_with?(uri, wuri),
-            into: %{} do
-          token = Progress.token()
-          Progress.start(lsp, token, "Compiling #{name}...")
-
-          ref = make_ref()
-          Runtime.compile(pid, caller_ref: ref)
-
-          {ref, {token, "Compiled #{name}!"}}
+      if lsp.assigns.ready do
+        for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
+          Process.exit(task, :kill)
         end
-      end)
+
+        # dispatching to all workspaces
+        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+          for {pid, %{name: name, uri: wuri}} <- entries,
+              String.starts_with?(uri, wuri),
+              into: %{} do
+            token = Progress.token()
+            Progress.start(lsp, token, "Compiling #{name}...")
+
+            ref = make_ref()
+            Runtime.compile(pid, caller_ref: ref)
+
+            {ref, {token, "Compiled #{name}!"}}
+          end
+        end)
+      end
 
     lsp =
       lsp
@@ -1008,16 +1007,14 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
-    {:noreply, lsp}
-  end
-
   def handle_notification(
         %TextDocumentDidChange{params: %{text_document: %{uri: uri}, content_changes: [%{text: text}]}},
         lsp
       ) do
-    for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
-      Process.exit(task, :kill)
+    if lsp.assigns.ready do
+      for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
+        Process.exit(task, :kill)
+      end
     end
 
     lsp = put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
