@@ -343,7 +343,7 @@ defmodule NextLS.AutocompleteTest do
              expand(
                runtime,
                ~c"~",
-               Map.merge(base_env(), %{macros: [{Kernel, [sigil_c: 1, sigil_C: 1, sigil_r: 1, foo: 1]}]})
+               Map.put(base_env(), :macros, [{Kernel, [sigil_c: 1, sigil_C: 1, sigil_r: 1, foo: 1]}])
              )
 
     assert %{name: "C", kind: :sigil} in sigils

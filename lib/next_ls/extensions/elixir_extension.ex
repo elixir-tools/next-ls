@@ -2,6 +2,8 @@ defmodule NextLS.ElixirExtension do
   @moduledoc false
   use GenServer
 
+  alias GenLSP.Enumerations.DiagnosticSeverity
+  alias GenLSP.Structures.Position
   alias NextLS.DiagnosticCache
 
   def start_link(args) do
@@ -46,18 +48,18 @@ defmodule NextLS.ElixirExtension do
     {:noreply, state}
   end
 
-  defp severity(:error), do: GenLSP.Enumerations.DiagnosticSeverity.error()
-  defp severity(:warning), do: GenLSP.Enumerations.DiagnosticSeverity.warning()
-  defp severity(:info), do: GenLSP.Enumerations.DiagnosticSeverity.information()
-  defp severity(:hint), do: GenLSP.Enumerations.DiagnosticSeverity.hint()
+  defp severity(:error), do: DiagnosticSeverity.error()
+  defp severity(:warning), do: DiagnosticSeverity.warning()
+  defp severity(:info), do: DiagnosticSeverity.information()
+  defp severity(:hint), do: DiagnosticSeverity.hint()
 
   defp range({start_line, start_col, end_line, end_col}, _) do
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{
+      start: %Position{
         line: clamp(start_line - 1),
         character: start_col - 1
       },
-      end: %GenLSP.Structures.Position{
+      end: %Position{
         line: clamp(end_line - 1),
         character: end_col - 1
       }
@@ -66,11 +68,11 @@ defmodule NextLS.ElixirExtension do
 
   defp range({startl, startc}, {endl, endc}) do
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{
+      start: %Position{
         line: clamp(startl - 1),
         character: startc - 1
       },
-      end: %GenLSP.Structures.Position{
+      end: %Position{
         line: clamp(endl - 1),
         character: endc - 1
       }
@@ -79,11 +81,11 @@ defmodule NextLS.ElixirExtension do
 
   defp range({line, col}, nil) do
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{
+      start: %Position{
         line: clamp(line - 1),
         character: col - 1
       },
-      end: %GenLSP.Structures.Position{
+      end: %Position{
         line: clamp(line - 1),
         character: 999
       }
@@ -92,11 +94,11 @@ defmodule NextLS.ElixirExtension do
 
   defp range(line, _) do
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{
+      start: %Position{
         line: clamp(line - 1),
         character: 0
       },
-      end: %GenLSP.Structures.Position{
+      end: %Position{
         line: clamp(line - 1),
         character: 999
       }

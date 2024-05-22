@@ -21,7 +21,7 @@ defmodule NextLS.ASTHelpers.Variables do
           )
 
         Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
-          if position_in_range?(position, ref_range), do: {name, range}, else: nil
+          if position_in_range?(position, ref_range), do: {name, range}
         end)
 
       _error ->
@@ -58,7 +58,7 @@ defmodule NextLS.ASTHelpers.Variables do
 
         symbol =
           Enum.find_value(vars, fn %{name: name, sym_range: range, ref_range: ref_range} ->
-            if position_in_range?(position, ref_range), do: {name, range}, else: nil
+            if position_in_range?(position, ref_range), do: {name, range}
           end)
 
         position =

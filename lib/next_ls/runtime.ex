@@ -135,149 +135,152 @@ defmodule NextLS.Runtime do
     path_minus_bindir2 = path_minus_bindir |> String.split(":") |> List.delete(bindir) |> Enum.join(":")
     new_path = elixir_bin_path <> ":" <> path_minus_bindir2
 
-    with dir when is_list(dir) <- :code.priv_dir(:next_ls) do
-      exe =
-        dir
-        |> Path.join("cmd")
-        |> Path.absname()
+    case :code.priv_dir(:next_ls) do
+      dir when is_list(dir) ->
+        exe =
+          dir
+          |> Path.join("cmd")
+          |> Path.absname()
 
-      env =
-        [
-          {~c"LSP", ~c"nextls"},
-          {~c"NEXTLS_PARENT_PID", parent},
-          {~c"MIX_ENV", ~c"#{mix_env}"},
-          {~c"MIX_TARGET", ~c"#{mix_target}"},
-          {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
-          {~c"ROOTDIR", false},
-          {~c"BINDIR", false},
-          {~c"RELEASE_ROOT", false},
-          {~c"RELEASE_SYS_CONFIG", false},
-          {~c"PATH", String.to_charlist(new_path)}
-        ] ++
-          if mix_home do
-            [{~c"MIX_HOME", ~c"#{mix_home}"}]
-          else
-            []
-          end
-
-      args =
-        [elixir_exe] ++
-          if @env == :test do
-            ["--erl", "-kernel prevent_overlapping_partitions false"]
-          else
-            []
-          end ++
+        env =
           [
-            "--no-halt",
-            "--sname",
-            sname,
-            "--cookie",
-            Node.get_cookie(),
-            "-S",
-            "mix",
-            "loadpaths",
-            "--no-compile"
-          ]
-
-      NextLS.Logger.info(logger, """
-      Booting runtime for #{name}.
-
-      - elixir: #{elixir_exe}
-      - zombie wrapper script: #{exe}
-      - working_dir: #{working_dir}
-      - command: #{Enum.join(args, " ")}
-
-      Environment: 
-
-      #{Enum.map_join(env, "\n", fn {k, v} -> "#{k}=#{v}" end)}
-      """)
-
-      port =
-        Port.open(
-          {:spawn_executable, exe},
-          [
-            :use_stdio,
-            :stderr_to_stdout,
-            :binary,
-            :stream,
-            cd: working_dir,
-            env: env,
-            args: args
-          ]
-        )
-
-      Port.monitor(port)
-
-      me = self()
-
-      Task.Supervisor.async_nolink(task_supervisor, fn ->
-        ref = Process.monitor(me)
-
-        receive do
-          {:DOWN, ^ref, :process, ^me, reason} ->
-            case reason do
-              :shutdown ->
-                NextLS.Logger.info(logger, "The runtime for #{name} has successfully shut down.")
-
-              reason ->
-                NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
+            {~c"LSP", ~c"nextls"},
+            {~c"NEXTLS_PARENT_PID", parent},
+            {~c"MIX_ENV", ~c"#{mix_env}"},
+            {~c"MIX_TARGET", ~c"#{mix_target}"},
+            {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
+            {~c"ROOTDIR", false},
+            {~c"BINDIR", false},
+            {~c"RELEASE_ROOT", false},
+            {~c"RELEASE_SYS_CONFIG", false},
+            {~c"PATH", String.to_charlist(new_path)}
+          ] ++
+            if mix_home do
+              [{~c"MIX_HOME", ~c"#{mix_home}"}]
+            else
+              []
             end
-        end
-      end)
 
-      Task.start_link(fn ->
-        with {:ok, host} = :inet.gethostname(),
-             node = :"#{sname}@#{host}",
-             true <- connect(node, port, 120) do
-          NextLS.Logger.info(logger, "Connected to node #{node}")
+        args =
+          [elixir_exe] ++
+            if @env == :test do
+              ["--erl", "-kernel prevent_overlapping_partitions false"]
+            else
+              []
+            end ++
+            [
+              "--no-halt",
+              "--sname",
+              sname,
+              "--cookie",
+              Node.get_cookie(),
+              "-S",
+              "mix",
+              "loadpaths",
+              "--no-compile"
+            ]
 
-          result =
-            :next_ls
-            |> :code.priv_dir()
-            |> Path.join("monkey/_next_ls_private_compiler.ex")
-            |> then(fn path ->
-              if await_config_table(node, 5) do
-                :rpc.call(node, Code, :compile_file, [path])
-              else
-                {:badrpc, "internal ets table not found"}
+        NextLS.Logger.info(logger, """
+        Booting runtime for #{name}.
+
+        - elixir: #{elixir_exe}
+        - zombie wrapper script: #{exe}
+        - working_dir: #{working_dir}
+        - command: #{Enum.join(args, " ")}
+
+        Environment: 
+
+        #{Enum.map_join(env, "\n", fn {k, v} -> "#{k}=#{v}" end)}
+        """)
+
+        port =
+          Port.open(
+            {:spawn_executable, exe},
+            [
+              :use_stdio,
+              :stderr_to_stdout,
+              :binary,
+              :stream,
+              cd: working_dir,
+              env: env,
+              args: args
+            ]
+          )
+
+        Port.monitor(port)
+
+        me = self()
+
+        Task.Supervisor.async_nolink(task_supervisor, fn ->
+          ref = Process.monitor(me)
+
+          receive do
+            {:DOWN, ^ref, :process, ^me, reason} ->
+              case reason do
+                :shutdown ->
+                  NextLS.Logger.info(logger, "The runtime for #{name} has successfully shut down.")
+
+                reason ->
+                  NextLS.Logger.error(logger, "The runtime for #{name} has crashed with reason: #{inspect(reason)}")
               end
-            end)
-            |> then(fn
-              {:badrpc, error} ->
-                NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
-                send(me, {:cancel, error})
-                :error
-
-              _ ->
-                :ok
-            end)
-
-          if result == :ok do
-            {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
-
-            send(me, {:node, node})
           end
-        else
-          error ->
-            send(me, {:cancel, error})
-        end
-      end)
+        end)
 
-      {:ok,
-       %{
-         name: name,
-         working_dir: working_dir,
-         compiler_refs: %{},
-         port: port,
-         task_supervisor: task_supervisor,
-         logger: logger,
-         lsp_pid: lsp_pid,
-         parent: parent,
-         errors: nil,
-         registry: registry,
-         on_initialized: on_initialized
-       }}
-    else
+        Task.start_link(fn ->
+          {:ok, host} = :inet.gethostname()
+          node = :"#{sname}@#{host}"
+
+          case connect(node, port, 120) do
+            true ->
+              NextLS.Logger.info(logger, "Connected to node #{node}")
+
+              result =
+                :next_ls
+                |> :code.priv_dir()
+                |> Path.join("monkey/_next_ls_private_compiler.ex")
+                |> then(fn path ->
+                  if await_config_table(node, 5) do
+                    :rpc.call(node, Code, :compile_file, [path])
+                  else
+                    {:badrpc, "internal ets table not found"}
+                  end
+                end)
+                |> then(fn
+                  {:badrpc, error} ->
+                    NextLS.Logger.error(logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+                    send(me, {:cancel, error})
+                    :error
+
+                  _ ->
+                    :ok
+                end)
+
+              if result == :ok do
+                {:ok, _} = :rpc.call(node, :_next_ls_private_compiler, :start, [])
+
+                send(me, {:node, node})
+              end
+
+            error ->
+              send(me, {:cancel, error})
+          end
+        end)
+
+        {:ok,
+         %{
+           name: name,
+           working_dir: working_dir,
+           compiler_refs: %{},
+           port: port,
+           task_supervisor: task_supervisor,
+           logger: logger,
+           lsp_pid: lsp_pid,
+           parent: parent,
+           errors: nil,
+           registry: registry,
+           on_initialized: on_initialized
+         }}
+
       _ ->
         NextLS.Logger.error(logger, "Either failed to find the private cmd wrapper script")
 

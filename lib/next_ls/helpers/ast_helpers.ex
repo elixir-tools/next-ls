@@ -173,9 +173,8 @@ defmodule NextLS.ASTHelpers do
         node_range = Sourceror.Range.get_range(node)
 
         is_inside =
-          with nil <- node_range do
-            false
-          else
+          case node_range do
+            nil -> false
             _ -> sourceror_inside?(node_range, position)
           end
 

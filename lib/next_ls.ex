@@ -5,7 +5,11 @@ defmodule NextLS do
   import NextLS.DB.Query
 
   alias GenLSP.Enumerations.CodeActionKind
+  alias GenLSP.Enumerations.CompletionItemKind
   alias GenLSP.Enumerations.ErrorCodes
+  alias GenLSP.Enumerations.FileChangeType
+  alias GenLSP.Enumerations.MessageType
+  alias GenLSP.Enumerations.SymbolKind
   alias GenLSP.Enumerations.TextDocumentSyncKind
   alias GenLSP.ErrorResponse
   alias GenLSP.Notifications.Exit
@@ -38,6 +42,7 @@ defmodule NextLS do
   alias GenLSP.Structures.InitializeParams
   alias GenLSP.Structures.InitializeResult
   alias GenLSP.Structures.Location
+  alias GenLSP.Structures.MessageActionItem
   alias GenLSP.Structures.Position
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.SaveOptions
@@ -50,11 +55,14 @@ defmodule NextLS do
   alias GenLSP.Structures.TextEdit
   alias GenLSP.Structures.WorkspaceEdit
   alias GenLSP.Structures.WorkspaceFoldersChangeEvent
+  alias NextLS.ASTHelpers.Variables
+  alias NextLS.Commands.Pipe
   alias NextLS.DB
   alias NextLS.Definition
   alias NextLS.DiagnosticCache
   alias NextLS.Progress
   alias NextLS.Runtime
+  alias NextLS.Runtime.BundledElixir
 
   require NextLS.Runtime
 
@@ -134,9 +142,7 @@ defmodule NextLS do
 
     mix_home =
       if init_opts.experimental.completions.enable do
-        NextLS.Runtime.BundledElixir.mix_home(lsp.assigns.bundle_base)
-      else
-        nil
+        BundledElixir.mix_home(lsp.assigns.bundle_base)
       end
 
     {:reply,
@@ -156,8 +162,6 @@ defmodule NextLS do
                trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"],
                resolve_provider: true
              }
-           else
-             nil
            end,
          document_formatting_provider: true,
          execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
@@ -224,10 +228,7 @@ defmodule NextLS do
                  pid
                ) do
             nil ->
-              case NextLS.ASTHelpers.Variables.get_variable_definition(
-                     URI.parse(uri).path,
-                     {position.line + 1, position.character + 1}
-                   ) do
+              case Variables.get_variable_definition(URI.parse(uri).path, {position.line + 1, position.character + 1}) do
                 {_name, {startl..endl//_, startc..endc//_}} ->
                   %Location{
                     uri: "file://#{URI.parse(uri).path}",
@@ -283,8 +284,6 @@ defmodule NextLS do
             GenLSP.error(lsp, Exception.format(:error, e, __STACKTRACE__))
             nil
         end
-      else
-        nil
       end
 
     {:reply, symbols, lsp}
@@ -345,7 +344,7 @@ defmodule NextLS do
 
               :unknown ->
                 file
-                |> NextLS.ASTHelpers.Variables.list_variable_references({line, col})
+                |> Variables.list_variable_references({line, col})
                 |> Enum.map(fn {_name, {startl..endl//_, startc..endc//_}} ->
                   [file, startl, endl, startc, endc]
                 end)
@@ -420,7 +419,8 @@ defmodule NextLS do
 
                 "function" ->
                   NextLS.Docs.function(doc, fn name, a, documentation, _other ->
-                    to_string(name) == reference.identifier and documentation != :hidden and a >= reference.arity
+                    to_string(name) == reference.identifier and documentation != :hidden and
+                      a >= reference.arity
                   end)
 
                 _ ->
@@ -487,10 +487,10 @@ defmodule NextLS do
               symbol <- symbols.(pid),
               score = fuzzy_match(symbol.name, query, case_sensitive?) do
             name =
-              if symbol.type not in ["defstruct", "attribute"] do
-                "#{symbol.type} #{symbol.name}"
-              else
+              if symbol.type in ["defstruct", "attribute"] do
                 "#{symbol.name}"
+              else
+                "#{symbol.type} #{symbol.name}"
               end
 
             {%SymbolInformation{
@@ -521,68 +521,85 @@ defmodule NextLS do
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
     document = lsp.assigns.documents[uri]
 
-    [resp] =
-      if is_list(document) do
-        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-          for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-            with {:ok, {formatter, _}} <-
-                   Runtime.call(
-                     runtime,
-                     {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
-                   ),
-                 {:ok, response} when is_binary(response) or is_list(response) <-
-                   Runtime.call(
-                     runtime,
-                     {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
-                   ) do
-              {:reply,
-               [
-                 %TextEdit{
-                   new_text: IO.iodata_to_binary(response),
-                   range: %Range{
-                     start: %Position{line: 0, character: 0},
-                     end: %Position{
-                       line: length(document),
-                       character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
-                     }
-                   }
+    if is_list(document) do
+      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, %{uri: wuri} ->
+        with {:ok, {formatter, _}} <-
+               Runtime.call(
+                 runtime,
+                 {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
+               ),
+             {:ok, response} when is_binary(response) or is_list(response) <-
+               Runtime.call(
+                 runtime,
+                 {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
+               ) do
+          {:reply,
+           [
+             %TextEdit{
+               new_text: IO.iodata_to_binary(response),
+               range: %Range{
+                 start: %Position{line: 0, character: 0},
+                 end: %Position{
+                   line: length(document),
+                   character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
                  }
-               ], lsp}
-            else
-              {:error, :not_ready} ->
-                GenLSP.notify(lsp, %WindowShowMessage{
-                  params: %ShowMessageParams{
-                    type: GenLSP.Enumerations.MessageType.info(),
-                    message: "The NextLS runtime is still initializing!"
-                  }
-                })
+               }
+             }
+           ], lsp}
+        else
+          {:error, :not_ready} ->
+            GenLSP.notify(lsp, %WindowShowMessage{
+              params: %ShowMessageParams{
+                type: MessageType.info(),
+                message: "The NextLS runtime is still initializing!"
+              }
+            })
 
-                {:reply, nil, lsp}
+            {:reply, nil, lsp}
+
+          e ->
+            case e do
+              {:ok, {:badrpc, {:EXIT, {%{description: description, file: file}, _stacktrace}}}} ->
+                file = Path.relative_to(file, URI.parse(wuri).path)
+
+                NextLS.Logger.show_message(
+                  lsp.assigns.logger,
+                  :error,
+                  "Failed to format #{file}: #{description}"
+                )
+
+                NextLS.Logger.warning(
+                  lsp.assigns.logger,
+                  "Failed to format #{file}: #{description}"
+                )
 
               _ ->
-                NextLS.Logger.warning(lsp.assigns.logger, "Failed to format the file: #{uri}")
-
-                {:reply, nil, lsp}
+                abs_file = URI.parse(uri).path
+                root_dir = URI.parse(wuri).path
+                file = Path.relative_to(abs_file, root_dir)
+                NextLS.Logger.show_message(lsp.assigns.logger, :error, "Failed to format #{file}")
+                NextLS.Logger.warning(lsp.assigns.logger, "Failed to format #{file}")
             end
-          end
-        end)
-      else
-        NextLS.Logger.warning(
-          lsp.assigns.logger,
-          "The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
-        )
 
-        [{:reply, nil, lsp}]
-      end
+            {:reply, nil, lsp}
+        end
+      end)
+    else
+      NextLS.Logger.warning(
+        lsp.assigns.logger,
+        "The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+      )
 
-    resp
+      {:reply, nil, lsp}
+    end
   end
 
   def handle_request(%GenLSP.Requests.CompletionItemResolve{params: completion_item}, lsp) do
     completion_item =
-      with nil <- completion_item.data do
-        completion_item
-      else
+      case completion_item.data do
+        nil ->
+          completion_item
+
         %{"uri" => uri, "data" => data} ->
           data = data |> Base.decode64!() |> :erlang.binary_to_term()
 
@@ -593,7 +610,7 @@ defmodule NextLS do
             end
 
           result =
-            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, _wuri ->
+            dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, _entry ->
               Runtime.call(runtime, {Code, :fetch_docs, [module]})
             end)
 
@@ -640,7 +657,7 @@ defmodule NextLS do
       end
 
     {root_path, entries} =
-      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, wuri ->
+      dispatch_to_workspace(lsp.assigns.registry, uri, fn runtime, %{uri: wuri} ->
         {:ok, {_, _, _, macro_env}} =
           Runtime.expand(runtime, with_cursor, Path.basename(uri))
 
@@ -663,37 +680,37 @@ defmodule NextLS do
         {label, kind, docs} =
           case kind do
             :struct ->
-              {name, GenLSP.Enumerations.CompletionItemKind.struct(), ""}
+              {name, CompletionItemKind.struct(), ""}
 
             :function ->
-              {"#{name}/#{symbol.arity}", GenLSP.Enumerations.CompletionItemKind.function(), symbol[:docs] || ""}
+              {"#{name}/#{symbol.arity}", CompletionItemKind.function(), symbol[:docs] || ""}
 
             :module ->
-              {name, GenLSP.Enumerations.CompletionItemKind.module(), symbol[:docs] || ""}
+              {name, CompletionItemKind.module(), symbol[:docs] || ""}
 
             :variable ->
-              {to_string(name), GenLSP.Enumerations.CompletionItemKind.variable(), ""}
+              {to_string(name), CompletionItemKind.variable(), ""}
 
             :dir ->
-              {name, GenLSP.Enumerations.CompletionItemKind.folder(), ""}
+              {name, CompletionItemKind.folder(), ""}
 
             :file ->
-              {name, GenLSP.Enumerations.CompletionItemKind.file(), ""}
+              {name, CompletionItemKind.file(), ""}
 
             :reserved ->
-              {name, GenLSP.Enumerations.CompletionItemKind.keyword(), ""}
+              {name, CompletionItemKind.keyword(), ""}
 
             :keyword ->
-              {name, GenLSP.Enumerations.CompletionItemKind.field(), ""}
+              {name, CompletionItemKind.field(), ""}
 
             :attribute ->
-              {name, GenLSP.Enumerations.CompletionItemKind.property(), ""}
+              {name, CompletionItemKind.property(), ""}
 
             :sigil ->
-              {name, GenLSP.Enumerations.CompletionItemKind.function(), ""}
+              {name, CompletionItemKind.function(), ""}
 
             _ ->
-              {name, GenLSP.Enumerations.CompletionItemKind.text(), ""}
+              {name, CompletionItemKind.text(), ""}
           end
 
         completion_item =
@@ -705,8 +722,6 @@ defmodule NextLS do
             data:
               if symbol[:data] do
                 %{uri: uri, data: symbol[:data] |> :erlang.term_to_binary() |> Base.encode64()}
-              else
-                nil
               end
           }
 
@@ -745,7 +760,7 @@ defmodule NextLS do
           position = arguments["position"]
           text = lsp.assigns.documents[uri]
 
-          NextLS.Commands.Pipe.from(%{
+          Pipe.from(%{
             uri: uri,
             text: text,
             position: position
@@ -758,7 +773,7 @@ defmodule NextLS do
           position = arguments["position"]
           text = lsp.assigns.documents[uri]
 
-          NextLS.Commands.Pipe.to(%{
+          Pipe.to(%{
             uri: uri,
             text: text,
             position: position
@@ -829,13 +844,17 @@ defmodule NextLS do
   @impl true
   def handle_notification(%Initialized{}, lsp) do
     NextLS.Logger.log(lsp.assigns.logger, "NextLS v#{version()} has initialized!")
-    NextLS.Logger.log(lsp.assigns.logger, "Log file located at #{Path.join(File.cwd!(), ".elixir-tools/next-ls.log")}")
+
+    NextLS.Logger.log(
+      lsp.assigns.logger,
+      "Log file located at #{Path.join(File.cwd!(), ".elixir-tools/next-ls.log")}"
+    )
 
     with opts when is_list(opts) <- lsp.assigns.auto_update do
       {:ok, _} =
         DynamicSupervisor.start_child(
           lsp.assigns.dynamic_supervisor,
-          {NextLS.Updater, Keyword.merge(opts, logger: lsp.assigns.logger)}
+          {NextLS.Updater, Keyword.put(opts, :logger, lsp.assigns.logger)}
         )
     end
 
@@ -880,7 +899,7 @@ defmodule NextLS do
         })
     end
 
-    NextLS.Runtime.BundledElixir.install(lsp.assigns.bundle_base, lsp.assigns.logger)
+    BundledElixir.install(lsp.assigns.bundle_base, lsp.assigns.logger)
     NextLS.Logger.log(lsp.assigns.logger, "Booting runtimes...")
 
     parent = self()
@@ -891,7 +910,7 @@ defmodule NextLS do
           lsp.assigns.init_opts.elixir_bin_path
 
         lsp.assigns.init_opts.experimental.completions.enable ->
-          NextLS.Runtime.BundledElixir.binpath(lsp.assigns.bundle_base)
+          BundledElixir.binpath(lsp.assigns.bundle_base)
 
         true ->
           "elixir" |> System.find_executable() |> Path.dirname()
@@ -937,7 +956,10 @@ defmodule NextLS do
 
                  send(parent, {:runtime_failed, name, status})
 
-                 NextLS.Logger.error(lsp.assigns.logger, "Runtime for folder #{name} failed to initialize")
+                 NextLS.Logger.error(
+                   lsp.assigns.logger,
+                   "Runtime for folder #{name} failed to initialize"
+                 )
                end
              end,
              logger: lsp.assigns.logger
@@ -948,35 +970,34 @@ defmodule NextLS do
     {:noreply, assign(lsp, elixir_bin_path: elixir_bin_path)}
   end
 
-  def handle_notification(%TextDocumentDidSave{}, %{assigns: %{ready: false}} = lsp) do
-    {:noreply, lsp}
-  end
-
   # TODO: add some test cases for saving files in multiple workspaces
   def handle_notification(
         %TextDocumentDidSave{
           params: %GenLSP.Structures.DidSaveTextDocumentParams{text: text, text_document: %{uri: uri}}
         },
-        %{assigns: %{ready: true}} = lsp
+        lsp
       ) do
-    for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
-      Process.exit(task, :kill)
-    end
-
     refresh_refs =
-      dispatch(lsp.assigns.registry, :runtimes, fn entries ->
-        for {pid, %{name: name, uri: wuri}} <- entries,
-            String.starts_with?(uri, wuri),
-            into: %{} do
-          token = Progress.token()
-          Progress.start(lsp, token, "Compiling #{name}...")
-
-          ref = make_ref()
-          Runtime.compile(pid, caller_ref: ref)
-
-          {ref, {token, "Compiled #{name}!"}}
+      if lsp.assigns.ready do
+        for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
+          Process.exit(task, :kill)
         end
-      end)
+
+        # dispatching to all workspaces
+        dispatch(lsp.assigns.registry, :runtimes, fn entries ->
+          for {pid, %{name: name, uri: wuri}} <- entries,
+              String.starts_with?(uri, wuri),
+              into: %{} do
+            token = Progress.token()
+            Progress.start(lsp, token, "Compiling #{name}...")
+
+            ref = make_ref()
+            Runtime.compile(pid, caller_ref: ref)
+
+            {ref, {token, "Compiled #{name}!"}}
+          end
+        end)
+      end
 
     lsp =
       lsp
@@ -986,16 +1007,14 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_notification(%TextDocumentDidChange{}, %{assigns: %{ready: false}} = lsp) do
-    {:noreply, lsp}
-  end
-
   def handle_notification(
         %TextDocumentDidChange{params: %{text_document: %{uri: uri}, content_changes: [%{text: text}]}},
         lsp
       ) do
-    for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
-      Process.exit(task, :kill)
+    if lsp.assigns.ready do
+      for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
+        Process.exit(task, :kill)
+      end
     end
 
     lsp = put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
@@ -1059,7 +1078,10 @@ defmodule NextLS do
 
                   send(parent, {:runtime_failed, name, status})
 
-                  NextLS.Logger.error(lsp.assigns.logger, "Runtime for folder #{name} failed to initialize")
+                  NextLS.Logger.error(
+                    lsp.assigns.logger,
+                    "Runtime for folder #{name} failed to initialize"
+                  )
                 end
               end,
               logger: lsp.assigns.logger
@@ -1085,22 +1107,22 @@ defmodule NextLS do
           file = URI.parse(uri).path
 
           cond do
-            type == GenLSP.Enumerations.FileChangeType.created() ->
-              with {:ok, text} <- File.read(file) do
-                put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
-              else
+            type == FileChangeType.created() ->
+              case File.read(file) do
+                {:ok, text} -> put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
                 _ -> lsp
               end
 
-            type == GenLSP.Enumerations.FileChangeType.changed() ->
-              with {:ok, text} <- File.read(file) do
-                put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
-              else
+            type == FileChangeType.changed() ->
+              case File.read(file) do
+                {:ok, text} -> put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
                 _ -> lsp
               end
 
-            type == GenLSP.Enumerations.FileChangeType.deleted() ->
-              if not File.exists?(file) do
+            type == FileChangeType.deleted() ->
+              if File.exists?(file) do
+                lsp
+              else
                 dispatch(lsp.assigns.registry, :databases, fn entries ->
                   for {pid, _} <- entries do
                     NextLS.DB.query(
@@ -1123,9 +1145,7 @@ defmodule NextLS do
                   end
                 end)
 
-                update_in(lsp.assigns.documents, &Map.drop(&1, [uri]))
-              else
-                lsp
+                update_in(lsp.assigns.documents, &Map.delete(&1, uri))
               end
           end
       end
@@ -1237,11 +1257,11 @@ defmodule NextLS do
           %GenLSP.Requests.WindowShowMessageRequest{
             id: System.unique_integer([:positive]),
             params: %GenLSP.Structures.ShowMessageRequestParams{
-              type: GenLSP.Enumerations.MessageType.error(),
+              type: MessageType.error(),
               message: "The NextLS runtime failed with errors on dependencies. Would you like to re-fetch them?",
               actions: [
-                %GenLSP.Structures.MessageActionItem{title: "yes"},
-                %GenLSP.Structures.MessageActionItem{title: "no"}
+                %MessageActionItem{title: "yes"},
+                %MessageActionItem{title: "no"}
               ]
             }
           },
@@ -1249,7 +1269,7 @@ defmodule NextLS do
         )
 
       case resp do
-        %GenLSP.Structures.MessageActionItem{title: "yes"} ->
+        %MessageActionItem{title: "yes"} ->
           NextLS.Logger.info(
             lsp.assigns.logger,
             "Running `mix deps.get` in directory #{init_arg[:runtime][:working_dir]}"
@@ -1289,7 +1309,10 @@ defmodule NextLS do
       end
     else
       unless lsp.assigns.client_capabilities.window.show_message do
-        NextLS.Logger.info(lsp.assigns.logger, "Client does not support window/showMessageRequest")
+        NextLS.Logger.info(
+          lsp.assigns.logger,
+          "Client does not support window/showMessageRequest"
+        )
       end
     end
 
@@ -1320,12 +1343,11 @@ defmodule NextLS do
     end
   end
 
-  defp elixir_kind_to_lsp_kind("defmodule"), do: GenLSP.Enumerations.SymbolKind.module()
-  defp elixir_kind_to_lsp_kind("defstruct"), do: GenLSP.Enumerations.SymbolKind.struct()
-  defp elixir_kind_to_lsp_kind("attribute"), do: GenLSP.Enumerations.SymbolKind.property()
+  defp elixir_kind_to_lsp_kind("defmodule"), do: SymbolKind.module()
+  defp elixir_kind_to_lsp_kind("defstruct"), do: SymbolKind.struct()
+  defp elixir_kind_to_lsp_kind("attribute"), do: SymbolKind.property()
 
-  defp elixir_kind_to_lsp_kind(kind) when kind in ["def", "defp", "defmacro", "defmacrop"],
-    do: GenLSP.Enumerations.SymbolKind.function()
+  defp elixir_kind_to_lsp_kind(kind) when kind in ["def", "defp", "defmacro", "defmacrop"], do: SymbolKind.function()
 
   # NOTE: this is only possible because the registry is not partitioned
   # if it is partitioned, then the callback is called multiple times
@@ -1354,8 +1376,8 @@ defmodule NextLS do
 
     Registry.dispatch(registry, :runtimes, fn entries ->
       [result] =
-        for {runtime, %{uri: wuri}} <- entries, String.starts_with?(uri, wuri) do
-          callback.(runtime, wuri)
+        for {runtime, %{uri: wuri} = entry} <- entries, String.starts_with?(uri, wuri) do
+          callback.(runtime, entry)
         end
 
       send(me, {ref, result})
@@ -1539,11 +1561,14 @@ defmodule NextLS do
     @moduledoc false
     import Schematic
 
+    alias NextLS.InitOpts.Experimental
+    alias NextLS.InitOpts.Extensions
+
     defstruct mix_target: "host",
               mix_env: "dev",
               elixir_bin_path: nil,
-              experimental: %NextLS.InitOpts.Experimental{},
-              extensions: %NextLS.InitOpts.Extensions{}
+              experimental: %Experimental{},
+              extensions: %Extensions{}
 
     def validate(opts) do
       schematic =
@@ -1554,14 +1579,14 @@ defmodule NextLS do
             optional(:mix_env) => str(),
             optional(:elixir_bin_path) => str(),
             optional(:experimental) =>
-              schema(NextLS.InitOpts.Experimental, %{
+              schema(Experimental, %{
                 optional(:completions) =>
                   map(%{
                     {"enable", :enable} => bool()
                   })
               }),
             optional(:extensions) =>
-              schema(NextLS.InitOpts.Extensions, %{
+              schema(Extensions, %{
                 optional(:credo) =>
                   schema(NextLS.InitOpts.Extensions.Credo, %{
                     optional(:enable) => bool(),

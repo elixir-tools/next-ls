@@ -1,6 +1,9 @@
 defmodule NextLS.Progress do
   @moduledoc false
 
+  alias GenLSP.Notifications.DollarProgress
+  alias GenLSP.Structures.ProgressParams
+
   def start(lsp, token, msg) do
     Task.start(fn ->
       if lsp.assigns.client_capabilities.window.work_done_progress do
@@ -12,8 +15,8 @@ defmodule NextLS.Progress do
         })
       end
 
-      GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
-        params: %GenLSP.Structures.ProgressParams{
+      GenLSP.notify(lsp, %DollarProgress{
+        params: %ProgressParams{
           token: token,
           value: %GenLSP.Structures.WorkDoneProgressBegin{kind: "begin", title: msg}
         }
@@ -22,8 +25,8 @@ defmodule NextLS.Progress do
   end
 
   def stop(lsp, token, msg \\ nil) do
-    GenLSP.notify(lsp, %GenLSP.Notifications.DollarProgress{
-      params: %GenLSP.Structures.ProgressParams{
+    GenLSP.notify(lsp, %DollarProgress{
+      params: %ProgressParams{
         token: token,
         value: %GenLSP.Structures.WorkDoneProgressEnd{
           kind: "end",

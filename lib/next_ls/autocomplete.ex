@@ -659,12 +659,10 @@ defmodule NextLS.Autocomplete do
   end
 
   defp get_module_funs(mod, runtime) do
-    cond do
-      not ensure_loaded?(mod, runtime) ->
-        []
-
-      true ->
-        exports(mod, runtime)
+    if ensure_loaded?(mod, runtime) do
+      exports(mod, runtime)
+    else
+      []
     end
   end
 

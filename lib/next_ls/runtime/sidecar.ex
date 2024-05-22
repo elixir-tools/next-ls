@@ -7,7 +7,7 @@ defmodule NextLS.Runtime.Sidecar do
   alias NextLS.DB
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, Keyword.drop(args, [:name]), Keyword.take(args, [:name]))
+    GenServer.start_link(__MODULE__, Keyword.delete(args, :name), Keyword.take(args, [:name]))
   end
 
   def init(args) do

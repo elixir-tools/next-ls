@@ -68,8 +68,6 @@ defmodule NextLS.Definition do
 
       if args do
         DB.query(db, query, args)
-      else
-        nil
       end
     end
   end

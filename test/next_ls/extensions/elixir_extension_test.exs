@@ -1,6 +1,7 @@
 defmodule NextLS.ElixirExtensionTest do
   use ExUnit.Case, async: true
 
+  alias GenLSP.Structures.Position
   alias NextLS.DiagnosticCache
   alias NextLS.ElixirExtension
 
@@ -72,11 +73,11 @@ defmodule NextLS.ElixirExtensionTest do
                      " is undefined (module " <> "ElixirExtension" <> " is not available or is yet to be defined)",
                  source: "Elixir",
                  range: %GenLSP.Structures.Range{
-                   start: %GenLSP.Structures.Position{
+                   start: %Position{
                      line: 28,
                      character: 0
                    },
-                   end: %GenLSP.Structures.Position{
+                   end: %Position{
                      line: 28,
                      character: 999
                    }
@@ -90,11 +91,11 @@ defmodule NextLS.ElixirExtensionTest do
                  message: "kind of bad",
                  source: "Elixir",
                  range: %GenLSP.Structures.Range{
-                   start: %GenLSP.Structures.Position{
+                   start: %Position{
                      line: 1,
                      character: 0
                    },
-                   end: %GenLSP.Structures.Position{
+                   end: %Position{
                      line: 1,
                      character: 999
                    }
@@ -108,11 +109,11 @@ defmodule NextLS.ElixirExtensionTest do
                  message: "nothing works",
                  source: "Elixir",
                  range: %GenLSP.Structures.Range{
-                   start: %GenLSP.Structures.Position{
+                   start: %Position{
                      line: 3,
                      character: 6
                    },
-                   end: %GenLSP.Structures.Position{
+                   end: %Position{
                      line: 3,
                      character: 999
                    }
@@ -126,11 +127,11 @@ defmodule NextLS.ElixirExtensionTest do
                  message: "here's a hint",
                  source: "Elixir",
                  range: %GenLSP.Structures.Range{
-                   start: %GenLSP.Structures.Position{
+                   start: %Position{
                      line: 3,
                      character: 6
                    },
-                   end: %GenLSP.Structures.Position{
+                   end: %Position{
                      line: 7,
                      character: 2
                    }
