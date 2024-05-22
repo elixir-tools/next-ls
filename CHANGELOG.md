@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.6](https://github.com/elixir-tools/next-ls/compare/v0.22.5...v0.22.6) (2024-05-22)
+
+
+### Bug Fixes
+
+* **formatting:** show message when it fails ([#497](https://github.com/elixir-tools/next-ls/issues/497)) ([0a68789](https://github.com/elixir-tools/next-ls/commit/0a6878965763a118a28d9834de56ce827233aba0)), closes [#463](https://github.com/elixir-tools/next-ls/issues/463)
+* handle change and save notifications before runtime is ready ([0a68789](https://github.com/elixir-tools/next-ls/commit/0a6878965763a118a28d9834de56ce827233aba0))
+
 ## [0.22.5](https://github.com/elixir-tools/next-ls/compare/v0.22.4...v0.22.5) (2024-05-22)
 
 
