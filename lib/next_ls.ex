@@ -13,6 +13,7 @@ defmodule NextLS do
   alias GenLSP.Notifications.TextDocumentDidChange
   alias GenLSP.Notifications.TextDocumentDidOpen
   alias GenLSP.Notifications.TextDocumentDidSave
+  alias GenLSP.Notifications.WindowShowMessage
   alias GenLSP.Notifications.WorkspaceDidChangeWatchedFiles
   alias GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders
   alias GenLSP.Requests.Initialize
@@ -41,6 +42,7 @@ defmodule NextLS do
   alias GenLSP.Structures.Range
   alias GenLSP.Structures.SaveOptions
   alias GenLSP.Structures.ServerCapabilities
+  alias GenLSP.Structures.ShowMessageParams
   alias GenLSP.Structures.SymbolInformation
   alias GenLSP.Structures.TextDocumentIdentifier
   alias GenLSP.Structures.TextDocumentItem
@@ -548,8 +550,8 @@ defmodule NextLS do
                ], lsp}
             else
               {:error, :not_ready} ->
-                GenLSP.notify(lsp, %GenLSP.Notifications.WindowShowMessage{
-                  params: %GenLSP.Structures.ShowMessageParams{
+                GenLSP.notify(lsp, %WindowShowMessage{
+                  params: %ShowMessageParams{
                     type: GenLSP.Enumerations.MessageType.info(),
                     message: "The NextLS runtime is still initializing!"
                   }
