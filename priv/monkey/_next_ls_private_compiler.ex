@@ -128,7 +128,14 @@ defmodule NextLSPrivate.Tracer do
   def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
     parent = parent_pid()
 
-    if type == :remote_macro && meta[:closing][:line] != meta[:line] do
+    condition =
+      if Version.match?(System.version(), ">= 1.17.0-dev") do
+        is_nil(meta[:column])
+      else
+        type == :remote_macro && meta[:closing][:line] != meta[:line]
+      end
+
+    if condition do
       # this is the case that a macro is getting expanded from inside
       # another macro expansion
       :noop
