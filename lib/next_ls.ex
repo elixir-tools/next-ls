@@ -159,7 +159,7 @@ defmodule NextLS do
          completion_provider:
            if init_opts.experimental.completions.enable do
              %GenLSP.Structures.CompletionOptions{
-               trigger_characters: [".", "@", "&", "%", "^", ":", "!", "-", "~", "/", "{"],
+               trigger_characters: [".", "@", "%", "^", ":", "!", "-", "~", "/", "{"],
                resolve_provider: true
              }
            end,

@@ -72,7 +72,7 @@ defmodule NextLS.Autocomplete do
         hint = List.to_string(local_or_var)
 
         expand_container_context(code, :expr, hint, runtime, env) ||
-          expand_local_or_var(hint, List.to_string(local_or_var), runtime, env)
+          expand_local_or_var(hint, hint, runtime, env)
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, runtime, env)
