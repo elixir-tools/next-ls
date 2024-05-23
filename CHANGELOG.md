@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.7](https://github.com/elixir-tools/next-ls/compare/v0.22.6...v0.22.7) (2024-05-23)
+
+
+### Bug Fixes
+
+* better completions for function references ([#500](https://github.com/elixir-tools/next-ls/issues/500)) ([c4a6852](https://github.com/elixir-tools/next-ls/commit/c4a6852548d25555a3f8769e688567f716ba3d0b))
+* **index:** better heuristic if a reference is from a macro ([#499](https://github.com/elixir-tools/next-ls/issues/499)) ([9793dd2](https://github.com/elixir-tools/next-ls/commit/9793dd29ee63c793c218f7743a7dfb22f1b57959))
+
 ## [0.22.6](https://github.com/elixir-tools/next-ls/compare/v0.22.5...v0.22.6) (2024-05-22)
 
 
