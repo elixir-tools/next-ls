@@ -140,6 +140,14 @@ defmodule NextLS.Docs do
     "#{to_markdown(type, children)}\n" <> to_markdown(type, rest)
   end
 
+  def to_markdown("application/erlang+html" = type, [{:ol, _, lis} | rest]) do
+    "#{to_markdown(type, lis)}\n" <> to_markdown(type, rest)
+  end
+
+  def to_markdown("application/erlang+html" = type, [{:ot, _, children} | rest]) do
+    "1. #{to_markdown(type, children)}\n" <> to_markdown(type, rest)
+  end
+
   def to_markdown("application/erlang+html" = type, [{:i, _, children} | rest]) do
     "_#{IO.iodata_to_binary(children)}_" <> to_markdown(type, rest)
   end
