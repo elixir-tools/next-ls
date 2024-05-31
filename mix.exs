@@ -63,7 +63,7 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:exqlite, "~> 0.13.14"},
-      {:gen_lsp, "~> 0.9"},
+      {:gen_lsp, "~> 0.10"},
       # {:gen_lsp, path: "../gen_lsp"},
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
