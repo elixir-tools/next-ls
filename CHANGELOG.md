@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.8](https://github.com/elixir-tools/next-ls/compare/v0.22.7...v0.22.8) (2024-05-31)
+
+
+### Bug Fixes
+
+* bump gen_lsp ([#507](https://github.com/elixir-tools/next-ls/issues/507)) ([5789603](https://github.com/elixir-tools/next-ls/commit/5789603eefff96d14d4482933be560fcd8ea416a))
+* **docs:** support numbered lists in erlang docs ([#506](https://github.com/elixir-tools/next-ls/issues/506)) ([4740cfb](https://github.com/elixir-tools/next-ls/commit/4740cfb48cad2ae5343fdf027a9dd697f76a6c1f))
+
 ## [0.22.7](https://github.com/elixir-tools/next-ls/compare/v0.22.6...v0.22.7) (2024-05-23)
 
 
