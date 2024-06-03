@@ -53,7 +53,7 @@ defmodule NextLS.DocumentSymbol do
     name = Macro.to_string(unliteral(name))
 
     %DocumentSymbol{
-      name: name,
+      name: name(name),
       kind: SymbolKind.module(),
       children: List.flatten(for(child <- children, sym = walker(child, name), sym != nil, do: sym)),
       range: %Range{
@@ -71,7 +71,7 @@ defmodule NextLS.DocumentSymbol do
     name = String.replace("describe " <> Macro.to_string(unliteral(name)), "\n", "")
 
     %DocumentSymbol{
-      name: name,
+      name: name(name),
       kind: SymbolKind.class(),
       children: List.flatten(for(child <- children, sym = walker(child, mod), sym != nil, do: sym)),
       range: %Range{
@@ -106,7 +106,7 @@ defmodule NextLS.DocumentSymbol do
           end
 
         %DocumentSymbol{
-          name: name,
+          name: name(name),
           children: [],
           kind: SymbolKind.field(),
           range: %Range{
@@ -127,7 +127,7 @@ defmodule NextLS.DocumentSymbol do
       end
 
     %DocumentSymbol{
-      name: "%#{mod}{}",
+      name: name("%#{mod}{}"),
       children: fields,
       kind: elixir_kind_to_lsp_kind(:defstruct),
       range: %Range{
@@ -149,7 +149,7 @@ defmodule NextLS.DocumentSymbol do
 
   defp walker({:@, meta, [{_name, _, value}]} = attribute, _) when length(value) > 0 do
     %DocumentSymbol{
-      name: attribute |> unliteral() |> Macro.to_string() |> String.replace("\n", ""),
+      name: attribute |> unliteral() |> Macro.to_string() |> String.replace("\n", "") |> name(),
       children: [],
       kind: elixir_kind_to_lsp_kind(:@),
       range: %Range{
@@ -171,7 +171,7 @@ defmodule NextLS.DocumentSymbol do
 
   defp walker({type, meta, [name | _children]}, _) when type in [:test, :feature, :property] do
     %DocumentSymbol{
-      name: String.replace("#{type} #{Macro.to_string(unliteral(name))}", "\n", ""),
+      name: name("#{type} #{Macro.to_string(unliteral(name))}"),
       children: [],
       kind: SymbolKind.constructor(),
       range: %Range{
@@ -193,7 +193,7 @@ defmodule NextLS.DocumentSymbol do
 
   defp walker({type, meta, [name | _children]}, _) when type in [:def, :defp, :defmacro, :defmacro] do
     %DocumentSymbol{
-      name: String.replace("#{type} #{name |> unliteral() |> Macro.to_string()}", "\n", ""),
+      name: name("#{type} #{name |> unliteral() |> Macro.to_string()}"),
       children: [],
       kind: elixir_kind_to_lsp_kind(type),
       range: %Range{
@@ -232,4 +232,12 @@ defmodule NextLS.DocumentSymbol do
 
   defp elixir_kind_to_lsp_kind(kind) when kind in [:def, :defp, :defmacro, :defmacrop, :test, :describe],
     do: SymbolKind.function()
+
+  defp name(name) do
+    name
+    |> then(&Regex.replace(~r/\s+/, &1, " "))
+    |> then(&Regex.replace(~r/([\(\{\[])\s/, &1, "\\1"))
+    |> then(&Regex.replace(~r/\s([\(\{\[])/, &1, "\\1"))
+    |> then(&Regex.replace(~r/,\n/, &1, ", "))
+  end
 end

@@ -970,7 +970,6 @@ defmodule NextLS do
     {:noreply, assign(lsp, elixir_bin_path: elixir_bin_path)}
   end
 
-  # TODO: add some test cases for saving files in multiple workspaces
   def handle_notification(
         %TextDocumentDidSave{
           params: %GenLSP.Structures.DidSaveTextDocumentParams{text: text, text_document: %{uri: uri}}
@@ -979,20 +978,39 @@ defmodule NextLS do
       ) do
     refresh_refs =
       if lsp.assigns.ready do
-        for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
-          Process.exit(task, :kill)
-        end
-
         # dispatching to all workspaces
         dispatch(lsp.assigns.registry, :runtimes, fn entries ->
           for {pid, %{name: name, uri: wuri}} <- entries,
               String.starts_with?(uri, wuri),
               into: %{} do
+            project_file? =
+              Enum.any?(
+                Runtime.execute!(pid, do: Mix.Project.config())[:elixirc_paths],
+                &String.starts_with?(Path.join(wuri, &1), uri)
+              )
+
+            if project_file? do
+              for task <- Task.Supervisor.children(lsp.assigns.task_supervisor) do
+                Process.exit(task, :kill)
+              end
+            end
+
             token = Progress.token()
             Progress.start(lsp, token, "Compiling #{name}...")
 
             ref = make_ref()
-            Runtime.compile(pid, caller_ref: ref)
+
+            if project_file? do
+              Runtime.compile(pid, caller_ref: ref)
+            else
+              ast =
+                case Spitfire.parse(text) do
+                  {:ok, ast} -> ast
+                  {:error, ast, _} -> ast
+                end
+
+              Runtime.compile(pid, caller_ref: ref, quoted: ast, filename: URI.parse(uri).path)
+            end
 
             {ref, {token, "Compiled #{name}!"}}
           end
@@ -1018,6 +1036,7 @@ defmodule NextLS do
     end
 
     lsp = put_in(lsp.assigns.documents[uri], String.split(text, "\n"))
+
     {:noreply, lsp}
   end
 

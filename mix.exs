@@ -80,7 +80,7 @@ defmodule NextLS.MixProject do
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7.6", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev},
-      {:styler, "~> 1.0-rc.0", only: :dev}
+      {:styler, "~> 1.0-rc.0", only: [:dev, :test]}
     ]
   end
 

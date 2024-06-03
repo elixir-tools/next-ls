@@ -108,7 +108,7 @@ defmodule NextLS.Runtime do
     registry = Keyword.fetch!(opts, :registry)
     on_initialized = Keyword.fetch!(opts, :on_initialized)
     db = Keyword.fetch!(opts, :db)
-    mix_env = Keyword.fetch!(opts, :mix_env)
+    _mix_env = Keyword.fetch!(opts, :mix_env)
     mix_target = Keyword.fetch!(opts, :mix_target)
     elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
     mix_home = Keyword.get(opts, :mix_home)
@@ -146,7 +146,7 @@ defmodule NextLS.Runtime do
           [
             {~c"LSP", ~c"nextls"},
             {~c"NEXTLS_PARENT_PID", parent},
-            {~c"MIX_ENV", ~c"#{mix_env}"},
+            {~c"MIX_ENV", ~c"#{"test"}"},
             {~c"MIX_TARGET", ~c"#{mix_target}"},
             {~c"MIX_BUILD_ROOT", ~c".elixir-tools/_build"},
             {~c"ROOTDIR", false},

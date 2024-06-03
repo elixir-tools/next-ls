@@ -159,7 +159,7 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, func, arity}, env) when type in [:local_function, :local_macro] do
+  def trace({type, meta, func, arity}, env) when type in [:local_function, :local_macro, :imported_function] do
     parent = parent_pid()
 
     Process.send(
@@ -213,8 +213,6 @@ defmodule NextLSPrivate.Tracer do
   end
 
   # def trace(it, env) do
-  #   parent = parent_pid()
-  #   Process.send(parent, {{:tracer, :dbg}, {it, env.aliases}}, [])
   #   :ok
   # end
 
@@ -266,13 +264,13 @@ defmodule :_next_ls_private_formatter do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
-    if opts[:check_equivalent] do
-      IO.warn("--check-equivalent has been deprecated and has no effect")
-    end
+    # if opts[:check_equivalent] do
+    #   IO.warn("--check-equivalent has been deprecated and has no effect")
+    # end
 
-    if opts[:no_exit] && !opts[:check_formatted] do
-      Mix.raise("--no-exit can only be used together with --check-formatted")
-    end
+    # if opts[:no_exit] && !opts[:check_formatted] do
+    #   Mix.raise("--no-exit can only be used together with --check-formatted")
+    # end
 
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
@@ -1011,24 +1009,30 @@ defmodule :_next_ls_private_compiler_worker do
 
   @impl GenServer
   def handle_cast({:compile, opts}, state) do
-    # we essentially compile now and rollup any newer requests to compile, so that we aren't doing 5 compiles
-    # if we the user saves 5 times after saving one time
-    newer_opts = flush([])
-    from = Keyword.fetch!(opts, :from)
     caller_ref = Keyword.fetch!(opts, :caller_ref)
+    from = Keyword.fetch!(opts, :from)
 
-    for opt <- newer_opts do
-      Process.send(opt[:from], {:compiler_canceled, opt[:caller_ref]}, [])
-    end
+    result =
+      if Keyword.has_key?(opts, :quoted) do
+        :_next_ls_private_compiler.compile_file(opts[:quoted], opts[:filename])
+      else
+        # we essentially compile now and rollup any newer requests to compile, so that we aren't doing 5 compiles
+        # if we the user saves 5 times after saving one time
+        newer_opts = flush([])
 
-    File.cd!(state.working_dir)
+        for opt <- newer_opts do
+          Process.send(opt[:from], {:compiler_canceled, opt[:caller_ref]}, [])
+        end
 
-    if opts[:force] do
-      File.rm_rf!(Path.join(opts[:working_dir], ".elixir-tools/_build"))
-      File.rm_rf!(Path.join(opts[:working_dir], ".elixir-tools/_build2"))
-    end
+        File.cd!(state.working_dir)
 
-    result = :_next_ls_private_compiler.compile()
+        if opts[:force] do
+          File.rm_rf!(Path.join(opts[:working_dir], ".elixir-tools/_build"))
+          File.rm_rf!(Path.join(opts[:working_dir], ".elixir-tools/_build2"))
+        end
+
+        :_next_ls_private_compiler.compile()
+      end
 
     Process.send(from, {:compiler_result, caller_ref, result}, [])
     {:noreply, state}
@@ -1040,6 +1044,8 @@ defmodule :_next_ls_private_compiler do
 
   def start do
     Code.put_compiler_option(:parser_options, columns: true, token_metadata: true)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+    ExUnit.start()
 
     children = [
       :_next_ls_private_compiler_worker
@@ -1048,6 +1054,20 @@ defmodule :_next_ls_private_compiler do
     {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, name: :_next_ls_private_application_supervisor)
     Process.unlink(pid)
     {:ok, pid}
+  end
+
+  def compile_file(quoted, file) do
+    {result, all_errors_and_warnings} =
+      Code.with_diagnostics(fn ->
+        try do
+          Code.put_compiler_option(:ignore_module_conflict, true)
+          {:ok, Code.compile_quoted(quoted, file)}
+        rescue
+          err -> {:error, err}
+        end
+      end)
+
+    {:ok, all_errors_and_warnings}
   end
 
   @tracers Code.get_compiler_option(:tracers)

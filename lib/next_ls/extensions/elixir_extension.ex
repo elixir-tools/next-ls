@@ -37,11 +37,12 @@ defmodule NextLS.ElixirExtension do
       DiagnosticCache.put(state.cache, :elixir, d.file, %GenLSP.Structures.Diagnostic{
         severity: severity(d.severity),
         message: IO.iodata_to_binary(d.message),
-        source: d.compiler_name,
+        source: d[:compiler_name] || "elixir",
         range: range(d.position, Map.get(d, :span)),
         data: metadata(d)
       })
     end
+
 
     send(state.publisher, :publish)
 
