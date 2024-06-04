@@ -1057,7 +1057,7 @@ defmodule :_next_ls_private_compiler do
   end
 
   def compile_file(quoted, file) do
-    {result, all_errors_and_warnings} =
+    {_result, all_errors_and_warnings} =
       Code.with_diagnostics(fn ->
         try do
           Code.put_compiler_option(:ignore_module_conflict, true)
@@ -1585,7 +1585,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
                 env
               end
 
-            {res, state, env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, env)
             {[{type, res} | acc], state}
         end
 

@@ -43,7 +43,6 @@ defmodule NextLS.ElixirExtension do
       })
     end
 
-
     send(state.publisher, :publish)
 
     {:noreply, state}
