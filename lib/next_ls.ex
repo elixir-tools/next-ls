@@ -77,7 +77,8 @@ defmodule NextLS do
         :extensions,
         :registry,
         :bundle_base,
-        :mix_home
+        :mix_home,
+        :mix_archives
       ])
 
     GenLSP.start_link(__MODULE__, args, opts)
@@ -90,6 +91,7 @@ defmodule NextLS do
     dynamic_supervisor = Keyword.fetch!(args, :dynamic_supervisor)
     bundle_base = Keyword.get(args, :bundle_base, Path.expand("~/.cache/elixir-tools/nextls"))
     mix_home = Keyword.get(args, :mix_home)
+    mix_archives = Keyword.get(args, :mix_archives)
 
     registry = Keyword.fetch!(args, :registry)
 
@@ -104,6 +106,7 @@ defmodule NextLS do
        auto_update: Keyword.get(args, :auto_update, false),
        bundle_base: bundle_base,
        mix_home: mix_home,
+       mix_archives: mix_archives,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -143,6 +146,11 @@ defmodule NextLS do
     mix_home =
       if init_opts.experimental.completions.enable do
         BundledElixir.mix_home(lsp.assigns.bundle_base)
+      end
+
+    mix_archives =
+      if init_opts.experimental.completions.enable do
+        BundledElixir.mix_archives(lsp.assigns.bundle_base)
       end
 
     {:reply,
@@ -187,6 +195,7 @@ defmodule NextLS do
      },
      assign(lsp,
        mix_home: mix_home,
+       mix_archives: mix_archives,
        root_uri: root_uri,
        workspace_folders: workspace_folders,
        client_capabilities: caps,
@@ -938,6 +947,7 @@ defmodule NextLS do
              mix_env: lsp.assigns.init_opts.mix_env,
              mix_target: lsp.assigns.init_opts.mix_target,
              mix_home: lsp.assigns.mix_home,
+             mix_archives: lsp.assigns.mix_archives,
              elixir_bin_path: elixir_bin_path,
              on_initialized: fn status ->
                if status == :ready do
@@ -1061,6 +1071,7 @@ defmodule NextLS do
               mix_env: lsp.assigns.init_opts.mix_env,
               mix_target: lsp.assigns.init_opts.mix_target,
               mix_home: lsp.assigns.mix_home,
+              mix_archives: lsp.assigns.mix_archives,
               on_initialized: fn status ->
                 if status == :ready do
                   Progress.stop(lsp, token, "NextLS runtime for folder #{name} has initialized!")

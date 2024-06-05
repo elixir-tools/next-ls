@@ -74,6 +74,7 @@ defmodule NextLS.AutocompleteTest do
          mix_env: "dev",
          mix_target: "host",
          mix_home: Path.join(cwd, ".mix"),
+         mix_archives: Path.join(cwd, [".mix", "archives"]),
          registry: __MODULE__.Registry}
       )
 

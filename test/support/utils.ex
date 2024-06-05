@@ -46,6 +46,7 @@ defmodule NextLS.Support.Utils do
 
     bundle_base = Path.join(tmp_dir, ".bundled")
     mixhome = Path.join(tmp_dir, ".mix")
+    mixarchives = Path.join(mixhome, "archives")
     File.mkdir_p!(bundle_base)
 
     tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
@@ -73,7 +74,8 @@ defmodule NextLS.Support.Utils do
         extensions: extensions,
         cache: cache,
         bundle_base: bundle_base,
-        mix_home: mixhome
+        mix_home: mixhome,
+        mix_archives: mixarchives
       )
 
     Process.link(server.lsp)
