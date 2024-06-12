@@ -26,6 +26,7 @@ defmodule NextLS do
   alias GenLSP.Requests.TextDocumentCompletion
   alias GenLSP.Requests.TextDocumentDefinition
   alias GenLSP.Requests.TextDocumentDocumentSymbol
+  alias GenLSP.Requests.TextDocumentFoldingRange
   alias GenLSP.Requests.TextDocumentFormatting
   alias GenLSP.Requests.TextDocumentHover
   alias GenLSP.Requests.TextDocumentReferences
@@ -171,6 +172,7 @@ defmodule NextLS do
              "alias-refactor"
            ]
          },
+         folding_range_provider: true,
          hover_provider: true,
          workspace_symbol_provider: true,
          document_symbol_provider: true,
@@ -516,6 +518,24 @@ defmodule NextLS do
       end)
 
     {:reply, symbols, lsp}
+  end
+
+  def handle_request(%TextDocumentFoldingRange{params: %{text_document: %{uri: uri}}}, lsp) do
+    document = lsp.assigns.documents[uri]
+
+    resp =
+      if is_list(document) do
+        {:reply, NextLS.FoldingRange.new(document), lsp}
+      else
+        GenLSP.warning(
+          lsp,
+          "[Next LS] The file #{uri} was not found in the server's process state. Something must have gone wrong when opening, changing, or saving the file."
+        )
+
+        {:reply, nil, lsp}
+      end
+
+    resp
   end
 
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
