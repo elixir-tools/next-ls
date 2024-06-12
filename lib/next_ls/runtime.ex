@@ -112,6 +112,7 @@ defmodule NextLS.Runtime do
     mix_target = Keyword.fetch!(opts, :mix_target)
     elixir_bin_path = Keyword.get(opts, :elixir_bin_path)
     mix_home = Keyword.get(opts, :mix_home)
+    mix_archives = Keyword.get(opts, :mix_archives)
 
     elixir_exe = Path.join(elixir_bin_path, "elixir")
 
@@ -157,6 +158,11 @@ defmodule NextLS.Runtime do
           ] ++
             if mix_home do
               [{~c"MIX_HOME", ~c"#{mix_home}"}]
+            else
+              []
+            end ++
+            if mix_archives do
+              [{~c"MIX_ARCHIVES", ~c"#{mix_archives}"}]
             else
               []
             end

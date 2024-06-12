@@ -24,8 +24,13 @@ defmodule NextLS.Runtime.BundledElixir do
     Path.join(path(base), ".mix")
   end
 
+  def mix_archives(base) do
+    Path.join(mix_home(base), "archives")
+  end
+
   def install(base, logger) do
     mixhome = mix_home(base)
+    mixarchives = mix_archives(base)
     File.mkdir_p!(mixhome)
     binpath = binpath(base)
 
@@ -45,12 +50,10 @@ defmodule NextLS.Runtime.BundledElixir do
 
     new_path = "#{binpath}:#{System.get_env("PATH")}"
     mixbin = mixpath(base)
+    env = [{"PATH", new_path}, {"MIX_HOME", mixhome}, {"MIX_ARCHIVES", mixarchives}]
 
-    {_, 0} =
-      System.cmd(mixbin, ["local.rebar", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
-
-    {_, 0} =
-      System.cmd(mixbin, ["local.hex", "--force"], env: [{"PATH", new_path}, {"MIX_HOME", mixhome}])
+    {_, 0} = System.cmd(mixbin, ["local.rebar", "--force"], env: env)
+    {_, 0} = System.cmd(mixbin, ["local.hex", "--force"], env: env)
 
     :ok
   rescue

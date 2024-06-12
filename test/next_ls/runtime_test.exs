@@ -66,6 +66,7 @@ defmodule NextLs.RuntimeTest do
            mix_env: "dev",
            mix_target: "host",
            mix_home: Path.join(cwd, ".mix"),
+           mix_archives: Path.join(cwd, [".mix", "archives"]),
            registry: RuntimeTest.Registry}
         )
 
@@ -97,6 +98,7 @@ defmodule NextLs.RuntimeTest do
            mix_env: "dev",
            mix_target: "host",
            mix_home: Path.join(cwd, ".mix"),
+           mix_archives: Path.join(cwd, [".mix", "archives"]),
            registry: RuntimeTest.Registry}
         )
 
@@ -129,6 +131,7 @@ defmodule NextLs.RuntimeTest do
            mix_env: "dev",
            mix_target: "host",
            mix_home: Path.join(cwd, ".mix"),
+           mix_archives: Path.join(cwd, [".mix", "archives"]),
            registry: RuntimeTest.Registry}
         )
 
@@ -194,6 +197,7 @@ defmodule NextLs.RuntimeTest do
            mix_env: "dev",
            mix_target: "host",
            mix_home: Path.join(cwd, ".mix"),
+           mix_archives: Path.join(cwd, [".mix", "archives"]),
            registry: RuntimeTest.Registry}
         )
 
