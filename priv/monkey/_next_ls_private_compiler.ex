@@ -1565,7 +1565,7 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
                 env
               end
 
-            {res, state, env} = expand(block, state, env)
+            {res, state, _env} = expand(block, state, env)
             {[{type, res} | acc], state}
         end
 
