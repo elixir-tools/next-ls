@@ -43,6 +43,15 @@ defmodule NextLS do
     mix_home = Keyword.get(args, :mix_home)
     mix_archives = Keyword.get(args, :mix_archives)
 
+    is_1_17 =
+      with {version, 0} <- System.cmd("elixir", ["--short-version"]),
+           {:ok, version} <- version |> String.trim() |> Version.parse() do
+        Version.compare(version, "1.17.0") in [:gt, :eq]
+      else
+        _ ->
+          false
+      end
+
     registry = Keyword.fetch!(args, :registry)
 
     extensions =
@@ -57,6 +66,7 @@ defmodule NextLS do
        bundle_base: bundle_base,
        mix_home: mix_home,
        mix_archives: mix_archives,
+       is_1_17: is_1_17,
        exit_code: 1,
        documents: %{},
        refresh_refs: %{},
@@ -93,14 +103,17 @@ defmodule NextLS do
 
     {:ok, init_opts} = __MODULE__.InitOpts.validate(init_opts)
 
-    mix_home =
-      if init_opts.experimental.completions.enable do
-        BundledElixir.mix_home(lsp.assigns.bundle_base)
-      end
-
-    mix_archives =
-      if init_opts.experimental.completions.enable do
-        BundledElixir.mix_archives(lsp.assigns.bundle_base)
+    # if we are on 1.17, we will not bundle
+    {mix_home, mix_archives} =
+      if lsp.assigns.is_1_17 do
+        {nil, nil}
+      else
+        # if we are not on 1.17, we bundle if completions are enabled
+        if init_opts.experimental.completions.enable do
+          {BundledElixir.mix_home(lsp.assigns.bundle_base), BundledElixir.mix_archives(lsp.assigns.bundle_base)}
+        else
+          {nil, nil}
+        end
       end
 
     {:reply,
@@ -865,6 +878,9 @@ defmodule NextLS do
 
     elixir_bin_path =
       cond do
+        lsp.assigns.is_1_17 ->
+          "elixir" |> System.find_executable() |> Path.dirname()
+
         lsp.assigns.init_opts.elixir_bin_path != nil ->
           lsp.assigns.init_opts.elixir_bin_path
 
