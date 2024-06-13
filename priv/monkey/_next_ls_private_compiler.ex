@@ -1363,6 +1363,9 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
         :error ->
           expand_local(meta, fun, args, state, env)
+
+        {:error, _} ->
+          expand_local(meta, fun, args, state, env)
       end
     end
 
