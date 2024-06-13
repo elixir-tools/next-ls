@@ -1,6 +1,9 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    zigpkgs = {
+      url = "github:NixOS/nixpkgs/592a779f3c5e7bce1a02027abe11b7996816223f";
+    };
   };
 
   nixConfig = {
@@ -11,6 +14,7 @@
   outputs = {
     self,
     nixpkgs,
+    zigpkgs,
   }: let
     inherit (nixpkgs) lib;
 
@@ -20,13 +24,14 @@
     forAllSystems = f:
       lib.genAttrs systems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        beamPackages = pkgs.beam_minimal.packages.erlang_26;
+        zpkgs = zigpkgs.legacyPackages.${system};
+        beamPackages = pkgs.beam_minimal.packages.erlang_27;
         otp = (pkgs.beam.packagesWith beamPackages.erlang).extend (final: prev: {
           elixir_1_17 = prev.elixir_1_16.override {
-            rev = "e3b6a91b173f7e836401a6a75c3906c26bd7fd39";
+            rev = "v1.17.0";
             # You can discover this using Trust On First Use by filling in `lib.fakeHash`
-            sha256 = "sha256-RK0aMW7pz7kQtK9XXN1wVCBxKOJKdQD7I/53V8rWD04=";
-            version = "1.17.0-dev";
+            sha256 = "sha256-RBylCfD+aCsvCqWUIvqXi3izNqqQoNfQNnQiZxz0Igg=";
+            version = "1.17.0";
           };
 
           elixir = final.elixir_1_17;
@@ -36,7 +41,7 @@
         });
         elixir = otp.elixir;
       in
-        f {inherit system pkgs beamPackages elixir;});
+        f {inherit system pkgs zpkgs beamPackages elixir;});
 
     systems = [
       "aarch64-darwin"
@@ -50,6 +55,7 @@
       system,
       beamPackages,
       elixir,
+      ...
     }: {
       default = lib.makeOverridable ({
         localBuild,
@@ -92,6 +98,7 @@
 
     devShells = forAllSystems ({
       pkgs,
+      zpkgs,
       beamPackages,
       elixir,
       ...
@@ -117,7 +124,7 @@
           pkgs.openssl
           pkgs.starship
           pkgs.xz
-          pkgs.zig_0_11
+          zpkgs.zig_0_11
           pkgs.zsh
         ];
       };

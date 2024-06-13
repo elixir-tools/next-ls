@@ -313,7 +313,7 @@ defmodule NextLS.HoverTest do
                     "contents" => %{
                       "kind" => "markdown",
                       "value" =>
-                        "## :timer.sleep/1\n\n`sleep/1`\n\nSuspends the process" <>
+                        "## :timer.sleep/1\n\n`sleep(Time)`\n\nSuspends the process" <>
                           _
                     },
                     "range" => %{
