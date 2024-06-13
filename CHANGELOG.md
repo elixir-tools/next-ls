@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.23.0](https://github.com/elixir-tools/next-ls/compare/v0.22.8...v0.23.0) (2024-06-13)
+
+
+### Features
+
+* allow using system elixir if 1.17 ([#518](https://github.com/elixir-tools/next-ls/issues/518)) ([5e6c586](https://github.com/elixir-tools/next-ls/commit/5e6c586a017552d6c3954ad71ee8500c9bd24e2f))
+* upgrade to 1.17 and OTP 27 ([#516](https://github.com/elixir-tools/next-ls/issues/516)) ([4fe9f83](https://github.com/elixir-tools/next-ls/commit/4fe9f835ab39552ae1c145613226d0ee4cb73ce0))
+
+
+### Bug Fixes
+
+* compiler warning in private compiler ([c34bfe4](https://github.com/elixir-tools/next-ls/commit/c34bfe4003ebb91d8c93614d6418dd672d211a2a))
+* **nix:** update dependency hash ([#511](https://github.com/elixir-tools/next-ls/issues/511)) ([a483303](https://github.com/elixir-tools/next-ls/commit/a48330303cc2c37ddb63ebeec61cc20e41ffde92))
+* **runtime:** use correct archive locations (e.g. Hex) for bundled Elixir ([#510](https://github.com/elixir-tools/next-ls/issues/510)) ([2e9c45f](https://github.com/elixir-tools/next-ls/commit/2e9c45fd35898b49f1375d72b6f6860147c3eeca))
+
 ## [0.22.8](https://github.com/elixir-tools/next-ls/compare/v0.22.7...v0.22.8) (2024-05-31)
 
 
