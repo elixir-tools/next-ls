@@ -68,6 +68,7 @@ jobs:
   nix-build:
     name: build nix flakes and push to cachix
     needs: [release]
+    if: ${{ needs.release.outputs.release_created }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-13, macos-14]
