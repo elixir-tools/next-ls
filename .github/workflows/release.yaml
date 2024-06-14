@@ -30,25 +30,11 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: google-github-actions/release-please-action@v4
         id: release
-        with:
-          release-type: elixir
-          package-name: next_ls
-          bump-minor-pre-major: true
-          extra-files: |
-            flake.nix
-  draft:
-    needs: release
-    if: ${{ needs.release.outputs.release_created }}
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=true --repo='elixir-tools/next-ls'
 
   build:
-    needs: [release, draft]
+    needs: [release]
     runs-on: macos-14
     if: ${{ needs.release.outputs.release_created }}
     env:
@@ -81,7 +67,7 @@ jobs:
 
   nix-build:
     name: build nix flakes and push to cachix
-    needs: [release, draft]
+    needs: [release]
     strategy:
       matrix:
         os: [ubuntu-latest, macos-13, macos-14]

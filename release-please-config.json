@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "package-name": "next_ls",
+      "release-type": "elixir",
+      "bump-minor-pre-major": true,
+      "include-component-in-tag": false,
+      "draft": true,
+      "extra-files": [
+        "flake.nix"
+      ]
+    }
+  }
+}
