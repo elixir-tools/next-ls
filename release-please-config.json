@@ -8,7 +8,7 @@
       "include-component-in-tag": false,
       "draft": true,
       "extra-files": [
-        "flake.nix"
+        "package.nix"
       ]
     }
   }
