@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/elixir-tools/next-ls/compare/v0.23.0...v0.23.1) (2024-07-03)
+
+
+### Bug Fixes
+
+* **definition:** more robust cross ws folder definitions ([#526](https://github.com/elixir-tools/next-ls/issues/526)) ([ecea34f](https://github.com/elixir-tools/next-ls/commit/ecea34ff76116659f3d0c8e70d3f90fdd3898d0a))
+
 ## [0.23.0](https://github.com/elixir-tools/next-ls/compare/v0.22.8...v0.23.0) (2024-06-13)
 
 
