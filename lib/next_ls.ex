@@ -241,7 +241,7 @@ defmodule NextLS do
         end
       end)
 
-    {:reply, List.first(result), lsp}
+    {:reply, List.first(Enum.reject(result, &is_nil/1)), lsp}
   end
 
   def handle_request(%TextDocumentDocumentSymbol{params: %{text_document: %{uri: uri}}}, lsp) do
