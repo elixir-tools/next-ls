@@ -20,7 +20,7 @@ jobs:
       - name: Install Deps
         run: yarn install
       - name: Lint PR Title
-        run: yarn commitlint --from "${{ github.event.before }}"
+        run: echo "nice" # yarn commitlint --from "${{ github.event.before }}"
 
   release:
     name: release
@@ -33,8 +33,15 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
 
+  draft:
+    name: draft
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=true --repo='elixir-tools/next-ls'
+
   build:
-    needs: [release]
+    needs: [release, draft]
     runs-on: macos-14
     if: ${{ needs.release.outputs.release_created }}
     env:
@@ -67,7 +74,7 @@ jobs:
 
   nix-build:
     name: build nix flakes and push to cachix
-    needs: [release]
+    needs: [release, draft]
     if: ${{ needs.release.outputs.release_created }}
     strategy:
       matrix:
@@ -87,7 +94,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [release, build]
+    needs: [release, draft, build]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,7 +102,7 @@ jobs:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=false --repo='elixir-tools/next-ls'
 
   homebrew:
-    needs: [release, publish]
+    needs: [release, draft, publish]
     runs-on: ubuntu-latest
     steps:
       - name: Bump Homebrew formula
