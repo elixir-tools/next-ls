@@ -18,28 +18,18 @@
   }: let
     inherit (nixpkgs) lib;
 
-    version = "0.23.0"; # x-release-please-version
-
     # Helper to provide system-specific attributes
     forAllSystems = f:
       lib.genAttrs systems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
         zpkgs = zigpkgs.legacyPackages.${system};
-        beamPackages = pkgs.beam_minimal.packages.erlang_27;
-        otp = (pkgs.beam.packagesWith beamPackages.erlang).extend (final: prev: {
-          elixir_1_17 = prev.elixir_1_16.override {
-            rev = "v1.17.0";
-            # You can discover this using Trust On First Use by filling in `lib.fakeHash`
-            sha256 = "sha256-RBylCfD+aCsvCqWUIvqXi3izNqqQoNfQNnQiZxz0Igg=";
-            version = "1.17.0";
-          };
-
+        beamPackages = pkgs.beam_minimal.packages.erlang_27.extend (final: prev: {
           elixir = final.elixir_1_17;
           # This will get upstreamed into nix-beam-flakes at some point
           rebar = prev.rebar.overrideAttrs (_old: {doCheck = false;});
           rebar3 = prev.rebar3.overrideAttrs (_old: {doCheck = false;});
         });
-        elixir = otp.elixir;
+        elixir = beamPackages.elixir_1_17;
       in
         f {inherit system pkgs zpkgs beamPackages elixir;});
 
@@ -57,43 +47,7 @@
       elixir,
       ...
     }: {
-      default = lib.makeOverridable ({
-        localBuild,
-        beamPackages,
-        elixir,
-      }:
-        beamPackages.mixRelease {
-          pname = "next-ls";
-          src = self.outPath;
-          mixEnv = "prod";
-          removeCookie = false;
-          inherit version elixir;
-          inherit (beamPackages) erlang;
-
-          mixFodDeps = beamPackages.fetchMixDeps {
-            src = self.outPath;
-            inherit version elixir;
-            pname = "next-ls-deps";
-            hash = "sha256-4Rt5Q0fX+fbncvxyXdpIhgEvn9VYX/QDxDdnbanT21Q=";
-            mixEnv = "prod";
-          };
-
-          installPhase = ''
-            mix release --no-deps-check --path $out plain
-            echo "$out/bin/plain eval \"System.no_halt(true); Application.ensure_all_started(:next_ls)\" \"\$@\"" > "$out/bin/nextls"
-            chmod +x "$out/bin/nextls"
-          '';
-
-          meta = with lib; {
-            license = licenses.mit;
-            homepage = "https://www.elixir-tools.dev/next-ls/";
-            description = "The language server for Elixir that just works";
-            mainProgram = "nextls";
-          };
-        }) {
-        inherit beamPackages elixir;
-        localBuild = true;
-      };
+      default = pkgs.callPackage ./package.nix { inherit beamPackages elixir; };
     });
 
     devShells = forAllSystems ({
