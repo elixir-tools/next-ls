@@ -23,12 +23,7 @@
       lib.genAttrs systems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
         zpkgs = zigpkgs.legacyPackages.${system};
-        beamPackages = pkgs.beam_minimal.packages.erlang_27.extend (final: prev: {
-          elixir = final.elixir_1_17;
-          # This will get upstreamed into nix-beam-flakes at some point
-          rebar = prev.rebar.overrideAttrs (_old: {doCheck = false;});
-          rebar3 = prev.rebar3.overrideAttrs (_old: {doCheck = false;});
-        });
+        beamPackages = pkgs.beam_minimal.packages.erlang_27;
         elixir = beamPackages.elixir_1_17;
       in
         f {inherit system pkgs zpkgs beamPackages elixir;});
