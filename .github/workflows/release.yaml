@@ -37,6 +37,7 @@ jobs:
     name: draft
     needs: release
     runs-on: ubuntu-latest
+    if: ${{ needs.release.outputs.release_created }}
     steps:
       - run: gh release edit ${{ needs.release.outputs.tag_name }} --draft=true --repo='elixir-tools/next-ls'
 
