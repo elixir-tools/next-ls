@@ -2,7 +2,6 @@
 
 ## [0.23.2](https://github.com/elixir-tools/next-ls/compare/v0.23.1...v0.23.2) (2024-08-22)
 
-
 ### Bug Fixes
 
 * set refresh refs to empty map if server not ready ([#539](https://github.com/elixir-tools/next-ls/issues/539)) ([624588a](https://github.com/elixir-tools/next-ls/commit/624588ada43b9291452ae7d02adaddad3f4848fb)), closes [#535](https://github.com/elixir-tools/next-ls/issues/535)
