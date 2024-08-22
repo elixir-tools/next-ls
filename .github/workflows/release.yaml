@@ -36,6 +36,8 @@ jobs:
   draft:
     name: draft
     needs: release
+    env:
+      GH_TOKEN: ${{ github.token }}
     runs-on: ubuntu-latest
     if: ${{ needs.release.outputs.release_created }}
     steps:
