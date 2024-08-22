@@ -973,6 +973,8 @@ defmodule NextLS do
             {ref, {token, "Compiled #{name}!"}}
           end
         end)
+      else
+        Map.new()
       end
 
     lsp =
