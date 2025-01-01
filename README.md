@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Next LS is merging with Elixir LS and Lexical! Read more about it at [www.elixir-tools.dev.](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-7/)
+
 # Next LS
 
 [![Documentation](https://img.shields.io/badge/Next_LS-Documentation-gold)](https://www.elixir-tools.dev/docs/next-ls/quickstart)
@@ -20,6 +23,7 @@ Please see the [docs](https://www.elixir-tools.dev/docs/next-ls/quickstart) to g
 - [The elixir-tools Update Vol. 4](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-4/)
 - [The 2023 elixir-tools Update (Vol. 5) ](https://www.elixir-tools.dev/news/the-2023-elixir-tools-update-vol-5/)
 - [The elixir-tools Update Vol. 6](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-6/)
+- [The elixir-tools Update Vol. 7 & The Great Merge](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-7/)
 
 ## Sponsors
 
