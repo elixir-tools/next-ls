@@ -19,7 +19,14 @@ defmodule NextLSPrivate.DepTracer do
 
     {:ok, {_, [{~c"Dbgi", bin}]}} = :beam_lib.chunks(bytecode, [~c"Dbgi"])
 
-    {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} = :erlang.binary_to_term(bin)
+    {line, struct} =
+      case :erlang.binary_to_term(bin) do
+        {:debug_info_v1, _, {_, %{anno: anno, struct: struct}, _}} ->
+          {:erl_anno.line(anno), struct}
+
+        {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} ->
+          {line, struct}
+      end
 
     Process.send(
       parent,
@@ -193,8 +200,14 @@ defmodule NextLSPrivate.Tracer do
 
     {:ok, {_, [{~c"Dbgi", bin}]}} = :beam_lib.chunks(bytecode, [~c"Dbgi"])
 
-    {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} = :erlang.binary_to_term(bin)
+    {line, struct} =
+      case :erlang.binary_to_term(bin) do
+        {:debug_info_v1, _, {_, %{anno: anno, struct: struct}, _}} ->
+          {:erl_anno.line(anno), struct}
 
+        {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} ->
+          {line, struct}
+      end
     Process.send(
       parent,
       {:tracer,
@@ -1360,9 +1373,6 @@ if Version.match?(System.version(), ">= 1.17.0-dev") do
 
         {:function, module, fun} ->
           expand_remote(meta, module, fun, args, state, env)
-
-        :error ->
-          expand_local(meta, fun, args, state, env)
 
         {:error, _} ->
           expand_local(meta, fun, args, state, env)
