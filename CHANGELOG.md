@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.3](https://github.com/elixir-tools/next-ls/compare/v0.23.2...v0.23.3) (2025-01-12)
+
+
+### Bug Fixes
+
+* correctly index imported functions on 1.18 ([9b992b0](https://github.com/elixir-tools/next-ls/commit/9b992b07732ca4bdaf2c7bf08ec706585937ad8b))
+* extract module line from debug info on 1.18 ([#559](https://github.com/elixir-tools/next-ls/issues/559)) ([9b992b0](https://github.com/elixir-tools/next-ls/commit/9b992b07732ca4bdaf2c7bf08ec706585937ad8b)), closes [#558](https://github.com/elixir-tools/next-ls/issues/558)
+
 ## [0.23.2](https://github.com/elixir-tools/next-ls/compare/v0.23.1...v0.23.2) (2024-08-22)
 
 ### Bug Fixes
