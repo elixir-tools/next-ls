@@ -137,7 +137,7 @@ defmodule NextLSPrivate.Tracer do
     parent = parent_pid()
 
     condition =
-      if Version.match?(System.version(), ">= 1.17.0-dev") do
+      if Version.match?(System.version(), ">= 1.17.0") do
         is_nil(meta[:column])
       else
         type == :remote_macro && meta[:closing][:line] != meta[:line]
