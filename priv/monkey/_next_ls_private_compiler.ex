@@ -132,7 +132,8 @@ defmodule NextLSPrivate.Tracer do
     :ok
   end
 
-  def trace({type, meta, module, func, arity}, env) when type in [:remote_function, :remote_macro, :imported_macro] do
+  def trace({type, meta, module, func, arity}, env)
+      when type in [:remote_function, :remote_macro, :imported_macro, :imported_function] do
     parent = parent_pid()
 
     condition =
@@ -208,6 +209,7 @@ defmodule NextLSPrivate.Tracer do
         {:debug_info_v1, _, {_, %{line: line, struct: struct}, _}} ->
           {line, struct}
       end
+
     Process.send(
       parent,
       {:tracer,
