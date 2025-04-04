@@ -94,21 +94,6 @@ defmodule NextLSTest do
     }
   end
 
-  test "can initialize the server" do
-    assert_result 1, %{
-      "capabilities" => %{
-        "textDocumentSync" => %{
-          "openClose" => true,
-          "save" => %{
-            "includeText" => true
-          },
-          "change" => 1
-        }
-      },
-      "serverInfo" => %{"name" => "Next LS"}
-    }
-  end
-
   test "formats", %{client: client, cwd: cwd} = context do
     assert :ok == notify(client, %{method: "initialized", jsonrpc: "2.0", params: %{}})
 

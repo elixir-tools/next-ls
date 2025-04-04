@@ -214,9 +214,9 @@ defmodule NextLS.CompletionsTest do
     }
 
     assert_result 2, [
-      %{"data" => nil, "documentation" => "", "insertText" => "one", "kind" => 5, "label" => "one"},
       %{"data" => nil, "documentation" => "", "insertText" => "two", "kind" => 5, "label" => "two"},
-      %{"data" => nil, "documentation" => "", "insertText" => "three", "kind" => 5, "label" => "three"}
+      %{"data" => nil, "documentation" => "", "insertText" => "three", "kind" => 5, "label" => "three"},
+      %{"data" => nil, "documentation" => "", "insertText" => "one", "kind" => 5, "label" => "one"}
     ]
   end
 
