@@ -4,7 +4,7 @@ defmodule NextLS.Runtime.BundledElixir do
 
   The `@version` attribute corresponds to the last digit in the file name of the zip archive, they need to be incremented in lockstep.
   """
-  @version 1
+  @version 3
   @base "~/.cache/elixir-tools/nextls"
   @dir "elixir/1-17-#{@version}"
 
@@ -52,8 +52,8 @@ defmodule NextLS.Runtime.BundledElixir do
     mixbin = mixpath(base)
     env = [{"PATH", new_path}, {"MIX_HOME", mixhome}, {"MIX_ARCHIVES", mixarchives}]
 
-    {_, 0} = System.cmd(mixbin, ["local.rebar", "--force"], env: env)
-    {_, 0} = System.cmd(mixbin, ["local.hex", "--force"], env: env)
+    {_, 0} = System.cmd(mixbin, ["local.rebar", "--force"], env: env, stderr_to_stdout: true)
+    {_, 0} = System.cmd(mixbin, ["local.hex", "--force"], env: env, stderr_to_stdout: true)
 
     :ok
   rescue
