@@ -321,37 +321,41 @@ defmodule NextLS.Runtime do
     {:reply, {:error, :not_ready}, state}
   end
 
-  def handle_call({:call, {m, f, a}, ctx}, _from, %{node: node} = state) do
-    token = OpenTelemetry.Ctx.attach(ctx)
+  def handle_call({:call, {m, f, a}, _ctx}, from, %{node: node} = state) do
+    Task.start_link(fn ->
+      reply = :rpc.call(node, m, f, a)
+      GenServer.reply(from, {:ok, reply})
+    end)
 
-    try do
-      Tracer.with_span :"runtime.call", %{attributes: %{mfa: inspect({m, f, a})}} do
-        reply = :rpc.call(node, m, f, a)
-        {:reply, {:ok, reply}, state}
-      end
-    after
-      OpenTelemetry.Ctx.detach(token)
-    end
+    {:noreply, state}
   end
 
-  def handle_call({:expand, ast, file}, _from, %{node: node} = state) do
-    NextLS.Logger.info(state.logger, "expanding on the runtime node")
-    reply = :rpc.call(node, :_next_ls_private_spitfire_env, :expand, [ast, file])
-    {:reply, {:ok, reply}, state}
+  def handle_call({:expand, ast, file}, from, %{node: node} = state) do
+    Task.start_link(fn ->
+      NextLS.Logger.info(state.logger, "expanding on the runtime node")
+      reply = :rpc.call(node, :_next_ls_private_spitfire_env, :expand, [ast, file])
+      GenServer.reply(from, {:ok, reply})
+    end)
+
+    {:noreply, state}
   end
 
-  def handle_call({:compile, opts}, _from, %{node: node} = state) do
+  def handle_call({:compile, opts}, from, %{node: node} = state) do
     opts =
       opts
       |> Keyword.put_new(:working_dir, state.working_dir)
       |> Keyword.put_new(:registry, state.registry)
       |> Keyword.put(:from, self())
 
-    with {:badrpc, error} <- :rpc.call(node, :_next_ls_private_compiler_worker, :enqueue_compiler, [opts]) do
-      NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
-    end
+    Task.start_link(fn ->
+      with {:badrpc, error} <- :rpc.call(node, :_next_ls_private_compiler_worker, :enqueue_compiler, [opts]) do
+        NextLS.Logger.error(state.logger, "Bad RPC call to node #{node}: #{inspect(error)}")
+      end
 
-    {:reply, :ok, state}
+      GenServer.reply(from, :ok)
+    end)
+
+    {:noreply, state}
   end
 
   @impl GenServer

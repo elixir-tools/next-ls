@@ -50,6 +50,12 @@ defmodule NextLS.PipeTest do
 
     did_open(context.client, context.foo_path, context.foo)
     did_open(context.client, context.bar_path, context.bar)
+
+    # the test runs so fast that it actually runs the executeCommand request
+    # before the notifications are processed
+    # could potentially add test affordances so that the server will send the test
+    # a message when the notification has finished processing
+    Process.sleep(50)
     context
   end
 

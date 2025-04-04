@@ -1,7 +1,8 @@
 defmodule NextLS.MixProject do
   use Mix.Project
 
-  @version "0.23.3" # x-release-please-version
+  # x-release-please-version
+  @version "0.23.3"
 
   def project do
     [
@@ -63,8 +64,9 @@ defmodule NextLS.MixProject do
   defp deps do
     [
       {:exqlite, "~> 0.13.14"},
-      {:gen_lsp, "~> 0.10"},
+      {:gen_lsp, "~> 0.11"},
       # {:gen_lsp, path: "../gen_lsp"},
+      # {:gen_lsp, github: "elixir-tools/gen_lsp", branch: "async"},
       {:req, "~> 0.3"},
       {:schematic, "~> 0.2"},
       {:spitfire, github: "elixir-tools/spitfire"},
