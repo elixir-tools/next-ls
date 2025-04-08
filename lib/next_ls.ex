@@ -488,71 +488,82 @@ defmodule NextLS do
   end
 
   def handle_request(%TextDocumentFormatting{params: %{text_document: %{uri: uri}}}, lsp) do
+    # NextLS.Logger.log(assigns(lsp).logger, "formatting start: #{System.system_time()}")
     document = assigns(lsp).documents[uri]
 
     if is_list(document) do
-      dispatch_to_workspace(assigns(lsp).registry, uri, fn runtime, %{uri: wuri} ->
-        with {:ok, {formatter, _}} <-
-               Runtime.call(
-                 runtime,
-                 {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
-               ),
-             {:ok, response} when is_binary(response) or is_list(response) <-
-               Runtime.call(
-                 runtime,
-                 {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
-               ) do
-          {:reply,
-           [
-             %TextEdit{
-               new_text: IO.iodata_to_binary(response),
-               range: %Range{
-                 start: %Position{line: 0, character: 0},
-                 end: %Position{
-                   line: length(document),
-                   character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+      result =
+        dispatch_to_workspace(assigns(lsp).registry, uri, fn runtime, %{uri: wuri} ->
+          # NextLS.Logger.log(assigns(lsp).logger, "dispatched to workspace: #{System.system_time()}")
+
+          with {:ok, {formatter, _}} <-
+                 Runtime.call(
+                   runtime,
+                   {:_next_ls_private_formatter, :formatter_for_file, [URI.parse(uri).path]}
+                 ),
+               # NextLS.Logger.log(assigns(lsp).logger, "got formatter: #{System.system_time()}"),
+               {:ok, response} when is_binary(response) or is_list(response) <-
+                 Runtime.call(
+                   runtime,
+                   {Kernel, :apply, [formatter, [Enum.join(document, "\n")]]}
+                 ) do
+            # NextLS.Logger.log(assigns(lsp).logger, "finished formatting: #{System.system_time()}")
+
+            {:reply,
+             [
+               %TextEdit{
+                 new_text: IO.iodata_to_binary(response),
+                 range: %Range{
+                   start: %Position{line: 0, character: 0},
+                   end: %Position{
+                     line: length(document),
+                     character: document |> List.last() |> String.length() |> Kernel.-(1) |> max(0)
+                   }
                  }
                }
-             }
-           ], lsp}
-        else
-          {:error, :not_ready} ->
-            GenLSP.notify(lsp, %WindowShowMessage{
-              params: %ShowMessageParams{
-                type: MessageType.info(),
-                message: "The NextLS runtime is still initializing!"
-              }
-            })
+             ], lsp}
+          else
+            {:error, :not_ready} ->
+              GenLSP.notify(lsp, %WindowShowMessage{
+                params: %ShowMessageParams{
+                  type: MessageType.info(),
+                  message: "The NextLS runtime is still initializing!"
+                }
+              })
 
-            {:reply, nil, lsp}
+              {:reply, nil, lsp}
 
-          e ->
-            case e do
-              {:ok, {:badrpc, {:EXIT, {%{description: description, file: file}, _stacktrace}}}} ->
-                file = Path.relative_to(file, URI.parse(wuri).path)
+            e ->
+              case e do
+                {:ok, {:badrpc, {:EXIT, {%{description: description, file: file}, _stacktrace}}}} ->
+                  file = Path.relative_to(file, URI.parse(wuri).path)
 
-                NextLS.Logger.show_message(
-                  assigns(lsp).logger,
-                  :error,
-                  "Failed to format #{file}: #{description}"
-                )
+                  NextLS.Logger.show_message(
+                    assigns(lsp).logger,
+                    :error,
+                    "Failed to format #{file}: #{description}"
+                  )
 
-                NextLS.Logger.warning(
-                  assigns(lsp).logger,
-                  "Failed to format #{file}: #{description}"
-                )
+                  NextLS.Logger.warning(
+                    assigns(lsp).logger,
+                    "Failed to format #{file}: #{description}"
+                  )
 
-              _ ->
-                abs_file = URI.parse(uri).path
-                root_dir = URI.parse(wuri).path
-                file = Path.relative_to(abs_file, root_dir)
-                NextLS.Logger.show_message(assigns(lsp).logger, :error, "Failed to format #{file}")
-                NextLS.Logger.warning(assigns(lsp).logger, "Failed to format #{file}")
-            end
+                _ ->
+                  abs_file = URI.parse(uri).path
+                  root_dir = URI.parse(wuri).path
+                  file = Path.relative_to(abs_file, root_dir)
+                  NextLS.Logger.show_message(assigns(lsp).logger, :error, "Failed to format #{file}")
+                  NextLS.Logger.warning(assigns(lsp).logger, "Failed to format #{file}")
+              end
 
-            {:reply, nil, lsp}
-        end
-      end)
+              {:reply, nil, lsp}
+          end
+        end)
+
+      with %GenLSP.ErrorResponse{} <- result do
+        {:reply, result, lsp}
+      end
     else
       NextLS.Logger.warning(
         assigns(lsp).logger,
@@ -950,6 +961,8 @@ defmodule NextLS do
         },
         lsp
       ) do
+    # NextLS.Logger.log(assigns(lsp).logger, "did save pid: " <> inspect(self()))
+
     refresh_refs =
       if assigns(lsp).ready do
         # dispatching to all workspaces

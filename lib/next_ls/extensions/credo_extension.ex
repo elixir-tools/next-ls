@@ -88,10 +88,26 @@ defmodule NextLS.CredoExtension do
 
               task =
                 Task.Supervisor.async_nolink(state.task_supervisor, fn ->
-                  case Runtime.call(runtime, {:_next_ls_private_credo, :issues, [state.settings.cli_options, path]}) do
-                    {:ok, issues} -> issues
-                    _error -> []
-                  end
+                  {time, result} =
+                    :timer.tc(
+                      fn ->
+                        case Runtime.call(
+                               runtime,
+                               {:_next_ls_private_credo, :issues, [state.settings.cli_options, path]}
+                             ) do
+                          {:ok, issues} -> issues
+                          _error -> []
+                        end
+                      end,
+                      :millisecond
+                    )
+
+                  NextLS.Logger.info(
+                    state.logger,
+                    "[extension] Credo finished running in #{time}ms"
+                  )
+
+                  result
                 end)
 
               {state, Map.put(refs, task.ref, namespace)}
@@ -140,6 +156,17 @@ defmodule NextLS.CredoExtension do
     send(state.publisher, :publish)
 
     {:noreply, put_in(state.refresh_refs, refs)}
+  end
+
+  def handle_info({ref, issues}, %{refresh_refs: _refs} = state) do
+    Process.demonitor(ref, [:flush])
+
+    NextLS.Logger.info(
+      state.logger,
+      "[extension] Credo received response from untracked ref: #{inspect(ref)} with payload: #{inspect(issues)}"
+    )
+
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, %{refresh_refs: refs} = state) when is_map_key(refs, ref) do
