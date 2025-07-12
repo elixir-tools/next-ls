@@ -12,7 +12,7 @@ defmodule NextLS.Commands.Pipe do
 
   defp opts do
     map(%{
-      position: Position.schematic(),
+      position: Position.schema(),
       uri: str(),
       text: list(str())
     })
