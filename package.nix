@@ -3,7 +3,6 @@
   beamPackages,
   elixir,
 }:
-
 beamPackages.mixRelease rec {
   pname = "next-ls";
   src = ./.;
@@ -17,7 +16,7 @@ beamPackages.mixRelease rec {
   mixFodDeps = beamPackages.fetchMixDeps {
     inherit src version elixir;
     pname = "next-ls-deps";
-    hash = "sha256-4Rt5Q0fX+fbncvxyXdpIhgEvn9VYX/QDxDdnbanT21Q=";
+    hash = "sha256-TE/hBsbFN6vlE0/VvdJaTxPah5uOdBfC70uhwNYyD4Y=";
     mixEnv = "prod";
   };
 

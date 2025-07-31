@@ -2,10 +2,6 @@ defmodule NextLS.Runtime do
   @moduledoc false
   use GenServer
 
-  alias OpenTelemetry.Tracer
-
-  require OpenTelemetry.Tracer
-
   @env Mix.env()
   defguardp is_ready(state) when is_map_key(state, :node)
 
