@@ -8,7 +8,7 @@ beamPackages.mixRelease rec {
   src = ./.;
   mixEnv = "prod";
   removeCookie = false;
-  version = "0.23.3"; # x-release-please-version
+  version = "0.23.4"; # x-release-please-version
 
   inherit elixir;
   inherit (beamPackages) erlang;
