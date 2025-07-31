@@ -49,7 +49,6 @@ defmodule NextLS.Support.Utils do
     mixarchives = Path.join(mixhome, "archives")
     File.mkdir_p!(bundle_base)
 
-    tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :one))
     r_tvisor = start_supervised!(Supervisor.child_spec(Task.Supervisor, id: :two))
     rvisor = start_supervised!({DynamicSupervisor, [strategy: :one_for_one]}, id: :three)
     start_supervised!({Registry, [keys: :duplicate, name: context.module]}, id: :four)
@@ -58,7 +57,6 @@ defmodule NextLS.Support.Utils do
     init_options = context[:init_options] || %{}
 
     pids = [
-      :one,
       :two,
       :three,
       :four,
@@ -67,7 +65,6 @@ defmodule NextLS.Support.Utils do
 
     server =
       server(NextLS,
-        task_supervisor: tvisor,
         runtime_task_supervisor: r_tvisor,
         dynamic_supervisor: rvisor,
         registry: context.module,
@@ -105,6 +102,8 @@ defmodule NextLS.Support.Utils do
                    )
                }
              })
+
+    assert_result 1, _, 500
 
     [server: server, client: client, pids: pids]
   end

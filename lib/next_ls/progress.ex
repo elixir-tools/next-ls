@@ -1,12 +1,14 @@
 defmodule NextLS.Progress do
   @moduledoc false
 
+  import GenLSP.LSP
+
   alias GenLSP.Notifications.DollarProgress
   alias GenLSP.Structures.ProgressParams
 
   def start(lsp, token, msg) do
     Task.start(fn ->
-      if lsp.assigns.client_capabilities.window.work_done_progress do
+      if assigns(lsp).client_capabilities.window.work_done_progress do
         GenLSP.request(lsp, %GenLSP.Requests.WindowWorkDoneProgressCreate{
           id: System.unique_integer([:positive]),
           params: %GenLSP.Structures.WorkDoneProgressCreateParams{
