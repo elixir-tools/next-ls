@@ -1295,15 +1295,20 @@ defmodule NextLS do
     {:noreply, lsp}
   end
 
-  def handle_info({ref, {:runtime_failed, _, _} = error}, %{assigns: %{refresh_refs: refs}} = lsp)
-      when is_map_key(refs, ref) do
-    Process.demonitor(ref, [:flush])
-    {{token, msg}, refs} = Map.pop(refs, ref)
+  def handle_info({ref, {:runtime_failed, _, _} = error}, lsp) do
+    %{refresh_refs: refs} = assigns(lsp)
 
-    Progress.stop(lsp, token, msg)
-    send(lsp.pid, error)
+    if is_map_key(refs, ref) do
+      Process.demonitor(ref, [:flush])
+      {{token, msg}, refs} = Map.pop(refs, ref)
 
-    {:noreply, assign(lsp, refresh_refs: refs)}
+      Progress.stop(lsp, token, msg)
+      send(lsp.pid, error)
+
+      {:noreply, assign(lsp, refresh_refs: refs)}
+    else
+      {:noreply, lsp}
+    end
   end
 
   def handle_info(message, lsp) do
