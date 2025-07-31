@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.4](https://github.com/elixir-tools/next-ls/compare/v0.23.3...v0.23.4) (2025-07-31)
+
+
+### Bug Fixes
+
+* handle requests asynchronously ([#568](https://github.com/elixir-tools/next-ls/issues/568)) ([2db81f5](https://github.com/elixir-tools/next-ls/commit/2db81f5e1a7a004d8c675d8443804d30ce59384f))
+
 ## [0.23.3](https://github.com/elixir-tools/next-ls/compare/v0.23.2...v0.23.3) (2025-01-12)
 
 
