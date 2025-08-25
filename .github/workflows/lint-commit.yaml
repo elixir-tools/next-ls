@@ -13,7 +13,7 @@ jobs:
     name: commitlint
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Deps
         run: yarn install
       - name: Lint PR Title
