@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> Next LS is merging with Elixir LS and Lexical! Read more about it at [www.elixir-tools.dev.](https://www.elixir-tools.dev/news/the-elixir-tools-update-vol-7/)
+> Next LS has been deprecated and focus has shifted to working on the official language server for Elixir: [Expert](https://github.com/elixir-lang/expert).
 
 # Next LS
 
